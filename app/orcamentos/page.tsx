@@ -1,0 +1,755 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { CheckCircle, Edit, Eye, FileText, Plus, Search, Trash2, Download, User, Calendar, MapPin, Package, Calculator } from "lucide-react"
+import { AppSidebar } from "../../components/app-sidebar"
+import { BudgetFormV2 as BudgetForm, type Budget } from "../../components/budget-form-v2"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { Separator } from "@/components/ui/separator"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { format } from "date-fns";
+import { useRouter } from "next/navigation";
+
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis
+} from "@/components/ui/pagination";
+
+import { getBudgets, createBudget, updateBudget, deleteBudget, generateBudgetNumber } from "../../lib/database/budgets";
+import { createRental } from "../../lib/database/rentals";
+import { transformBudgetFromDB } from "../../lib/utils/data-transformers";
+import { LogisticsConfirmationModal } from "../../components/logistics-confirmation-modal";
+
+export default function BudgetsPage() {
+  const [budgets, setBudgets] = useState<Budget[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filteredBudgets, setFilteredBudgets] = useState<Budget[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("Todos")
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingBudget, setEditingBudget] = useState<Budget | undefined>()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [budgetToDelete, setBudgetToDelete] = useState<string | null>(null)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [viewingBudget, setViewingBudget] = useState<Budget | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isApproving, setIsApproving] = useState<string | null>(null)
+
+  // Estados para o novo modal
+  const [logisticsModalOpen, setLogisticsModalOpen] = useState(false)
+  const [approvingBudget, setApprovingBudget] = useState<Budget | null>(null)
+
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  const router = useRouter()
+
+  useEffect(() => {
+    loadBudgets()
+  }, [])
+
+  const loadBudgets = async () => {
+    try {
+      setLoading(true)
+      // Carregar apenas os primeiros 50 orçamentos para melhor performance
+      const dbBudgets = await getBudgets(50)
+      const transformedBudgets = dbBudgets.map(transformBudgetFromDB)
+      setBudgets(transformedBudgets)
+      setCurrentPage(1); // Reset to first page on new load
+    } catch (error) {
+      console.error("Erro ao carregar orçamentos:", error)
+      alert("Erro ao carregar orçamentos. Tente novamente.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Aplicar filtros
+  const applyFilters = () => {
+    let filtered = budgets
+
+    // Filtrar por termo de busca
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (budget) =>
+          budget.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          budget.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          budget.status.toLowerCase().includes(searchTerm.toLowerCase()),
+      )
+    }
+
+    // Filtrar por status
+    if (statusFilter !== "Todos") {
+      filtered = filtered.filter((budget) => budget.status === statusFilter)
+    }
+
+    // Ordenar: Pendentes primeiro, depois Aprovados
+    filtered.sort((a, b) => {
+      if (a.status === "Pendente" && b.status !== "Pendente") return -1
+      if (a.status !== "Pendente" && b.status === "Pendente") return 1
+      if (a.status === "Aprovado" && b.status !== "Aprovado") return -1
+      if (a.status !== "Aprovado" && b.status === "Aprovado") return 1
+      return 0
+    })
+
+    setFilteredBudgets(filtered)
+    setCurrentPage(1); // Reset to first page on new search
+  }
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value)
+  }
+
+  const handleStatusFilter = (value: string) => {
+    setStatusFilter(value)
+  }
+
+  // Aplicar filtros sempre que searchTerm, statusFilter ou budgets mudarem
+  useEffect(() => {
+    applyFilters()
+  }, [searchTerm, statusFilter, budgets])
+
+  const handleSaveBudget = async (budgetData: Omit<Budget, "id" | "number" | "createdAt"> & { id?: string }) => {
+    try {
+      let budgetNumber = ""
+
+      if (budgetData.id) {
+        // Editando orçamento existente
+        budgetNumber = budgets.find((b) => b.id === budgetData.id)?.number || ""
+      } else {
+        // Criando novo orçamento
+        budgetNumber = await generateBudgetNumber()
+      }
+
+      const dbBudgetData = {
+        number: budgetNumber,
+        client_id: budgetData.clientId,
+        client_name: budgetData.clientName,
+        start_date: budgetData.startDate, // Usar diretamente, já está no formato correto
+        end_date: budgetData.endDate, // Usar diretamente, já está no formato correto
+        installation_time: null, // Removido do formulário, agora é definido no modal de logística
+        removal_time: null, // Removido do formulário, agora é definido no modal de logística
+        installation_location: budgetData.installationLocation || null,
+        subtotal: budgetData.subtotal,
+        discount: budgetData.discount,
+        total_value: budgetData.totalValue,
+        status: budgetData.status,
+        observations: budgetData.observations || null,
+      }
+
+      const items = budgetData.items.map((item) => ({
+        equipment_name: item.equipmentName,
+        quantity: item.quantity,
+        daily_rate: item.dailyRate,
+        days: item.days,
+        total: item.total,
+      }))
+
+      if (budgetData.id) {
+        await updateBudget(budgetData.id, dbBudgetData, items)
+      } else {
+        await createBudget(dbBudgetData, items)
+      }
+
+      await loadBudgets()
+      // Não definir editingBudget como undefined aqui, deixar o modal fechar naturalmente
+    } catch (error) {
+      alert("Erro ao salvar orçamento. Tente novamente.")
+    }
+  }
+
+  const handleEditBudget = (budget: Budget) => {
+    setEditingBudget(budget)
+    setIsFormOpen(true)
+  }
+
+  const handleDeleteBudget = (id: string) => {
+    setBudgetToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  // Abre o modal de confirmação de logística
+  const handleApproveBudget = (budget: Budget) => {
+    setApprovingBudget(budget)
+    setLogisticsModalOpen(true)
+  }
+
+  const handleConfirmApproval = async (logisticsData: { installation: Date; removal: Date }) => {
+    if (!approvingBudget) return
+
+    try {
+      setIsApproving(approvingBudget.id)
+
+      // Helper para formatar a hora
+      const formatTime = (date: Date) => format(date, "HH:mm");
+
+      // 1. Criar contrato de locação com os dados de logística
+      const rentalData = {
+        client_id: approvingBudget.clientId,
+        client_name: approvingBudget.clientName,
+        start_date: approvingBudget.startDate,
+        end_date: approvingBudget.endDate,
+        installation_time: formatTime(logisticsData.installation),
+        removal_time: formatTime(logisticsData.removal),
+        installation_location: approvingBudget.installationLocation || null,
+        total_value: approvingBudget.totalValue,
+        discount: approvingBudget.discount,
+        final_value: approvingBudget.totalValue - approvingBudget.discount,
+        status: "Instalação Pendente" as const,
+        observations: approvingBudget.observations || null,
+        budget_id: approvingBudget.id,
+      }
+
+      const rentalItems = approvingBudget.items.map((item) => ({
+        equipment_name: item.equipmentName,
+        quantity: item.quantity,
+        daily_rate: item.dailyRate,
+        days: item.days,
+        total: item.total,
+      }))
+
+      await createRental(rentalData, rentalItems, logisticsData)
+
+      // 2. Atualizar o status do orçamento para "Aprovado"
+      await updateBudget(approvingBudget.id, { status: "Aprovado" }, [])
+
+      await loadBudgets()
+
+      alert(`Orçamento ${approvingBudget.number} aprovado! Contrato criado e eventos adicionados à agenda.`)
+
+      setTimeout(() => {
+        router.push("/locacoes")
+      }, 1500)
+    } catch (error) {
+      alert("Erro ao aprovar orçamento. Tente novamente.")
+    } finally {
+      setIsApproving(null)
+      setApprovingBudget(null)
+      setLogisticsModalOpen(false)
+    }
+  }
+
+  const handleViewBudget = (budget: Budget) => {
+    setViewingBudget(budget)
+    setViewDialogOpen(true)
+  }
+
+  const handleGeneratePDF = (budget: Budget) => {
+    // Simular geração de PDF
+    alert(`PDF do orçamento ${budget.number} seria gerado aqui`)
+  }
+
+  const confirmDelete = async () => {
+    if (budgetToDelete) {
+      try {
+        setIsDeleting(true)
+        await deleteBudget(budgetToDelete)
+        await loadBudgets()
+      } catch (error) {
+        alert("Erro ao deletar orçamento. Tente novamente.")
+      } finally {
+        setIsDeleting(false)
+        setDeleteDialogOpen(false)
+        setBudgetToDelete(null)
+      }
+    }
+  }
+
+  const getStatusBadge = (status: Budget["status"]) => {
+    const styles = {
+      Pendente: "bg-accent/10 text-accent",
+      Aprovado: "bg-primary/10 text-primary",
+      Rejeitado: "bg-red-100 text-red-800",
+    }
+    return styles[status]
+  }
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy");
+    } catch (error) {
+      return "Data inválida";
+    }
+  };
+
+  const totalPages = Math.ceil(filteredBudgets.length / ITEMS_PER_PAGE);
+  const paginatedBudgets = filteredBudgets.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <div className="flex flex-1 items-center justify-between">
+            <div>
+              <h1 className="text-lg font-semibold text-foreground">Orçamentos</h1>
+              <p className="text-sm text-gray-600">Gerencie orçamentos pendentes de aprovação</p>
+            </div>
+            <Button
+              onClick={() => {
+                setEditingBudget(undefined)
+                setIsFormOpen(true)
+              }}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Orçamento
+            </Button>
+          </div>
+        </header>
+
+        <main className="flex-1 space-y-6 p-6 bg-gray-50">
+          {/* Busca */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-foreground">Buscar Orçamentos</CardTitle>
+              <CardDescription>Encontre orçamentos por número, cliente ou status</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3 items-end">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    placeholder="Buscar orçamentos..."
+                    value={searchTerm}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={handleStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status do orçamento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Todos">Todos os status</SelectItem>
+                    <SelectItem value="Pendente">Pendente</SelectItem>
+                    <SelectItem value="Aprovado">Aprovado</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center text-sm text-gray-600">
+                  {filteredBudgets.length} orçamento(s) encontrado(s)
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tabela de Orçamentos */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-foreground">Lista de Orçamentos</CardTitle>
+              <CardDescription>Todos os orçamentos cadastrados no sistema</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="font-semibold">Número</TableHead>
+                      <TableHead className="font-semibold">Cliente</TableHead>
+                      <TableHead className="font-semibold">Data</TableHead>
+                      <TableHead className="font-semibold">Valor Total</TableHead>
+                      <TableHead className="font-semibold">Status</TableHead>
+                      <TableHead className="font-semibold text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedBudgets.length === 0 && filteredBudgets.length > 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                          Nenhum orçamento encontrado na página atual.
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredBudgets.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                          {searchTerm || statusFilter !== "Todos"
+                            ? "Nenhum orçamento encontrado com os filtros aplicados."
+                            : "Nenhum orçamento cadastrado ainda."}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      paginatedBudgets.map((budget) => (
+                        <TableRow key={budget.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <FileText className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <div className="font-medium text-foreground">{budget.number}</div>
+                                <div className="text-sm text-gray-600">{budget.items.length} item(s)</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium text-foreground">{budget.clientName}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">{formatDate(budget.createdAt)}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">R$ {budget.totalValue.toFixed(2).replace(".", ",")}</div>
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getStatusBadge(
+                                budget.status,
+                              )}`}
+                            >
+                              {budget.status}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {budget.status === "Pendente" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleApproveBudget(budget)}
+                                  className="text-primary hover:text-primary hover:bg-primary/10"
+                                  title="Aprovar"
+                                  disabled={isApproving === budget.id}
+                                >
+                                  {isApproving === budget.id ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                  ) : (
+                                    <CheckCircle className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewBudget(budget)}
+                                title="Visualizar"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleGeneratePDF(budget)}
+                                title="Gerar PDF"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleEditBudget(budget)} title="Editar">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteBudget(budget.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                title="Excluir"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              {totalPages > 1 && (
+                <div className="mt-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(currentPage - 1);
+                          }}
+                          className={currentPage === 1 ? "pointer-events-none text-gray-400" : ""}
+                        />
+                      </PaginationItem>
+                      {[...Array(totalPages)].map((_, i) => (
+                        <PaginationItem key={i}>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(i + 1);
+                            }}
+                            isActive={currentPage === i + 1}
+                          >
+                            {i + 1}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(currentPage + 1);
+                          }}
+                          className={currentPage === totalPages ? "pointer-events-none text-gray-400" : ""}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </main>
+
+        {/* Formulário de Orçamento */}
+        <BudgetForm 
+          open={isFormOpen} 
+          onOpenChange={(open) => {
+            setIsFormOpen(open)
+            if (!open) {
+              // Limpar editingBudget quando o modal fechar
+              setEditingBudget(undefined)
+            }
+          }} 
+          budget={editingBudget} 
+          onSave={handleSaveBudget} 
+        />
+
+        {/* Modal de Confirmação de Logística */}
+        <LogisticsConfirmationModal
+          isOpen={logisticsModalOpen}
+          onOpenChange={setLogisticsModalOpen}
+          budget={approvingBudget}
+          onConfirm={handleConfirmApproval}
+        />
+
+        {/* Dialog de Visualização */}
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
+            <DialogHeader className="border-b pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    Orçamento {viewingBudget?.number}
+                  </DialogTitle>
+                  <DialogDescription className="text-base mt-1">
+                    {viewingBudget?.clientName}
+              </DialogDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${getStatusBadge(
+                      viewingBudget?.status || "Pendente",
+                    )}`}
+                  >
+                    {viewingBudget?.status}
+                  </span>
+                </div>
+              </div>
+            </DialogHeader>
+            
+            {viewingBudget && (
+              <div className="space-y-6 py-4">
+                {/* Informações do Cliente */}
+                <div className="bg-muted/50 p-4 rounded-lg border">
+                  <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    Informações do Cliente
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-muted-foreground">Nome:</span>
+                      <p className="text-foreground">{viewingBudget.clientName}</p>
+                    </div>
+                  <div>
+                      <span className="font-medium text-muted-foreground">Data de Criação:</span>
+                      <p className="text-foreground">{formatDate(viewingBudget.createdAt)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Período da Locação */}
+                <div className="bg-muted/50 p-4 rounded-lg border">
+                  <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    Período da Locação
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-muted-foreground">Data de Início:</span>
+                      <p className="text-foreground">{formatDate(viewingBudget.startDate)}</p>
+                  </div>
+                  <div>
+                      <span className="font-medium text-muted-foreground">Data de Término:</span>
+                      <p className="text-foreground">{formatDate(viewingBudget.endDate)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 p-2 bg-muted rounded text-center">
+                    <span className="font-semibold text-foreground">
+                      {viewingBudget.items.length > 0 ? viewingBudget.items[0].days : 1} dia(s) de locação
+                      </span>
+                  </div>
+                </div>
+
+                {/* Local de Instalação */}
+                {viewingBudget.installationLocation && (
+                  <div className="bg-muted/50 p-4 rounded-lg border">
+                    <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      Local de Instalação
+                    </h3>
+                    <p className="text-foreground">{viewingBudget.installationLocation}</p>
+                  </div>
+                )}
+
+                {/* Itens do Orçamento */}
+                <div className="bg-muted/50 p-4 rounded-lg border">
+                  <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                    Equipamentos ({viewingBudget.items.length} item{viewingBudget.items.length !== 1 ? 's' : ''})
+                  </h3>
+                  <div className="space-y-3">
+                    {viewingBudget.items.map((item, index) => (
+                      <div key={item.id} className="bg-background p-4 rounded-lg border shadow-sm">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="bg-primary/10 text-primary text-xs font-medium px-2 py-1 rounded">
+                                {index + 1}
+                              </span>
+                              <h4 className="font-semibold text-foreground">{item.equipmentName}</h4>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                              <div>
+                                <span className="font-medium">Quantidade:</span>
+                                <p>{item.quantity}x</p>
+                              </div>
+                              <div>
+                                <span className="font-medium">Dias:</span>
+                                <p>{item.days} dia(s)</p>
+                              </div>
+                <div>
+                                <span className="font-medium">Valor/Dia:</span>
+                                <p>R$ {item.dailyRate.toFixed(2)}</p>
+                              </div>
+                        <div>
+                                <span className="font-medium">Subtotal:</span>
+                                <p className="font-semibold text-foreground">R$ {item.total.toFixed(2)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Resumo Financeiro */}
+                <div className="bg-muted/50 p-4 rounded-lg border">
+                  <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <Calculator className="h-4 w-4 text-muted-foreground" />
+                    Resumo Financeiro
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-muted-foreground">Subtotal:</span>
+                      <span className="font-medium text-foreground">R$ {viewingBudget.subtotal.toFixed(2)}</span>
+                    </div>
+                    {viewingBudget.discount > 0 && (
+                      <div className="flex justify-between items-center py-2 border-b">
+                        <span className="text-muted-foreground">Desconto:</span>
+                        <span className="font-medium text-destructive">- R$ {viewingBudget.discount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center py-2 font-bold text-lg">
+                      <span className="text-foreground">Total Geral:</span>
+                  <span className="text-primary">R$ {viewingBudget.totalValue.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Observações */}
+                {viewingBudget.observations && (
+                  <div className="bg-muted/50 p-4 rounded-lg border">
+                    <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      Observações
+                    </h3>
+                    <p className="text-foreground whitespace-pre-wrap">{viewingBudget.observations}</p>
+                  </div>
+                )}
+
+                {/* Ações */}
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleGeneratePDF(viewingBudget)}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Gerar PDF
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setViewDialogOpen(false)
+                      handleEditBudget(viewingBudget)
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Editar Orçamento
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Confirmação de Exclusão */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-foreground">Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700" disabled={isDeleting}>
+                {isDeleting ? "Excluindo..." : "Excluir"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}
