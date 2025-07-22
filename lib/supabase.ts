@@ -37,6 +37,9 @@ export interface Equipment {
   category: string
   description: string | null
   daily_rate: number
+  quantity: number
+  rented_quantity: number
+  maintenance_quantity: number
   status: "Disponível" | "Alugado" | "Manutenção"
   created_at: string
   updated_at: string
@@ -57,6 +60,11 @@ export interface Budget {
   total_value: number
   status: "Pendente" | "Aprovado" | "Rejeitado"
   observations: string | null
+  // Campos de recorrência
+  is_recurring: boolean
+  recurrence_type: "weekly" | "monthly" | "yearly"
+  recurrence_interval: number
+  recurrence_end_date: string | null
   created_at: string
   updated_at: string
 }
@@ -84,9 +92,17 @@ export interface Rental {
   total_value: number
   discount: number
   final_value: number
-  status: "Instalação Pendente" | "Ativo" | "Concluído"
-  observations: string | null
   budget_id: string | null
+  
+  // Novos campos para recorrência
+  is_recurring: boolean
+  recurrence_type: "weekly" | "monthly" | "yearly"
+  recurrence_interval: number
+  recurrence_end_date: string | null
+  recurrence_status: "active" | "paused" | "cancelled" | "completed"
+  parent_rental_id: string | null
+  next_occurrence_date: string | null
+  
   created_at: string
   updated_at: string
 }
@@ -100,4 +116,17 @@ export interface RentalItem {
   days: number
   total: number
   created_at: string
+}
+
+// Nova interface para ocorrências recorrentes
+export interface RecurringRentalOccurrence {
+  id: string
+  parent_rental_id: string
+  occurrence_number: number
+  start_date: string
+  end_date: string
+  installation_date: string | null
+  removal_date: string | null
+  created_at: string
+  updated_at: string
 }

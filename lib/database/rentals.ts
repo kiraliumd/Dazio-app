@@ -2,6 +2,50 @@ import { supabase } from "../supabase"
 import type { Rental, RentalItem } from "../supabase"
 import { format } from "date-fns"
 
+// Função para calcular a próxima data de ocorrência
+function calculateNextOccurrenceDate(rental: any): string | null {
+  if (!rental.is_recurring || !rental.recurrence_type || rental.recurrence_type === "none") {
+    return null
+  }
+
+  try {
+    const endDate = new Date(rental.end_date)
+    const interval = rental.recurrence_interval || 1
+    
+    let nextDate = new Date(endDate)
+    
+    switch (rental.recurrence_type) {
+      case "daily":
+        nextDate.setDate(endDate.getDate() + interval)
+        break
+      case "weekly":
+        nextDate.setDate(endDate.getDate() + (interval * 7))
+        break
+      case "monthly":
+        nextDate.setMonth(endDate.getMonth() + interval)
+        break
+      case "yearly":
+        nextDate.setFullYear(endDate.getFullYear() + interval)
+        break
+      default:
+        return null
+    }
+    
+    // Verificar se não ultrapassou a data de fim da recorrência
+    if (rental.recurrence_end_date) {
+      const endRecurrenceDate = new Date(rental.recurrence_end_date)
+      if (nextDate > endRecurrenceDate) {
+        return null
+      }
+    }
+    
+    return nextDate.toISOString() // Retorna como timestamp para compatibilidade com o banco
+  } catch (error) {
+    console.error("Erro ao calcular próxima ocorrência:", error)
+    return null
+  }
+}
+
 export async function getRentals(limit?: number) {
   let query = supabase
     .from("rentals")
@@ -67,12 +111,23 @@ export async function createRental(
     total_value: rental.total_value,
     discount: rental.discount,
     final_value: rental.final_value,
-    status: rental.status,
     observations: rental.observations,
     budget_id: rental.budget_id,
+    
+    // Campos de recorrência
+    is_recurring: rental.is_recurring || false,
+    recurrence_type: rental.recurrence_type || "none",
+    recurrence_interval: rental.recurrence_interval || 1,
+    recurrence_end_date: rental.recurrence_end_date || null,
+    recurrence_status: rental.recurrence_status || "active",
+    parent_rental_id: rental.parent_rental_id || null,
   }
 
+  // Calcular próxima ocorrência
+  rentalData.next_occurrence_date = rental.next_occurrence_date || calculateNextOccurrenceDate(rental)
+
   // Adicionar horários se as colunas existirem
+
   // Essas colunas podem não existir na tabela, então não vamos incluí-las por padrão
   // Se você quiser usar horários separados, execute o script 044-add-time-columns-to-rentals.sql
   
@@ -83,6 +138,12 @@ export async function createRental(
   console.log("Dados a serem inseridos:", rentalData)
   console.log("Período da locação:", rental.start_date, "até", rental.end_date)
   console.log("Datas de logística:", logisticsData.installation, "e", logisticsData.removal)
+  console.log("Dados de recorrência:", {
+    is_recurring: rentalData.is_recurring,
+    recurrence_type: rentalData.recurrence_type,
+    recurrence_interval: rentalData.recurrence_interval,
+    recurrence_status: rentalData.recurrence_status
+  })
 
   // 1. Criar a locação
   console.log("Tentando inserir locação com dados:", JSON.stringify(rentalData, null, 2))
@@ -176,7 +237,6 @@ export async function updateRental(
   if (rental.total_value !== undefined) updateData.total_value = rental.total_value
   if (rental.discount !== undefined) updateData.discount = rental.discount
   if (rental.final_value !== undefined) updateData.final_value = rental.final_value
-  if (rental.status !== undefined) updateData.status = rental.status
   if (rental.observations !== undefined) updateData.observations = rental.observations
   if (rental.budget_id !== undefined) updateData.budget_id = rental.budget_id
 
@@ -279,3 +339,22 @@ export async function getLogisticsEvents() {
 
   return data || []
 }
+
+// Buscar locações fechadas aguardando aprovação financeira
+export async function getPendingFinancialApprovalRentals() {
+  const { data, error } = await supabase
+    .from("rentals")
+    .select("*")
+    .eq("status", "Instalação Pendente")
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Erro ao buscar locações para aprovação financeira:", error)
+    throw error
+  }
+
+  return data || []
+}
+
+// Criar conta a receber para locação e transação financeira se for pagamento à vista
+

@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { CheckCircle, Edit, Eye, FileText, Plus, Search, Trash2, Download, User, Calendar, MapPin, Package, Calculator } from "lucide-react"
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
+import { CheckCircle, Edit, Eye, FileText, Plus, Search, Trash2, Download, User, Calendar, MapPin, Package, Calculator, Repeat } from "lucide-react"
 import { AppSidebar } from "../../components/app-sidebar"
-import { BudgetFormV2 as BudgetForm, type Budget } from "../../components/budget-form-v2"
+// Lazy load do componente pesado
+const BudgetFormV2 = lazy(() => import("../../components/budget-form-v2").then(module => ({ default: module.BudgetFormV2 })))
+import type { Budget } from "../../components/budget-form-v2"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -38,12 +40,38 @@ import {
 import { getBudgets, createBudget, updateBudget, deleteBudget, generateBudgetNumber } from "../../lib/database/budgets";
 import { createRental } from "../../lib/database/rentals";
 import { transformBudgetFromDB } from "../../lib/utils/data-transformers";
-import { LogisticsConfirmationModal } from "../../components/logistics-confirmation-modal";
+// Lazy load do modal pesado
+const LogisticsConfirmationModal = lazy(() => import("../../components/logistics-confirmation-modal").then(module => ({ default: module.LogisticsConfirmationModal })))
+import { usePDFGenerator } from "../../hooks/usePDFGenerator";
+import { getCompanySettings } from "../../lib/database/settings";
+
+// Hook para debounce
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+// Componente de loading para lazy components
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center p-4">
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+  </div>
+);
 
 export default function BudgetsPage() {
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [loading, setLoading] = useState(true)
-  const [filteredBudgets, setFilteredBudgets] = useState<Budget[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("Todos")
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -63,11 +91,66 @@ export default function BudgetsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
+  // Hook para geração de PDF
+  const { generateBudgetPDF, isGenerating } = usePDFGenerator();
+
   const router = useRouter()
 
+  // Debounce do termo de busca para evitar queries desnecessárias
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Memoização dos filtros aplicados
+  const filteredBudgets = useMemo(() => {
+    if (budgets.length === 0) return [];
+
+    let filtered = budgets;
+
+    // Filtrar por termo de busca
+    if (debouncedSearchTerm.trim()) {
+      const searchLower = debouncedSearchTerm.toLowerCase()
+      filtered = filtered.filter(
+        (budget: Budget) =>
+          budget.number.toLowerCase().includes(searchLower) ||
+          budget.clientName.toLowerCase().includes(searchLower) ||
+          budget.status.toLowerCase().includes(searchLower),
+      )
+    }
+
+    // Filtrar por status
+    if (statusFilter !== "Todos") {
+      filtered = filtered.filter((budget: Budget) => budget.status === statusFilter)
+    }
+
+    // Ordenar: Pendentes primeiro, depois Aprovados
+    filtered.sort((a: Budget, b: Budget) => {
+      if (a.status === "Pendente" && b.status !== "Pendente") return -1
+      if (a.status !== "Pendente" && b.status === "Pendente") return 1
+      if (a.status === "Aprovado" && b.status !== "Aprovado") return -1
+      if (a.status !== "Aprovado" && b.status === "Aprovado") return 1
+      return 0
+    })
+
+    return filtered;
+  }, [budgets, debouncedSearchTerm, statusFilter]);
+
+  // Memoização da paginação
+  const paginatedBudgets = useMemo(() => {
+    return filteredBudgets.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  }, [filteredBudgets, currentPage]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredBudgets.length / ITEMS_PER_PAGE);
+  }, [filteredBudgets.length]);
+
+  // Carregar dados apenas uma vez na montagem
   useEffect(() => {
     loadBudgets()
   }, [])
+
+  // Reset da página quando filtros mudarem
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, statusFilter]);
 
   const loadBudgets = async () => {
     try {
@@ -76,7 +159,6 @@ export default function BudgetsPage() {
       const dbBudgets = await getBudgets(50)
       const transformedBudgets = dbBudgets.map(transformBudgetFromDB)
       setBudgets(transformedBudgets)
-      setCurrentPage(1); // Reset to first page on new load
     } catch (error) {
       console.error("Erro ao carregar orçamentos:", error)
       alert("Erro ao carregar orçamentos. Tente novamente.")
@@ -85,50 +167,13 @@ export default function BudgetsPage() {
     }
   }
 
-  // Aplicar filtros
-  const applyFilters = () => {
-    let filtered = budgets
-
-    // Filtrar por termo de busca
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (budget) =>
-          budget.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          budget.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          budget.status.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
-    }
-
-    // Filtrar por status
-    if (statusFilter !== "Todos") {
-      filtered = filtered.filter((budget) => budget.status === statusFilter)
-    }
-
-    // Ordenar: Pendentes primeiro, depois Aprovados
-    filtered.sort((a, b) => {
-      if (a.status === "Pendente" && b.status !== "Pendente") return -1
-      if (a.status !== "Pendente" && b.status === "Pendente") return 1
-      if (a.status === "Aprovado" && b.status !== "Aprovado") return -1
-      if (a.status !== "Aprovado" && b.status === "Aprovado") return 1
-      return 0
-    })
-
-    setFilteredBudgets(filtered)
-    setCurrentPage(1); // Reset to first page on new search
-  }
-
-  const handleSearch = (value: string) => {
+  const handleSearch = useCallback((value: string) => {
     setSearchTerm(value)
-  }
+  }, [])
 
-  const handleStatusFilter = (value: string) => {
+  const handleStatusFilter = useCallback((value: string) => {
     setStatusFilter(value)
-  }
-
-  // Aplicar filtros sempre que searchTerm, statusFilter ou budgets mudarem
-  useEffect(() => {
-    applyFilters()
-  }, [searchTerm, statusFilter, budgets])
+  }, [])
 
   const handleSaveBudget = async (budgetData: Omit<Budget, "id" | "number" | "createdAt"> & { id?: string }) => {
     try {
@@ -136,7 +181,7 @@ export default function BudgetsPage() {
 
       if (budgetData.id) {
         // Editando orçamento existente
-        budgetNumber = budgets.find((b) => b.id === budgetData.id)?.number || ""
+        budgetNumber = budgets.find((b: Budget) => b.id === budgetData.id)?.number || ""
       } else {
         // Criando novo orçamento
         budgetNumber = await generateBudgetNumber()
@@ -156,9 +201,14 @@ export default function BudgetsPage() {
         total_value: budgetData.totalValue,
         status: budgetData.status,
         observations: budgetData.observations || null,
+        // Campos de recorrência
+        is_recurring: budgetData.recurrenceType ? true : false,
+        recurrence_type: (budgetData.recurrenceType as "weekly" | "monthly" | "yearly") || "weekly",
+        recurrence_interval: budgetData.recurrenceInterval || 1,
+        recurrence_end_date: budgetData.recurrenceEndDate || null,
       }
 
-      const items = budgetData.items.map((item) => ({
+      const items = budgetData.items.map((item: any) => ({
         equipment_name: item.equipmentName,
         quantity: item.quantity,
         daily_rate: item.dailyRate,
@@ -179,21 +229,21 @@ export default function BudgetsPage() {
     }
   }
 
-  const handleEditBudget = (budget: Budget) => {
+  const handleEditBudget = useCallback((budget: Budget) => {
     setEditingBudget(budget)
     setIsFormOpen(true)
-  }
+  }, [])
 
-  const handleDeleteBudget = (id: string) => {
+  const handleDeleteBudget = useCallback((id: string) => {
     setBudgetToDelete(id)
     setDeleteDialogOpen(true)
-  }
+  }, [])
 
   // Abre o modal de confirmação de logística
-  const handleApproveBudget = (budget: Budget) => {
+  const handleApproveBudget = useCallback((budget: Budget) => {
     setApprovingBudget(budget)
     setLogisticsModalOpen(true)
-  }
+  }, [])
 
   const handleConfirmApproval = async (logisticsData: { installation: Date; removal: Date }) => {
     if (!approvingBudget) return
@@ -219,9 +269,17 @@ export default function BudgetsPage() {
         status: "Instalação Pendente" as const,
         observations: approvingBudget.observations || null,
         budget_id: approvingBudget.id,
+        // Campos de recorrência
+        is_recurring: approvingBudget.recurrenceType ? true : false,
+        recurrence_type: approvingBudget.recurrenceType || "weekly",
+        recurrence_interval: approvingBudget.recurrenceInterval || 1,
+        recurrence_end_date: approvingBudget.recurrenceEndDate || null,
+        recurrence_status: "active" as const,
+        parent_rental_id: null,
+        next_occurrence_date: null,
       }
 
-      const rentalItems = approvingBudget.items.map((item) => ({
+      const rentalItems = approvingBudget.items.map((item: any) => ({
         equipment_name: item.equipmentName,
         quantity: item.quantity,
         daily_rate: item.dailyRate,
@@ -229,77 +287,191 @@ export default function BudgetsPage() {
         total: item.total,
       }))
 
+      // 2. Criar a locação
       await createRental(rentalData, rentalItems, logisticsData)
 
-      // 2. Atualizar o status do orçamento para "Aprovado"
-      await updateBudget(approvingBudget.id, { status: "Aprovado" }, [])
+      // 3. Atualizar o status do orçamento para "Aprovado"
+      await updateBudget(approvingBudget.id, { status: "Aprovado" })
 
+      // 4. Recarregar os orçamentos
       await loadBudgets()
 
-      alert(`Orçamento ${approvingBudget.number} aprovado! Contrato criado e eventos adicionados à agenda.`)
-
-      setTimeout(() => {
-        router.push("/locacoes")
-      }, 1500)
-    } catch (error) {
-      alert("Erro ao aprovar orçamento. Tente novamente.")
-    } finally {
-      setIsApproving(null)
-      setApprovingBudget(null)
+      // 5. Fechar o modal
       setLogisticsModalOpen(false)
+      setApprovingBudget(null)
+      setIsApproving(null)
+
+      // 6. Navegar para a página apropriada baseada no tipo de recorrência
+      if (approvingBudget.recurrenceType) {
+        window.location.href = "/locacoes-recorrentes"
+      } else {
+        window.location.href = "/locacoes"
+      }
+    } catch (error) {
+      console.error("Erro ao aprovar orçamento:", error)
+      alert("Erro ao aprovar orçamento. Tente novamente.")
+      setIsApproving(null)
     }
   }
 
-  const handleViewBudget = (budget: Budget) => {
+  const handleViewBudget = useCallback((budget: Budget) => {
     setViewingBudget(budget)
     setViewDialogOpen(true)
-  }
+  }, [])
 
-  const handleGeneratePDF = (budget: Budget) => {
-    // Simular geração de PDF
-    alert(`PDF do orçamento ${budget.number} seria gerado aqui`)
+  const handleGeneratePDF = async (budget: Budget) => {
+    try {
+      const companySettings = await getCompanySettings()
+      await generateBudgetPDF(budget, companySettings)
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error)
+      alert("Erro ao gerar PDF. Tente novamente.")
+    }
   }
 
   const confirmDelete = async () => {
-    if (budgetToDelete) {
-      try {
-        setIsDeleting(true)
-        await deleteBudget(budgetToDelete)
-        await loadBudgets()
-      } catch (error) {
-        alert("Erro ao deletar orçamento. Tente novamente.")
-      } finally {
-        setIsDeleting(false)
-        setDeleteDialogOpen(false)
-        setBudgetToDelete(null)
-      }
-    }
-  }
+    if (!budgetToDelete) return
 
-  const getStatusBadge = (status: Budget["status"]) => {
-    const styles = {
-      Pendente: "bg-accent/10 text-accent",
-      Aprovado: "bg-primary/10 text-primary",
-      Rejeitado: "bg-red-100 text-red-800",
-    }
-    return styles[status]
-  }
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "N/A";
     try {
-      return format(new Date(dateString), "dd/MM/yyyy");
+      setIsDeleting(true)
+      await deleteBudget(budgetToDelete)
+      await loadBudgets()
+      setDeleteDialogOpen(false)
+      setBudgetToDelete(null)
     } catch (error) {
-      return "Data inválida";
+      console.error("Erro ao excluir orçamento:", error)
+      alert("Erro ao excluir orçamento. Tente novamente.")
+    } finally {
+      setIsDeleting(false)
     }
-  };
+  }
 
-  const totalPages = Math.ceil(filteredBudgets.length / ITEMS_PER_PAGE);
-  const paginatedBudgets = filteredBudgets.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  // Memoização do componente de badge de status
+  const getStatusBadge = useCallback((status: Budget["status"]) => {
+    switch (status) {
+      case "Pendente":
+        return "bg-yellow-100 text-yellow-800"
+      case "Aprovado":
+        return "bg-green-100 text-green-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }, [])
 
-  const handlePageChange = (page: number) => {
+  // Memoização da formatação de data
+  const formatDate = useCallback((dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy")
+    } catch {
+      return "Data inválida"
+    }
+  }, [])
+
+  const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
-  };
+  }, []);
+
+  // Memoização do componente de linha da tabela
+  const BudgetTableRow = useCallback(({ budget }: { budget: Budget }) => (
+    <TableRow key={budget.id}>
+      <TableCell>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="font-medium text-foreground">{budget.number}</div>
+            <div className="text-sm text-text-secondary">{budget.items.length} item(s)</div>
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="font-medium text-foreground">{budget.clientName}</div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm text-text-secondary">{formatDate(budget.createdAt)}</div>
+      </TableCell>
+      <TableCell>
+        <div className="font-medium text-foreground">R$ {budget.totalValue.toFixed(2).replace(".", ",")}</div>
+      </TableCell>
+      <TableCell>
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getStatusBadge(
+            budget.status,
+          )}`}
+        >
+          {budget.status}
+        </span>
+      </TableCell>
+      <TableCell>
+        {budget.recurrenceType ? (
+          <div className="flex items-center gap-1">
+            <Repeat className="h-3 w-3 text-blue-600" />
+            <span className="text-xs text-blue-600 font-medium">
+              {budget.recurrenceType === "weekly" ? "Semanal" : 
+               budget.recurrenceType === "monthly" ? "Mensal" : 
+               budget.recurrenceType === "yearly" ? "Anual" : "Recorrente"}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs text-gray-500">Não recorrente</span>
+        )}
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end gap-1 flex-wrap">
+          {budget.status === "Pendente" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleApproveBudget(budget)}
+              className="text-primary hover:text-primary hover:bg-primary/10"
+              title="Aprovar"
+              disabled={isApproving === budget.id}
+            >
+              {isApproving === budget.id ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleViewBudget(budget)}
+            title="Visualizar"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleGeneratePDF(budget)}
+            disabled={isGenerating}
+            title="Gerar PDF"
+          >
+            {isGenerating ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handleEditBudget(budget)} title="Editar">
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleDeleteBudget(budget.id)}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            title="Excluir"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  ), [handleApproveBudget, handleViewBudget, handleEditBudget, handleDeleteBudget, handleGeneratePDF, isApproving, isGenerating, formatDate, getStatusBadge]);
 
   return (
     <SidebarProvider>
@@ -309,38 +481,43 @@ export default function BudgetsPage() {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <div className="flex flex-1 items-center justify-between">
-            <div>
-              <h1 className="text-lg font-semibold text-foreground">Orçamentos</h1>
-              <p className="text-sm text-gray-600">Gerencie orçamentos pendentes de aprovação</p>
+            <div className="min-w-0">
+              <h1 className="text-lg font-semibold text-foreground truncate">Orçamentos</h1>
+              <p className="text-sm text-text-secondary hidden sm:block">Gerencie orçamentos pendentes de aprovação</p>
             </div>
-            <Button
-              onClick={() => {
-                setEditingBudget(undefined)
-                setIsFormOpen(true)
-              }}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Orçamento
-            </Button>
           </div>
         </header>
 
-        <main className="flex-1 space-y-6 p-6 bg-gray-50">
-          {/* Busca */}
+        <main className="flex-1 space-y-6 p-4 sm:p-6 bg-background">
+          {/* Tabela de Orçamentos */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-foreground">Buscar Orçamentos</CardTitle>
-              <CardDescription>Encontre orçamentos por número, cliente ou status</CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <CardTitle className="text-foreground">Lista de Orçamentos</CardTitle>
+                  <CardDescription className="hidden sm:block">Todos os orçamentos cadastrados no sistema</CardDescription>
+                </div>
+                <Button
+                  onClick={() => {
+                    setEditingBudget(undefined)
+                    setIsFormOpen(true)
+                  }}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Orçamento
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-3 items-end">
+              {/* Filtros */}
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-end mb-6">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <Input
                     placeholder="Buscar orçamentos..."
                     value={searchTerm}
-                    onChange={(e) => handleSearch(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearch(e.target.value)}
                     className="pl-10"
                   />
                 </div>
@@ -354,132 +531,57 @@ export default function BudgetsPage() {
                     <SelectItem value="Aprovado">Aprovado</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="flex items-center text-sm text-gray-600">
+                <div className="flex items-center text-sm text-text-secondary col-span-1 sm:col-span-2 lg:col-span-1">
                   {filteredBudgets.length} orçamento(s) encontrado(s)
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Tabela de Orçamentos */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-foreground">Lista de Orçamentos</CardTitle>
-              <CardDescription>Todos os orçamentos cadastrados no sistema</CardDescription>
-            </CardHeader>
-            <CardContent>
+              
               <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="font-semibold">Número</TableHead>
-                      <TableHead className="font-semibold">Cliente</TableHead>
-                      <TableHead className="font-semibold">Data</TableHead>
-                      <TableHead className="font-semibold">Valor Total</TableHead>
-                      <TableHead className="font-semibold">Status</TableHead>
-                      <TableHead className="font-semibold text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedBudgets.length === 0 && filteredBudgets.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[800px]">
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                          Nenhum orçamento encontrado na página atual.
-                        </TableCell>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Número</TableHead>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Cliente</TableHead>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Data</TableHead>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Valor Total</TableHead>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Status</TableHead>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Recorrência</TableHead>
+                        <TableHead className="font-semibold text-right text-gray-900 bg-gray-50">Ações</TableHead>
                       </TableRow>
-                    ) : filteredBudgets.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                          {searchTerm || statusFilter !== "Todos"
-                            ? "Nenhum orçamento encontrado com os filtros aplicados."
-                            : "Nenhum orçamento cadastrado ainda."}
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      paginatedBudgets.map((budget) => (
-                        <TableRow key={budget.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                <FileText className="h-5 w-5" />
-                              </div>
-                              <div>
-                                <div className="font-medium text-foreground">{budget.number}</div>
-                                <div className="text-sm text-gray-600">{budget.items.length} item(s)</div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium text-foreground">{budget.clientName}</div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">{formatDate(budget.createdAt)}</div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium">R$ {budget.totalValue.toFixed(2).replace(".", ",")}</div>
-                          </TableCell>
-                          <TableCell>
-                            <span
-                              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getStatusBadge(
-                                budget.status,
-                              )}`}
-                            >
-                              {budget.status}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              {budget.status === "Pendente" && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleApproveBudget(budget)}
-                                  className="text-primary hover:text-primary hover:bg-primary/10"
-                                  title="Aprovar"
-                                  disabled={isApproving === budget.id}
-                                >
-                                  {isApproving === budget.id ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                  ) : (
-                                    <CheckCircle className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              )}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewBudget(budget)}
-                                title="Visualizar"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleGeneratePDF(budget)}
-                                title="Gerar PDF"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleEditBudget(budget)} title="Editar">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDeleteBudget(budget.id)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                title="Excluir"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                    </TableHeader>
+                    <TableBody>
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                              <span className="text-text-secondary">Carregando orçamentos...</span>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : paginatedBudgets.length === 0 && filteredBudgets.length > 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-text-secondary">
+                            Nenhum orçamento encontrado na página atual.
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredBudgets.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-text-secondary">
+                            {searchTerm || statusFilter !== "Todos"
+                              ? "Nenhum orçamento encontrado com os filtros aplicados."
+                              : "Nenhum orçamento cadastrado ainda."}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        paginatedBudgets.map((budget: Budget) => (
+                          <BudgetTableRow key={budget.id} budget={budget} />
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
               {totalPages > 1 && (
                 <div className="mt-4">
@@ -488,7 +590,7 @@ export default function BudgetsPage() {
                       <PaginationItem>
                         <PaginationPrevious
                           href="#"
-                          onClick={(e) => {
+                          onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                             e.preventDefault();
                             handlePageChange(currentPage - 1);
                           }}
@@ -499,7 +601,7 @@ export default function BudgetsPage() {
                         <PaginationItem key={i}>
                           <PaginationLink
                             href="#"
-                            onClick={(e) => {
+                            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                               e.preventDefault();
                               handlePageChange(i + 1);
                             }}
@@ -512,7 +614,7 @@ export default function BudgetsPage() {
                       <PaginationItem>
                         <PaginationNext
                           href="#"
-                          onClick={(e) => {
+                          onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                             e.preventDefault();
                             handlePageChange(currentPage + 1);
                           }}
@@ -527,27 +629,35 @@ export default function BudgetsPage() {
           </Card>
         </main>
 
-        {/* Formulário de Orçamento */}
-        <BudgetForm 
-          open={isFormOpen} 
-          onOpenChange={(open) => {
-            setIsFormOpen(open)
-            if (!open) {
-              // Limpar editingBudget quando o modal fechar
-              setEditingBudget(undefined)
-            }
-          }} 
-          budget={editingBudget} 
-          onSave={handleSaveBudget} 
-        />
+        {/* Formulário de Orçamento - Lazy loaded */}
+        {isFormOpen && (
+          <Suspense fallback={<LoadingSpinner />}>
+            <BudgetFormV2 
+              open={isFormOpen} 
+              onOpenChange={(open: boolean) => {
+                setIsFormOpen(open)
+                if (!open) {
+                  // Limpar editingBudget quando o modal fechar
+                  setEditingBudget(undefined)
+                }
+              }} 
+              budget={editingBudget} 
+              onSave={handleSaveBudget} 
+            />
+          </Suspense>
+        )}
 
-        {/* Modal de Confirmação de Logística */}
-        <LogisticsConfirmationModal
-          isOpen={logisticsModalOpen}
-          onOpenChange={setLogisticsModalOpen}
-          budget={approvingBudget}
-          onConfirm={handleConfirmApproval}
-        />
+        {/* Modal de Confirmação de Logística - Lazy loaded */}
+        {logisticsModalOpen && (
+          <Suspense fallback={<LoadingSpinner />}>
+            <LogisticsConfirmationModal
+              isOpen={logisticsModalOpen}
+              onOpenChange={setLogisticsModalOpen}
+              budget={approvingBudget}
+              onConfirm={handleConfirmApproval}
+            />
+          </Suspense>
+        )}
 
         {/* Dialog de Visualização */}
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
@@ -561,7 +671,7 @@ export default function BudgetsPage() {
                   </DialogTitle>
                   <DialogDescription className="text-base mt-1">
                     {viewingBudget?.clientName}
-              </DialogDescription>
+                  </DialogDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <span
@@ -588,7 +698,7 @@ export default function BudgetsPage() {
                       <span className="font-medium text-muted-foreground">Nome:</span>
                       <p className="text-foreground">{viewingBudget.clientName}</p>
                     </div>
-                  <div>
+                    <div>
                       <span className="font-medium text-muted-foreground">Data de Criação:</span>
                       <p className="text-foreground">{formatDate(viewingBudget.createdAt)}</p>
                     </div>
@@ -605,8 +715,8 @@ export default function BudgetsPage() {
                     <div>
                       <span className="font-medium text-muted-foreground">Data de Início:</span>
                       <p className="text-foreground">{formatDate(viewingBudget.startDate)}</p>
-                  </div>
-                  <div>
+                    </div>
+                    <div>
                       <span className="font-medium text-muted-foreground">Data de Término:</span>
                       <p className="text-foreground">{formatDate(viewingBudget.endDate)}</p>
                     </div>
@@ -614,7 +724,7 @@ export default function BudgetsPage() {
                   <div className="mt-3 p-2 bg-muted rounded text-center">
                     <span className="font-semibold text-foreground">
                       {viewingBudget.items.length > 0 ? viewingBudget.items[0].days : 1} dia(s) de locação
-                      </span>
+                    </span>
                   </div>
                 </div>
 
@@ -636,7 +746,7 @@ export default function BudgetsPage() {
                     Equipamentos ({viewingBudget.items.length} item{viewingBudget.items.length !== 1 ? 's' : ''})
                   </h3>
                   <div className="space-y-3">
-                    {viewingBudget.items.map((item, index) => (
+                    {viewingBudget.items.map((item: any, index: number) => (
                       <div key={item.id} className="bg-background p-4 rounded-lg border shadow-sm">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
@@ -655,11 +765,11 @@ export default function BudgetsPage() {
                                 <span className="font-medium">Dias:</span>
                                 <p>{item.days} dia(s)</p>
                               </div>
-                <div>
+                              <div>
                                 <span className="font-medium">Valor/Dia:</span>
                                 <p>R$ {item.dailyRate.toFixed(2)}</p>
                               </div>
-                        <div>
+                              <div>
                                 <span className="font-medium">Subtotal:</span>
                                 <p className="font-semibold text-foreground">R$ {item.total.toFixed(2)}</p>
                               </div>
@@ -690,7 +800,7 @@ export default function BudgetsPage() {
                     )}
                     <div className="flex justify-between items-center py-2 font-bold text-lg">
                       <span className="text-foreground">Total Geral:</span>
-                  <span className="text-primary">R$ {viewingBudget.totalValue.toFixed(2)}</span>
+                      <span className="text-primary">R$ {viewingBudget.totalValue.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -711,10 +821,11 @@ export default function BudgetsPage() {
                   <Button
                     variant="outline"
                     onClick={() => handleGeneratePDF(viewingBudget)}
+                    disabled={isGenerating}
                     className="flex items-center gap-2"
                   >
                     <Download className="h-4 w-4" />
-                    Gerar PDF
+                    {isGenerating ? "Gerando..." : "Gerar PDF"}
                   </Button>
                   <Button
                     onClick={() => {

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -59,13 +59,37 @@ const formatPhone = (value: string) => {
 
 export function ClientForm({ open, onOpenChange, client, onSave }: ClientFormProps) {
   const [formData, setFormData] = useState({
-    name: client?.name || "",
-    phone: client?.phone || "",
-    email: client?.email || "",
-    documentType: client?.documentType || ("CPF" as const),
-    documentNumber: client?.documentNumber || "",
-    observations: client?.observations || "",
+    name: "",
+    phone: "",
+    email: "",
+    documentType: "CPF" as "CPF" | "CNPJ",
+    documentNumber: "",
+    observations: "",
   })
+
+  // Atualizar o formulário quando o cliente mudar
+  useEffect(() => {
+    if (client) {
+      setFormData({
+        name: client.name || "",
+        phone: client.phone || "",
+        email: client.email || "",
+        documentType: client.documentType || ("CPF" as "CPF" | "CNPJ"),
+        documentNumber: client.documentNumber || "",
+        observations: client.observations || "",
+      })
+    } else {
+      // Limpar o formulário quando não há cliente (novo cliente)
+      setFormData({
+        name: "",
+        phone: "",
+        email: "",
+        documentType: "CPF" as "CPF" | "CNPJ",
+        documentNumber: "",
+        observations: "",
+      })
+    }
+  }, [client])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,7 +103,7 @@ export function ClientForm({ open, onOpenChange, client, onSave }: ClientFormPro
         name: "",
         phone: "",
         email: "",
-        documentType: "CPF",
+        documentType: "CPF" as "CPF" | "CNPJ",
         documentNumber: "",
         observations: "",
       })

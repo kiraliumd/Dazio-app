@@ -9,6 +9,7 @@ export interface CompanySettings {
   phone: string | null;
   email: string | null;
   website: string | null;
+  contract_template: string | null;
   updated_at?: string;
 }
 
@@ -38,6 +39,7 @@ export async function getCompanySettings(): Promise<CompanySettings> {
       phone: "",
       email: "",
       website: "",
+      contract_template: "",
     };
   }
 

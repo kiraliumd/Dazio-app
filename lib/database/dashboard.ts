@@ -5,6 +5,7 @@ export interface DashboardMetrics {
   activeRentals: number
   monthlyRevenue: number
   scheduledEvents: number
+  monthlyRentals: number // Novo campo
 }
 
 // Cache simples para métricas do dashboard (5 minutos)
@@ -23,7 +24,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
       { count: pendingBudgets },
       { count: activeRentals },
       { data: monthlyData },
-      { count: scheduledEvents }
+      { count: scheduledEvents },
+      { count: monthlyRentals }
     ] = await Promise.all([
       // Orçamentos pendentes
       supabase
@@ -31,17 +33,16 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         .select("*", { count: "exact", head: true })
         .eq("status", "Pendente"),
 
-      // Locações ativas
+      // Locações ativas (mantido para compatibilidade, pode ser removido depois)
       supabase
         .from("rentals")
         .select("*", { count: "exact", head: true })
-        .in("status", ["Instalação Pendente", "Ativo", "Concluído"]),
+        .eq("status", "Instalação Pendente"),
 
       // Faturamento do mês atual
       (async () => {
         const currentMonth = new Date().getMonth() + 1
         const currentYear = new Date().getFullYear()
-        
         return supabase
           .from("rentals")
           .select("final_value")
@@ -55,16 +56,25 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         const today = new Date()
         const sevenDaysFromNow = new Date()
         sevenDaysFromNow.setDate(today.getDate() + 7)
-        
         const startDate = today.toISOString().split('T')[0]
         const endDate = sevenDaysFromNow.toISOString().split('T')[0]
-        
         return supabase
           .from("rental_logistics_events")
           .select("*", { count: "exact", head: true })
           .gte("event_date", startDate)
           .lte("event_date", endDate)
           .eq("status", "Agendado")
+      })(),
+
+      // Total de locações criadas no mês atual
+      (async () => {
+        const currentMonth = new Date().getMonth() + 1
+        const currentYear = new Date().getFullYear()
+        return supabase
+          .from("rentals")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", `${currentYear}-${currentMonth.toString().padStart(2, "0")}-01`)
+          .lt("created_at", `${currentYear}-${(currentMonth + 1).toString().padStart(2, "0")}-01`)
       })()
     ])
 
@@ -76,6 +86,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
       activeRentals: activeRentals || 0,
       monthlyRevenue,
       scheduledEvents: scheduledEvents || 0,
+      monthlyRentals: monthlyRentals || 0
     }
 
     // Atualizar cache
@@ -92,6 +103,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
       activeRentals: 0,
       monthlyRevenue: 0,
       scheduledEvents: 0,
+      monthlyRentals: 0
     }
   }
 }

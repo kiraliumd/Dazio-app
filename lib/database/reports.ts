@@ -62,7 +62,7 @@ export async function getRentalsForReports(filters: ReportFilters): Promise<Rent
       `)
       .gte("created_at", filters.startDate)
       .lte("created_at", filters.endDate)
-      .in("status", ["Instalação Pendente", "Ativo", "Concluído"])
+      .in("status", ["Instalação Pendente", "Concluído"])
       .order("created_at", { ascending: false })
 
     if (error) {
@@ -132,7 +132,7 @@ export async function getAllRentalsForReports(): Promise<RentalReport[]> {
         *,
         rental_items (*)
       `)
-      .in("status", ["Instalação Pendente", "Ativo", "Concluído"])
+      .in("status", ["Instalação Pendente", "Concluído"])
       .order("created_at", { ascending: false })
 
     if (error) {

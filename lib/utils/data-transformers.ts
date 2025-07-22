@@ -19,6 +19,10 @@ export interface Equipment {
   category: string
   description: string
   dailyRate: number
+  quantity: number
+  rentedQuantity: number
+  maintenanceQuantity: number
+  availableQuantity: number
   status: "Disponível" | "Alugado" | "Manutenção"
 }
 
@@ -48,6 +52,27 @@ export interface Budget {
   totalValue: number
   status: "Pendente" | "Aprovado" | "Rejeitado"
   observations: string
+  // Campos de recorrência
+  recurrenceType?: RecurrenceType
+  recurrenceInterval?: number
+  recurrenceEndDate?: string
+}
+
+// Tipos para recorrência
+export type RecurrenceType = "weekly" | "monthly" | "yearly"
+export type RecurrenceStatus = "active" | "paused" | "cancelled" | "completed"
+
+export interface RecurringRentalOccurrence {
+  id: string
+  parentRentalId: string
+  occurrenceNumber: number
+  startDate: string
+  endDate: string
+  installationDate?: string
+  removalDate?: string
+  status: "Instalação Pendente" | "Concluído"
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Rental {
@@ -72,9 +97,18 @@ export interface Rental {
   totalValue: number
   discount: number
   finalValue: number
-  status: "Instalação Pendente" | "Ativo" | "Concluído"
   observations: string
   budgetId?: string
+  
+  // Novos campos para recorrência
+  isRecurring?: boolean
+  recurrenceType?: RecurrenceType
+  recurrenceInterval?: number
+  recurrenceEndDate?: string
+  recurrenceStatus?: RecurrenceStatus
+  parentRentalId?: string
+  nextOccurrenceDate?: string
+  occurrences?: RecurringRentalOccurrence[]
 }
 
 // Transformar cliente do banco para o frontend
@@ -106,12 +140,21 @@ export function transformClientToDB(
 
 // Transformar equipamento do banco para o frontend
 export function transformEquipmentFromDB(dbEquipment: DBEquipment): Equipment {
+  const quantity = dbEquipment.quantity || 1;
+  const rentedQuantity = dbEquipment.rented_quantity || 0;
+  const maintenanceQuantity = dbEquipment.maintenance_quantity || 0;
+  const availableQuantity = quantity - rentedQuantity - maintenanceQuantity;
+
   return {
     id: dbEquipment.id,
     name: dbEquipment.name,
     category: dbEquipment.category,
     description: dbEquipment.description || "",
     dailyRate: dbEquipment.daily_rate,
+    quantity,
+    rentedQuantity,
+    maintenanceQuantity,
+    availableQuantity,
     status: dbEquipment.status,
   }
 }
@@ -125,6 +168,9 @@ export function transformEquipmentToDB(
     category: equipment.category,
     description: equipment.description || null,
     daily_rate: equipment.dailyRate,
+    quantity: equipment.quantity,
+    rented_quantity: equipment.rentedQuantity,
+    maintenance_quantity: equipment.maintenanceQuantity,
     status: equipment.status,
   }
 }
@@ -186,6 +232,10 @@ export function transformBudgetFromDB(dbBudget: any): Budget {
     totalValue: dbBudget.total_value,
     status: dbBudget.status,
     observations: dbBudget.observations || "",
+    // Campos de recorrência
+    recurrenceType: dbBudget.recurrence_type || undefined,
+    recurrenceInterval: dbBudget.recurrence_interval || 1,
+    recurrenceEndDate: dbBudget.recurrence_end_date ? formatDateFromDB(dbBudget.recurrence_end_date) : undefined,
   }
 }
 
@@ -207,6 +257,9 @@ export function transformBudgetToDB(
     total_value: budget.totalValue,
     status: budget.status,
     observations: budget.observations || null,
+    recurrence_type: budget.recurrenceType || null,
+    recurrence_interval: budget.recurrenceInterval || 1,
+    recurrence_end_date: budget.recurrenceEndDate || null,
   }
 }
 
@@ -265,9 +318,29 @@ export function transformRentalFromDB(dbRental: any): Rental {
     totalValue: dbRental.total_value,
     discount: dbRental.discount,
     finalValue: dbRental.final_value,
-    status: dbRental.status,
     observations: dbRental.observations || "",
     budgetId: dbRental.budget_id,
+    
+    // Novos campos para recorrência
+    isRecurring: dbRental.is_recurring || false,
+    recurrenceType: dbRental.recurrence_type || undefined,
+    recurrenceInterval: dbRental.recurrence_interval || 1,
+    recurrenceEndDate: dbRental.recurrence_end_date ? formatDateFromDB(dbRental.recurrence_end_date) : undefined,
+    recurrenceStatus: dbRental.recurrence_status || "active",
+    parentRentalId: dbRental.parent_rental_id,
+    nextOccurrenceDate: dbRental.next_occurrence_date ? formatDateFromDB(dbRental.next_occurrence_date) : undefined,
+    occurrences: dbRental.recurring_rental_occurrences?.map((occurrence: any) => ({
+      id: occurrence.id,
+      parentRentalId: occurrence.parent_rental_id,
+      occurrenceNumber: occurrence.occurrence_number,
+      startDate: formatDateFromDB(occurrence.start_date),
+      endDate: formatDateFromDB(occurrence.end_date),
+      installationDate: occurrence.installation_date ? formatDateFromDB(occurrence.installation_date) : undefined,
+      removalDate: occurrence.removal_date ? formatDateFromDB(occurrence.removal_date) : undefined,
+      status: occurrence.status,
+      createdAt: occurrence.created_at,
+      updatedAt: occurrence.updated_at,
+    })) || [],
   }
 
   return result

@@ -7,8 +7,27 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Precisa Locações - ERP 1.0",
-  description: "Sistema de gestão para locação de equipamentos",
+  title: "Dazio - Gestão de Locações",
+  description: "Sistema completo de gestão para locação de equipamentos. Controle de orçamentos, locações, clientes e equipamentos em uma plataforma integrada.",
+  keywords: ["locação", "equipamentos", "gestão", "ERP", "orçamentos", "clientes", "controle"],
+  robots: "index, follow",
+  icons: {
+    icon: '/favicon-dazio.png',
+    shortcut: '/favicon-dazio.png',
+    apple: '/favicon-dazio.png',
+  },
+  openGraph: {
+    title: "Dazio - Gestão de Locações",
+    description: "Sistema completo de gestão para locação de equipamentos",
+    type: "website",
+    locale: "pt_BR",
+    siteName: "Dazio - Gestão de Locações",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Dazio - Gestão de Locações",
+    description: "Sistema completo de gestão para locação de equipamentos",
+  },
 };
 
 export default function RootLayout({

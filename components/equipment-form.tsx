@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useEquipmentCategories } from "@/hooks/useEquipmentCategories"
+import { useToast } from "@/components/ui/use-toast"
 
 export interface Equipment {
   id: string
@@ -23,6 +25,10 @@ export interface Equipment {
   category: string
   description: string
   dailyRate: number
+  quantity: number
+  rentedQuantity: number
+  maintenanceQuantity: number
+  availableQuantity: number
   status: "Disponível" | "Alugado" | "Manutenção"
 }
 
@@ -34,16 +40,18 @@ interface EquipmentFormProps {
   saving?: boolean
 }
 
-const categories = ["Áudio", "Vídeo", "Iluminação", "Estrutura", "Decoração"]
 const statuses = ["Disponível", "Alugado", "Manutenção"] as const
 
 export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = false }: EquipmentFormProps) {
+  const { categories, loading: categoriesLoading, refreshCategories } = useEquipmentCategories();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     category: "",
     description: "",
     dailyRate: 0,
-    status: "Disponível" as const,
+    quantity: 1,
+    status: "Disponível" as "Disponível" | "Alugado" | "Manutenção",
   })
 
   // Resetar formulário quando abrir/fechar ou mudar equipamento
@@ -55,6 +63,7 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
           category: equipment.category,
           description: equipment.description,
           dailyRate: equipment.dailyRate,
+          quantity: equipment.quantity,
           status: equipment.status,
         })
       } else {
@@ -63,6 +72,7 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
           category: "",
           description: "",
           dailyRate: 0,
+          quantity: 1,
           status: "Disponível",
         })
       }
@@ -74,17 +84,56 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
 
     // Validações básicas
     if (!formData.name.trim()) {
-      alert("Nome do equipamento é obrigatório")
+      toast({
+        title: "Nome obrigatório",
+        description: "O nome do equipamento é obrigatório.",
+        variant: "destructive",
+      });
+      return
+    }
+
+    if (categoriesLoading) {
+      toast({
+        title: "Aguarde",
+        description: "Carregando categorias. Tente novamente em alguns segundos.",
+        variant: "destructive",
+      });
+      return
+    }
+
+    if (categories.length === 0) {
+      toast({
+        title: "Nenhuma categoria disponível",
+        description: "Cadastre categorias de equipamentos primeiro nas configurações.",
+        variant: "destructive",
+      });
       return
     }
 
     if (!formData.category) {
-      alert("Categoria é obrigatória")
+      toast({
+        title: "Categoria obrigatória",
+        description: "Selecione uma categoria para o equipamento.",
+        variant: "destructive",
+      });
       return
     }
 
     if (formData.dailyRate <= 0) {
-      alert("Valor da diária deve ser maior que zero")
+      toast({
+        title: "Valor inválido",
+        description: "O valor da diária deve ser maior que zero.",
+        variant: "destructive",
+      });
+      return
+    }
+
+    if (formData.quantity <= 0) {
+      toast({
+        title: "Quantidade inválida",
+        description: "A quantidade deve ser maior que zero.",
+        variant: "destructive",
+      });
       return
     }
 
@@ -92,6 +141,9 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
       ...formData,
       name: formData.name.trim(),
       description: formData.description.trim(),
+      rentedQuantity: 0,
+      maintenanceQuantity: 0,
+      availableQuantity: formData.quantity,
       ...(equipment && { id: equipment.id }),
     })
   }
@@ -136,11 +188,21 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
+                  {categoriesLoading ? (
+                    <SelectItem value="" disabled>
+                      Carregando categorias...
                     </SelectItem>
-                  ))}
+                  ) : categories.length === 0 ? (
+                    <SelectItem value="" disabled>
+                      Nenhuma categoria disponível
+                    </SelectItem>
+                  ) : (
+                    categories.map((category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -165,6 +227,19 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
                 value={formData.dailyRate || ""}
                 onChange={(e) => setFormData({ ...formData, dailyRate: Number.parseFloat(e.target.value) || 0 })}
                 placeholder="0,00"
+                required
+                disabled={saving}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="quantity">Quantidade Disponível *</Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="1"
+                value={formData.quantity || ""}
+                onChange={(e) => setFormData({ ...formData, quantity: Number.parseInt(e.target.value) || 1 })}
+                placeholder="1"
                 required
                 disabled={saving}
               />
@@ -195,13 +270,16 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
               Cancelar
             </Button>
             <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={saving}>
-              {saving
-                ? equipment
-                  ? "Salvando..."
-                  : "Adicionando..."
-                : equipment
-                  ? "Salvar Alterações"
-                  : "Adicionar Equipamento"}
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  {equipment ? "Salvando..." : "Adicionando..."}
+                </>
+              ) : (
+                <>
+                  {equipment ? "Salvar Alterações" : "Adicionar Equipamento"}
+                </>
+              )}
             </Button>
           </DialogFooter>
         </form>

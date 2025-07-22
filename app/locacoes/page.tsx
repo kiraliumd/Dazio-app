@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { Edit, Eye, Plus, Search, Trash2, Clock, Calendar, DollarSign, FileText, Package, MessageSquare } from "lucide-react"
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
+import { Edit, Eye, Plus, Search, Trash2, Clock, Calendar, DollarSign, FileText, Package, MessageSquare, User, MapPin } from "lucide-react"
 import { AppSidebar } from "../../components/app-sidebar"
-import { RentalForm, type Rental } from "../../components/rental-form"
+import { type Rental } from "../../components/rental-form"
+import { NotificationBell } from "../../components/notification-bell"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -21,32 +22,53 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { format } from "date-fns";
+import { formatDateCuiaba, formatTimeCuiaba } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel, SelectSeparator, SelectScrollUpButton, SelectScrollDownButton } from "@/components/ui/select";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { useToast } from "@/hooks/use-toast"
 
 
 
 import { getRentals, createRental, updateRental, deleteRental, searchRentals } from "../../lib/database/rentals"
 import { transformRentalFromDB } from "../../lib/utils/data-transformers"
+import { getCompanySettings } from "../../lib/database/settings"
+import { getClientById } from "../../lib/database/clients"
+import { pdf } from '@react-pdf/renderer'
+import { ContractPDF } from "../../components/contract-pdf"
+
+// Lazy load dos componentes pesados
+const RentalForm = lazy(() => import("../../components/rental-form").then(module => ({ default: module.RentalForm })))
+
+// Hook para debounce
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center p-4">
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+  </div>
+);
 
 export default function RentalsPage() {
+  const { toast } = useToast()
   const [rentals, setRentals] = useState<Rental[]>([])
-  const [filteredRentals, setFilteredRentals] = useState<Rental[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("Todos")
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingRental, setEditingRental] = useState<Rental | undefined>()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [rentalToDelete, setRentalToDelete] = useState<string | null>(null)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [viewingRental, setViewingRental] = useState<Rental | null>(null)
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 10
-
-  const statuses = ["Todos", "Instalação Pendente", "Ativo", "Concluído"]
 
   // Carregar locações do Supabase
   const loadRentals = async () => {
@@ -56,60 +78,63 @@ export default function RentalsPage() {
       const data = await getRentals(50)
       const transformedRentals = data.map(transformRentalFromDB)
       setRentals(transformedRentals)
-      setFilteredRentals(transformedRentals)
-      setCurrentPage(1); // Reset to first page on new search
+      setCurrentPage(1)
     } catch (error) {
       console.error("Erro ao carregar locações:", error)
-      alert("Erro ao carregar locações. Tente novamente.")
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar locações. Tente novamente.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false)
     }
   }
 
-  // Carregar dados na inicialização
-  useEffect(() => {
-    loadRentals()
-  }, [])
+  useEffect(() => { loadRentals() }, [])
 
-  // Aplicar filtros
-  const applyFilters = async () => {
-    try {
-      const data = await searchRentals(searchTerm, statusFilter)
-      const transformedRentals = data.map(transformRentalFromDB)
-      setFilteredRentals(transformedRentals)
-    } catch (error) {
-      console.error("Erro ao filtrar locações:", error)
+  // Debounce do termo de busca
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
+
+  // Memoização dos filtros
+  const filteredRentals = useMemo(() => {
+    let filtered = rentals
+    if (debouncedSearchTerm.trim()) {
+      const searchLower = debouncedSearchTerm.toLowerCase()
+      filtered = filtered.filter((r: Rental) =>
+        r.clientName.toLowerCase().includes(searchLower) ||
+        r.installationLocation?.toLowerCase().includes(searchLower)
+      )
     }
-  }
+    // Ordenar: "Instalação Pendente" primeiro, depois por data de início
+    filtered = [...filtered].sort((a: Rental, b: Rental) => {
+      return new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+    })
+    return filtered
+  }, [rentals, debouncedSearchTerm])
 
-  const handleSearch = (value: string) => {
-    setSearchTerm(value)
-  }
-
-  const handleStatusFilter = (value: string) => {
-    setStatusFilter(value)
-  }
-
-  // Aplicar filtros sempre que os valores mudarem
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      applyFilters()
-    }, 300) // Debounce de 300ms
-
-    return () => clearTimeout(timeoutId)
-  }, [searchTerm, statusFilter])
+  // Memoização da paginação
+  const paginatedRentals = useMemo(() => {
+    return filteredRentals.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  }, [filteredRentals, currentPage])
+  const totalPages = useMemo(() => Math.ceil(filteredRentals.length / ITEMS_PER_PAGE), [filteredRentals.length])
 
   // Reset para primeira página quando filtros mudarem
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [searchTerm, statusFilter])
+  useEffect(() => { setCurrentPage(1) }, [debouncedSearchTerm])
+
+  // Handlers memoizados
+  const handleSearch = useCallback((value: string) => setSearchTerm(value), [])
+  const handleEditRental = useCallback((rental: Rental) => { setEditingRental(rental); setIsFormOpen(true) }, [])
+  const handleDeleteRental = useCallback((id: string) => { setRentalToDelete(id); setDeleteDialogOpen(true) }, [])
+  const handleViewRental = useCallback((rental: Rental) => { setViewingRental(rental); setViewDialogOpen(true) }, [])
+  const handlePageChange = useCallback((page: number) => setCurrentPage(page), [])
 
   const handleSaveRental = async (rentalData: Omit<Rental, "id"> & { id?: string }) => {
     try {
       setSaving(true)
 
       // Preparar dados para o banco
-      const rentalForDB = {
+      const rentalForDBBase = {
         client_id: rentalData.clientId,
         client_name: rentalData.clientName,
         start_date: rentalData.startDate,
@@ -120,10 +145,19 @@ export default function RentalsPage() {
         total_value: rentalData.totalValue,
         discount: rentalData.discount,
         final_value: rentalData.finalValue,
-        status: rentalData.status,
         observations: rentalData.observations || null,
         budget_id: rentalData.budgetId || null,
-      }
+        is_recurring: rentalData.isRecurring || false,
+      };
+      const rentalForDB: any = {
+        ...rentalForDBBase,
+        recurrence_type: rentalData.isRecurring ? rentalData.recurrenceType : undefined,
+        recurrence_interval: rentalData.isRecurring ? rentalData.recurrenceInterval || 1 : undefined,
+        recurrence_end_date: rentalData.isRecurring ? rentalData.recurrenceEndDate || null : undefined,
+        recurrence_status: rentalData.isRecurring ? rentalData.recurrenceStatus || "active" : undefined,
+        parent_rental_id: rentalData.isRecurring ? rentalData.parentRentalId || null : undefined,
+        next_occurrence_date: rentalData.isRecurring ? rentalData.nextOccurrenceDate || null : undefined,
+      };
 
       const itemsForDB = rentalData.items.map((item) => ({
         equipment_name: item.equipmentName,
@@ -136,14 +170,22 @@ export default function RentalsPage() {
       if (rentalData.id) {
         // Editar locação existente
         await updateRental(rentalData.id, rentalForDB, itemsForDB)
-        alert("Locação atualizada com sucesso!")
+        toast({
+          title: "Sucesso!",
+          description: "Locação atualizada com sucesso!",
+          variant: "default",
+        });
       } else {
         // Criar nova locação
         await createRental(rentalForDB, itemsForDB, {
           installation: new Date(rentalData.startDate + ' ' + rentalData.installationTime),
           removal: new Date(rentalData.endDate + ' ' + rentalData.removalTime)
         })
-        alert("Locação criada com sucesso!")
+        toast({
+          title: "Sucesso!",
+          description: "Locação criada com sucesso!",
+          variant: "default",
+        });
       }
 
       // Recarregar dados
@@ -151,69 +193,143 @@ export default function RentalsPage() {
       setEditingRental(undefined)
     } catch (error) {
       console.error("Erro ao salvar locação:", error)
-      alert("Erro ao salvar locação. Tente novamente.")
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar locação. Tente novamente.",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false)
     }
-  }
-
-  const handleEditRental = (rental: Rental) => {
-    setEditingRental(rental)
-    setIsFormOpen(true)
-  }
-
-  const handleDeleteRental = (id: string) => {
-    setRentalToDelete(id)
-    setDeleteDialogOpen(true)
   }
 
   const confirmDelete = async () => {
     if (rentalToDelete) {
       try {
         await deleteRental(rentalToDelete)
-        alert("Locação excluída com sucesso!")
+        toast({
+          title: "Sucesso!",
+          description: "Locação excluída com sucesso!",
+          variant: "default",
+        });
         await loadRentals()
       } catch (error) {
         console.error("Erro ao excluir locação:", error)
-        alert("Erro ao excluir locação. Tente novamente.")
+        toast({
+          title: "Erro",
+          description: "Erro ao excluir locação. Tente novamente.",
+          variant: "destructive",
+        });
       }
     }
     setDeleteDialogOpen(false)
     setRentalToDelete(null)
   }
 
-  const getStatusBadge = (status: Rental["status"]) => {
-    const styles = {
-      "Instalação Pendente": "bg-accent/10 text-accent",
-      Ativo: "bg-primary/10 text-primary",
-      Concluído: "bg-blue-100 text-blue-700",
-    }
-    return styles[status]
-  }
-
   const formatDate = (dateString: string) => {
     if (!dateString) return "N/A";
-    
-    // Converter de YYYY-MM-DD para DD/MM/YYYY
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      const [year, month, day] = dateString.split('-');
-      return `${day}/${month}/${year}`;
+    return formatDateCuiaba(dateString, "dd/MM/yyyy")
+  };
+
+  const handleGenerateContract = async (rental: Rental) => {
+    try {
+      // Buscar configurações da empresa
+      const companySettings = await getCompanySettings();
+      
+      // Buscar dados do cliente
+      const client = await getClientById(rental.clientId);
+      
+      if (!client) {
+        toast({
+          title: "Erro",
+          description: "Cliente não encontrado",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Verificar se todos os dados necessários estão presentes
+      if (!rental.items || rental.items.length === 0) {
+        toast({
+          title: "Erro",
+          description: "Contrato sem equipamentos. Não é possível gerar o PDF.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Preparar dados para o PDF com validações
+      const contractData = {
+        company: {
+          name: companySettings.company_name || 'Empresa não configurada',
+          cnpj: companySettings.cnpj || 'CNPJ não informado',
+          address: companySettings.address || 'Endereço não informado',
+          phone: companySettings.phone || 'Telefone não informado',
+          email: companySettings.email || 'Email não informado',
+        },
+        client: {
+          name: client.name || 'Nome não informado',
+          document: client.document_number || 'Documento não informado',
+          address: 'Endereço não informado', // Campo não existe na tabela
+          phone: client.phone || 'Telefone não informado',
+          email: client.email || 'Email não informado',
+        },
+        contract: {
+          startDate: rental.startDate || new Date().toISOString(),
+          endDate: rental.endDate || new Date().toISOString(),
+          installationTime: rental.installationTime || '09:00',
+          removalTime: rental.removalTime || '18:00',
+          installationLocation: rental.installationLocation || 'Local não informado',
+          totalValue: rental.totalValue || 0,
+          discount: rental.discount || 0,
+          finalValue: rental.finalValue || 0,
+          items: rental.items.map(item => ({
+            equipmentName: item.equipmentName || 'Equipamento não informado',
+            quantity: item.quantity || 1,
+            dailyRate: item.dailyRate || 0,
+            days: item.days || 1,
+            total: item.total || 0,
+          })),
+        },
+        template: companySettings.contract_template || '',
+      };
+
+      // Log para debug
+      console.log('Dados do contrato:', contractData);
+
+      // Gerar PDF com try/catch específico
+      let blob;
+      try {
+        blob = await pdf(<ContractPDF data={contractData} />).toBlob();
+      } catch (pdfError: any) {
+        console.error('Erro específico do PDF:', pdfError);
+        throw new Error('Erro na geração do PDF: ' + (pdfError?.message || 'Erro desconhecido'));
+      }
+      
+      // Criar URL e baixar
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `contrato_${rental.clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Sucesso!",
+        description: "Contrato gerado e baixado com sucesso!",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Erro ao gerar contrato:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao gerar contrato. Verifique se todos os dados estão preenchidos corretamente.",
+        variant: "destructive",
+      });
     }
-    
-    return dateString; // Se não estiver no formato esperado, retornar como está
-  };
-
-  const handleViewRental = (rental: Rental) => {
-    setViewingRental(rental)
-    setViewDialogOpen(true)
   }
-
-  const totalPages = Math.ceil(filteredRentals.length / ITEMS_PER_PAGE);
-  const paginatedRentals = filteredRentals.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
 
   return (
     <SidebarProvider>
@@ -223,32 +339,40 @@ export default function RentalsPage() {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <div className="flex flex-1 items-center justify-between">
-            <div>
-              <h1 className="text-lg font-semibold text-foreground">Locações</h1>
-              <p className="text-sm text-gray-600">Gerencie contratos de locação e equipamentos</p>
+            <div className="min-w-0">
+              <h1 className="text-lg font-semibold text-foreground truncate">Locações</h1>
+              <p className="text-sm text-text-secondary hidden sm:block">Gerencie contratos de locação e equipamentos</p>
             </div>
-            <Button
-              onClick={() => {
-                setEditingRental(undefined)
-                setIsFormOpen(true)
-              }}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Contrato
-            </Button>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 space-y-6 p-6 bg-gray-50">
-          {/* Filtros */}
+        <main className="flex-1 space-y-6 p-4 sm:p-6 bg-background">
+          {/* Tabela de Locações */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-foreground">Filtros</CardTitle>
-              <CardDescription>Use os filtros para encontrar contratos específicos</CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <CardTitle className="text-foreground">Lista de Contratos</CardTitle>
+                  <CardDescription className="hidden sm:block">Todos os contratos de locação cadastrados no sistema</CardDescription>
+                </div>
+                <Button
+                  onClick={() => {
+                    setEditingRental(undefined)
+                    setIsFormOpen(true)
+                  }}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Contrato
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-3 items-end">
+              {/* Filtros */}
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-end mb-6">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <Input
@@ -258,54 +382,34 @@ export default function RentalsPage() {
                     className="pl-10"
                   />
                 </div>
-                <Select value={statusFilter} onValueChange={handleStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statuses.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center text-sm text-gray-600">
+                <div className="flex items-center text-sm text-text-secondary col-span-1 sm:col-span-2 lg:col-span-1">
                   {filteredRentals.length} contrato(s) encontrado(s)
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Tabela de Locações */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-foreground">Lista de Contratos</CardTitle>
-              <CardDescription>Todos os contratos de locação cadastrados no sistema</CardDescription>
-            </CardHeader>
-            <CardContent>
+              
               <div className="rounded-md border">
-                <Table>
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[800px]">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="font-semibold">Cliente</TableHead>
-                      <TableHead className="font-semibold">Período</TableHead>
-                      <TableHead className="font-semibold">Valor</TableHead>
-                      <TableHead className="font-semibold">Status</TableHead>
-                      <TableHead className="font-semibold text-right">Ações</TableHead>
+                      <TableHead className="font-semibold text-gray-900 bg-gray-50">Cliente</TableHead>
+                      <TableHead className="font-semibold text-gray-900 bg-gray-50">Período</TableHead>
+                      <TableHead className="font-semibold text-gray-900 bg-gray-50">Local</TableHead>
+                      <TableHead className="font-semibold text-gray-900 bg-gray-50">Valor</TableHead>
+                      <TableHead className="font-semibold text-right text-gray-900 bg-gray-50">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedRentals.length === 0 && filteredRentals.length > 0 ? (
+                    {loading ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                          Nenhum contrato encontrado na página atual.
+                        <TableCell colSpan={6} className="text-center py-8">
+                          <LoadingSpinner />
                         </TableCell>
                       </TableRow>
-                    ) : filteredRentals.length === 0 ? (
+                    ) : paginatedRentals.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                          {searchTerm || statusFilter !== "Todos"
+                        <TableCell colSpan={6} className="text-center py-8 text-text-secondary">
+                          {searchTerm
                             ? "Nenhum contrato encontrado com os filtros aplicados."
                             : "Nenhum contrato cadastrado ainda."}
                         </TableCell>
@@ -314,35 +418,32 @@ export default function RentalsPage() {
                       paginatedRentals.map((rental) => (
                         <TableRow key={rental.id}>
                           <TableCell>
-                            <div className="font-medium text-foreground">{rental.clientName}</div>
-                            <div className="text-sm text-gray-600">{rental.items.length} item(s)</div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 text-sm">
-                                <Calendar className="h-4 w-4 text-gray-400" />
-                                <span>
-                                  {formatDate(rental.startDate)} - {formatDate(rental.endDate)}
-                                </span>
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <User className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <div className="font-medium text-foreground">{rental.clientName}</div>
+                                <div className="text-sm text-text-secondary">{rental.items.length} item(s)</div>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="space-y-1">
-                              <div className="font-medium">R$ {rental.finalValue.toFixed(2).replace(".", ",")}</div>
-                              {rental.discount > 0 && (
-                                <div className="text-sm text-gray-600">
-                                  Desc: R$ {rental.discount.toFixed(2).replace(".", ",")}
-                                </div>
-                              )}
+                            <div className="flex items-center gap-1 text-sm">
+                              <Calendar className="h-3 w-3 text-text-secondary" />
+                              <span className="text-text-secondary">{formatDate(rental.startDate)} - {formatDate(rental.endDate)}</span>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span
-                              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getStatusBadge(rental.status)}`}
-                            >
-                              {rental.status}
-                            </span>
+                            <div className="flex items-center gap-1 text-sm text-text-secondary">
+                              <MapPin className="h-3 w-3" />
+                              <span className="truncate max-w-32">{rental.installationLocation || "Não informado"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium text-foreground">
+                              R$ {rental.finalValue.toFixed(2).replace(".", ",")}
+                            </div>
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -351,14 +452,25 @@ export default function RentalsPage() {
                                 size="sm"
                                 onClick={() => handleViewRental(rental)}
                                 title="Visualizar"
+                                className="h-8 w-8 p-0"
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
+                                onClick={() => handleGenerateContract(rental)}
+                                title="Gerar Contrato"
+                                className="h-8 w-8 p-0"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => handleEditRental(rental)}
                                 title="Editar"
+                                className="h-8 w-8 p-0"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -366,7 +478,8 @@ export default function RentalsPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleDeleteRental(rental.id)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                                title="Excluir"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -377,6 +490,7 @@ export default function RentalsPage() {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               </div>
               {totalPages > 1 && (
                 <div className="mt-4">
@@ -425,17 +539,19 @@ export default function RentalsPage() {
         </main>
 
         {/* Formulário de Contrato */}
-        <RentalForm
-          open={isFormOpen}
-          onOpenChange={setIsFormOpen}
-          rental={editingRental}
-          onSave={handleSaveRental}
-          saving={saving}
-        />
+        <Suspense fallback={<LoadingSpinner />}>
+          <RentalForm
+            open={isFormOpen}
+            onOpenChange={setIsFormOpen}
+            rental={editingRental}
+            onSave={handleSaveRental}
+            saving={saving}
+          />
+        </Suspense>
 
         {/* Dialog de Visualização */}
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-[800px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-foreground text-xl font-bold">Detalhes do Contrato</DialogTitle>
               <DialogDescription className="text-base">
@@ -445,8 +561,8 @@ export default function RentalsPage() {
             {viewingRental && (
               <div className="space-y-6">
                 {/* Cabeçalho com informações principais */}
-                <div className="bg-gradient-to-r from-primary/5 to-primary/10 p-6 rounded-lg border border-primary/20">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gradient-to-r from-primary/5 to-primary/10 p-4 lg:p-6 rounded-lg border border-primary/20">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-primary">
                         R$ {viewingRental.finalValue.toFixed(2).replace(".", ",")}
@@ -469,7 +585,7 @@ export default function RentalsPage() {
                 </div>
 
                 {/* Informações do contrato */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg flex items-center gap-2">
@@ -485,19 +601,9 @@ export default function RentalsPage() {
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Status:</span>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getStatusBadge(viewingRental.status)}`}
-                        >
-                          {viewingRental.status}
-                        </span>
+                        <span className="text-sm text-gray-600">Local:</span>
+                        <span className="font-medium">{viewingRental.installationLocation}</span>
                       </div>
-                      {viewingRental.installationLocation && (
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Local:</span>
-                          <span className="font-medium">{viewingRental.installationLocation}</span>
-                        </div>
-                      )}
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Instalação:</span>
                         <span className="font-medium">{viewingRental.installationTime}</span>
@@ -594,10 +700,7 @@ export default function RentalsPage() {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        // TODO: Implementar geração de contrato
-                        alert("Funcionalidade de geração de contrato será implementada em breve!")
-                      }}
+                      onClick={() => handleGenerateContract(viewingRental)}
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Gerar Contrato

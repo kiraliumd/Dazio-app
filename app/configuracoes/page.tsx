@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { AppSidebar } from "../../components/app-sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { getCompanySettings, updateCompanySettings, CompanySettings } from "../../lib/database/settings";
 import { useToast } from "@/components/ui/use-toast";
-import { Save, CheckCircle, AlertCircle } from "lucide-react";
+import { Save, CheckCircle, AlertCircle, Search } from "lucide-react";
+
+// Lazy load do componente pesado
+const EquipmentCategoriesManager = lazy(() => import("../../components/equipment-categories-manager").then(module => ({ default: module.EquipmentCategoriesManager })))
+
+// Componente de loading para lazy components
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center p-4">
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+  </div>
+);
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<CompanySettings | null>(null);
@@ -24,29 +34,31 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    async function loadSettings() {
-      try {
-        setLoading(true);
-        const companySettings = await getCompanySettings();
-        setSettings(companySettings);
-        setOriginalSettings(companySettings);
-      } catch (error) {
-        console.error("Erro ao carregar configurações:", error);
-        toast({
-          title: "Erro ao carregar dados",
-          description: "Não foi possível buscar os dados da empresa. Tente novamente.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
+  // Memoizar a função de carregamento
+  const loadSettings = useCallback(async () => {
+    try {
+      setLoading(true);
+      const companySettings = await getCompanySettings();
+      setSettings(companySettings);
+      setOriginalSettings(companySettings);
+    } catch (error) {
+      console.error("Erro ao carregar configurações:", error);
+      toast({
+        title: "Erro ao carregar dados",
+        description: "Não foi possível buscar os dados da empresa. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-    loadSettings();
   }, [toast]);
 
-  // Verificar mudanças nos dados
   useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  // Verificar mudanças nos dados - memoizado
+  const checkForChanges = useCallback(() => {
     if (settings && originalSettings) {
       const hasAnyChanges = Object.keys(settings).some(key => {
         const typedKey = key as keyof CompanySettings;
@@ -55,6 +67,10 @@ export default function SettingsPage() {
       setHasChanges(hasAnyChanges);
     }
   }, [settings, originalSettings]);
+
+  useEffect(() => {
+    checkForChanges();
+  }, [checkForChanges]);
 
   // Cleanup timeout quando componente for desmontado
   useEffect(() => {
@@ -65,14 +81,14 @@ export default function SettingsPage() {
     };
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     if (settings) {
       setSettings({ ...settings, [id]: value });
     }
-  };
+  }, [settings]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!settings) return;
 
     try {
@@ -86,6 +102,7 @@ export default function SettingsPage() {
         phone: settings.phone,
         email: settings.email,
         website: settings.website,
+        contract_template: settings.contract_template,
       });
       
       // Atualizar dados originais após salvar
@@ -115,7 +132,108 @@ export default function SettingsPage() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [settings, toast]);
+
+  // Memoizar o handler de mudanças de categorias
+  const handleCategoriesChange = useCallback(() => {
+    // Forçar recarregamento das categorias em outras páginas
+    window.dispatchEvent(new CustomEvent('categoriesChanged'));
+  }, []);
+
+  // Memoizar o handler do modelo de exemplo
+  const handleUseExampleTemplate = useCallback(() => {
+    if (settings) {
+      const exampleTemplate = `CONTRATO DE LOCAÇÃO DE EQUIPAMENTOS
+
+CONTRATANTE: {client_name}
+Documento: {client_document}
+Endereço: {client_address}
+Telefone: {client_phone}
+E-mail: {client_email}
+
+CONTRATADO: {company_name}
+CNPJ: {cnpj}
+Endereço: {address}
+Telefone: {phone}
+E-mail: {email}
+
+OBJETO DO CONTRATO:
+Locação dos seguintes equipamentos:
+{equipment_list}
+
+PERÍODO DE LOCAÇÃO:
+Início: {start_date} às {installation_time}
+Término: {end_date} às {removal_time}
+
+LOCAL DE INSTALAÇÃO:
+{installation_location}
+
+VALORES:
+Valor Total: R$ {total_value}
+Desconto: R$ {discount}
+Valor Final: R$ {final_value}
+
+CONDIÇÕES GERAIS:
+1. O contratante se compromete a devolver os equipamentos no estado em que foram recebidos.
+2. Qualquer dano aos equipamentos será de responsabilidade do contratante.
+3. O pagamento deve ser realizado conforme acordado entre as partes.
+
+Data do Contrato: {contract_date}
+
+Assinaturas:
+
+_____________________                    _____________________
+Contratante                              Contratado`;
+      setSettings({ ...settings, contract_template: exampleTemplate });
+    }
+  }, [settings]);
+
+  // Memoizar o componente de loading
+  const LoadingComponent = useMemo(() => (
+    <div className="text-center py-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+      <p className="mt-2 text-gray-600">Carregando...</p>
+    </div>
+  ), []);
+
+  // Memoizar o componente de feedback de mudanças
+  const ChangesFeedback = useMemo(() => (
+    <div className="flex items-center gap-2">
+      {hasChanges && !isSaving && (
+        <div className="flex items-center gap-2 text-amber-600 text-sm">
+          <AlertCircle className="h-4 w-4" />
+          <span>Há alterações não salvas</span>
+        </div>
+      )}
+      {saveSuccess && (
+        <div className="flex items-center gap-2 text-green-600 text-sm">
+          <CheckCircle className="h-4 w-4" />
+          <span>Alterações salvas com sucesso!</span>
+        </div>
+      )}
+    </div>
+  ), [hasChanges, isSaving, saveSuccess]);
+
+  // Memoizar o botão de salvar
+  const SaveButton = useMemo(() => (
+    <Button 
+      onClick={handleSave} 
+      disabled={isSaving || loading || !hasChanges}
+      className="min-w-[140px]"
+    >
+      {isSaving ? (
+        <>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+          Salvando...
+        </>
+      ) : (
+        <>
+          <Save className="h-4 w-4 mr-2" />
+          Salvar Alterações
+        </>
+      )}
+    </Button>
+  ), [handleSave, isSaving, loading, hasChanges]);
 
   return (
     <SidebarProvider>
@@ -136,7 +254,8 @@ export default function SettingsPage() {
           <Tabs defaultValue="company-data">
             <TabsList className="mb-4">
               <TabsTrigger value="company-data">Dados da Empresa</TabsTrigger>
-              {/* Outras abas podem ser adicionadas aqui no futuro */}
+              <TabsTrigger value="equipment-categories">Categorias de Equipamentos</TabsTrigger>
+              <TabsTrigger value="contract-template">Contrato de Locação</TabsTrigger>
             </TabsList>
 
             <TabsContent value="company-data">
@@ -147,10 +266,7 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {loading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                      <p className="mt-2 text-gray-600">Carregando...</p>
-                    </div>
+                    LoadingComponent
                   ) : settings && (
                     <>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -185,37 +301,140 @@ export default function SettingsPage() {
                   )}
                 </CardContent>
                 <div className="border-t px-6 py-4 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    {hasChanges && !isSaving && (
-                      <div className="flex items-center gap-2 text-amber-600 text-sm">
-                        <AlertCircle className="h-4 w-4" />
-                        <span>Há alterações não salvas</span>
-                      </div>
-                    )}
-                    {saveSuccess && (
-                      <div className="flex items-center gap-2 text-green-600 text-sm">
-                        <CheckCircle className="h-4 w-4" />
-                        <span>Alterações salvas com sucesso!</span>
-                      </div>
-                    )}
+                  {ChangesFeedback}
+                  {SaveButton}
+                </div>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="equipment-categories">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-foreground">Categorias de Equipamentos</CardTitle>
+                      <CardDescription>
+                        Organize seus equipamentos em categorias para facilitar a busca e organização.
+                      </CardDescription>
+                    </div>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <EquipmentCategoriesManager 
+                        headerOnly={true}
+                        onCategoriesChange={handleCategoriesChange} 
+                      />
+                    </Suspense>
                   </div>
-                  <Button 
-                    onClick={handleSave} 
-                    disabled={isSaving || loading || !hasChanges}
-                    className="min-w-[140px]"
-                  >
-                    {isSaving ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Salvando...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-2" />
-                        Salvar Alterações
-                      </>
-                    )}
-                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <EquipmentCategoriesManager 
+                      onCategoriesChange={handleCategoriesChange} 
+                    />
+                  </Suspense>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="contract-template">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-foreground">Modelo de Contrato de Locação</CardTitle>
+                  <CardDescription>
+                    Personalize o modelo de contrato que será usado para gerar documentos PDF.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {loading ? (
+                    LoadingComponent
+                  ) : settings && (
+                    <div className="space-y-6">
+                      {/* Guia de Variáveis */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 className="font-semibold text-blue-900 mb-3">📝 Guia de Variáveis Disponíveis</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <h4 className="font-medium text-blue-800 mb-2">🏢 Dados da Empresa</h4>
+                            <div className="space-y-1">
+                              <div><code className="bg-blue-100 px-1 rounded">{'{company_name}'}</code> - Nome da empresa</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{cnpj}'}</code> - CNPJ da empresa</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{address}'}</code> - Endereço da empresa</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{phone}'}</code> - Telefone da empresa</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{email}'}</code> - E-mail da empresa</div>
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-blue-800 mb-2">👤 Dados do Cliente</h4>
+                            <div className="space-y-1">
+                              <div><code className="bg-blue-100 px-1 rounded">{'{client_name}'}</code> - Nome do cliente</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{client_document}'}</code> - Documento do cliente</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{client_address}'}</code> - Endereço do cliente</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{client_phone}'}</code> - Telefone do cliente</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{client_email}'}</code> - E-mail do cliente</div>
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-blue-800 mb-2">📅 Datas e Horários</h4>
+                            <div className="space-y-1">
+                              <div><code className="bg-blue-100 px-1 rounded">{'{start_date}'}</code> - Data de início (dd/mm/aaaa)</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{end_date}'}</code> - Data de término (dd/mm/aaaa)</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{installation_time}'}</code> - Horário de instalação</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{removal_time}'}</code> - Horário de remoção</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{contract_date}'}</code> - Data atual (dd/mm/aaaa)</div>
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-blue-800 mb-2">💰 Valores e Detalhes</h4>
+                            <div className="space-y-1">
+                              <div><code className="bg-blue-100 px-1 rounded">{'{equipment_list}'}</code> - Lista completa dos equipamentos</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{installation_location}'}</code> - Local de instalação</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{total_value}'}</code> - Valor total sem desconto</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{discount}'}</code> - Valor do desconto</div>
+                              <div><code className="bg-blue-100 px-1 rounded">{'{final_value}'}</code> - Valor final com desconto</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4 p-3 bg-blue-100 rounded border-l-4 border-blue-400">
+                          <p className="text-blue-800 text-sm">
+                            <strong>💡 Dica:</strong> Use essas variáveis entre chaves {'{}'} no seu modelo. 
+                            Elas serão automaticamente substituídas pelos dados reais quando o contrato for gerado.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Modelo de Exemplo */}
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-semibold text-gray-900">📄 Modelo de Exemplo</h3>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleUseExampleTemplate}
+                          >
+                            Usar Modelo
+                          </Button>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          Clique em "Usar Modelo" para carregar um exemplo básico de contrato que você pode personalizar conforme suas necessidades.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="contract_template">Modelo do Contrato</Label>
+                        <Textarea
+                          id="contract_template"
+                          value={settings.contract_template || ''}
+                          onChange={handleInputChange}
+                          placeholder="Digite o modelo do contrato usando as variáveis disponíveis..."
+                          rows={20}
+                          className="font-mono text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+                <div className="border-t px-6 py-4 flex justify-between items-center">
+                  {ChangesFeedback}
+                  {SaveButton}
                 </div>
               </Card>
             </TabsContent>

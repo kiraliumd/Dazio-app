@@ -12,8 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import Link from "next/link"
 import { getLogisticsEvents } from "../../../lib/database/rentals"
-import { format } from "date-fns"
-import { ptBR } from "date-fns/locale"
+import { formatDateCuiaba, formatTimeCuiaba } from "@/lib/utils"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { supabase } from "../../../lib/supabase"
@@ -72,32 +71,23 @@ export default function AgendaDatePage({ params }: { params: Promise<{ date: str
   }
 
   const formatDate = (dateString: string) => {
-    try {
-      // Evitar problemas de fuso horário criando a data no fuso local
-      const [year, month, day] = dateString.split('-').map(Number)
-      const date = new Date(year, month - 1, day) // month - 1 porque Date usa 0-11
-      return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
-    } catch (error) {
-      return dateString
-    }
+    return formatDateCuiaba(dateString, "dd 'de' MMMM 'de' yyyy")
   }
 
   const formatTime = (timeString: string) => {
-    // Extrair apenas hora e minuto (HH:mm) do formato HH:mm:ss
-    if (timeString && timeString.includes(':')) {
-      return timeString.substring(0, 5); // Pega apenas HH:mm
-    }
-    return timeString;
+    // Se vier string de hora, manter compatibilidade
+    if (timeString && timeString.length <= 5) return timeString
+    return formatTimeCuiaba(timeString, "HH:mm")
   }
 
   const getStatusColor = (eventType: string) => {
     switch (eventType) {
       case "Instalação":
-        return "bg-accent/20 text-accent border-accent/40"
+        return "bg-primary/10 text-primary border border-primary/20"
       case "Retirada":
-        return "bg-purple-100 text-purple-700 border-purple-300"
+        return "bg-purple-100 text-purple-700 border border-purple-200"
       default:
-        return "bg-gray-100 text-gray-800 border-gray-300"
+        return "bg-gray-100 text-gray-800 border border-gray-200"
     }
   }
 
@@ -146,12 +136,25 @@ export default function AgendaDatePage({ params }: { params: Promise<{ date: str
     return message
   }
 
-  const openWhatsApp = () => {
-    const message = generateWhatsAppMessage()
-    const encodedMessage = encodeURIComponent(message)
-    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`
-    window.open(whatsappUrl, '_blank')
+  const generateEventMessage = (event: LogisticsEvent) => {
+    const formattedDate = formatDate(date)
+    let message = `📅 *${event.event_type} - ${formattedDate}*\n\n`
+    message += `⏰ *Horário:* ${formatTime(event.event_time)}\n`
+    message += `👤 *Cliente:* ${event.rentals.client_name}\n`
+    message += `📍 *Local:* ${event.rentals.installation_location}\n`
+    message += `💰 *Valor:* R$ ${event.rentals.total_value.toFixed(2).replace(".", ",")}\n\n`
+    
+    if (event.rentals.rental_items.length > 0) {
+      message += `📦 *Equipamentos:*\n`
+      event.rentals.rental_items.forEach((item, index) => {
+        message += `   • ${item.equipment_name}\n`
+      })
+    }
+    
+    return message
   }
+
+
 
   const handleReschedule = (eventId: string) => {
     const event = events.find(e => e.id === eventId)
@@ -209,37 +212,25 @@ export default function AgendaDatePage({ params }: { params: Promise<{ date: str
                 </p>
               </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => copyToClipboard(generateWhatsAppMessage())}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Copiar Resumo
+            </Button>
           </div>
         </header>
 
         <main className="flex-1 space-y-6 p-6 bg-gray-50">
-          {/* Botões de ação */}
+          {/* Contador de eventos */}
           {!loading && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CalendarDays className="h-5 w-5 text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">
-                  {events.length} evento{events.length !== 1 ? 's' : ''} para {formatDate(date)}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(generateWhatsAppMessage())}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copiar Resumo
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={openWhatsApp}
-                >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Enviar WhatsApp
-                </Button>
-              </div>
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">
+                {events.length} evento{events.length !== 1 ? 's' : ''} para {formatDate(date)}
+              </span>
             </div>
           )}
 
@@ -303,34 +294,37 @@ export default function AgendaDatePage({ params }: { params: Promise<{ date: str
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-green-600" />
-                            <span>Horário: {formatTime(event.event_time)}</span>
+                                              <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-green-600" />
+                              <span>Horário: {formatTime(event.event_time)}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                {event.status}
+                              </Badge>
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              {event.status}
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleReschedule(event.id)}
-                          >
-                            <CalendarDays className="h-4 w-4 mr-2" />
-                            Reagendar
-                          </Button>
-                          <Link href={`/locacoes`}>
-                            <Button variant="outline" size="sm">
-                              Ver Contrato
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => copyToClipboard(generateEventMessage(event))}
+                              title="Copiar resumo do evento"
+                            >
+                              <Copy className="h-4 w-4" />
                             </Button>
-                          </Link>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleReschedule(event.id)}
+                            >
+                              <CalendarDays className="h-4 w-4 mr-2" />
+                              Reagendar
+                            </Button>
+                          </div>
                         </div>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>

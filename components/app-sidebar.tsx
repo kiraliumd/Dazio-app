@@ -1,8 +1,9 @@
 "use client"
 
-import { BarChart3, Calendar, FileText, Home, Package, Users, ArrowUpRightFromSquareIcon, Wrench, Settings } from "lucide-react"
+import { BarChart3, Calendar, FileText, Home, Package, Users, Wrench, Settings, DollarSign, Repeat } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+
 
 import {
   Sidebar,
@@ -15,6 +16,9 @@ import {
   SidebarMenuItem,
   SidebarRail,
   SidebarGroupLabel,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 
 const mainMenuItems = [
@@ -32,11 +36,23 @@ const mainMenuItems = [
     title: "Locações",
     url: "/locacoes",
     icon: Wrench,
+    submenu: [
+      {
+        title: "Recorrências",
+        url: "/locacoes-recorrentes",
+        icon: Repeat,
+      },
+    ],
   },
   {
     title: "Agenda",
     url: "/agenda",
     icon: Calendar,
+  },
+  {
+    title: "Financeiro",
+    url: "/financeiro",
+    icon: DollarSign,
   },
 ]
 
@@ -67,22 +83,21 @@ export function AppSidebar() {
   const pathname = usePathname()
 
   return (
-    <Sidebar className="border-r border-gray-200">
-      <SidebarHeader className="border-gray-200 p-6 border-b-0 py-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <ArrowUpRightFromSquareIcon className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-neutral-800 font-medium text-base">Precisa Locações </h1>
-            <p className="text-xs text-gray-500 leading-4">E.R.P 1.0</p>
-          </div>
+    <Sidebar className="border-r border-light-gray">
+      <SidebarHeader className="border-light-gray p-4 border-b-0">
+        <div className="flex items-center justify-start">
+          <img
+            src="/logo-dazio.svg"
+            alt="Logo Dazio"
+            className="h-6 w-auto"
+            style={{ display: 'block' }}
+          />
         </div>
       </SidebarHeader>
       <SidebarContent>
         {/* Bloco Principal */}
         <SidebarGroup>
-          <SidebarGroupLabel className="px-2 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <SidebarGroupLabel className="px-2 pt-4 pb-2 text-xs font-semibold text-text-secondary uppercase tracking-wider">
             Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -99,6 +114,23 @@ export function AppSidebar() {
                       <span className="font-medium">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
+                  {item.submenu && item.submenu.map((subItem) => (
+                    <SidebarMenuButton
+                      key={subItem.title}
+                      asChild
+                      isActive={pathname === subItem.url}
+                      className="hover:bg-primary/5 hover:text-primary/80 data-[active=true]:bg-primary/10 data-[active=true]:text-primary/80 relative ml-6"
+                    >
+                      <Link href={subItem.url} className="flex items-center gap-3 px-3 py-1.5 relative">
+                        {/* Stroke interligando */}
+                        <div className="absolute left-0 top-0 bottom-0 w-px bg-border"></div>
+                        <div className="absolute left-0 top-1/2 w-3 h-px bg-border transform -translate-y-1/2"></div>
+                        
+                        <subItem.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-normal text-xs text-muted-foreground">{subItem.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  ))}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -107,7 +139,7 @@ export function AppSidebar() {
 
         {/* Bloco Administração */}
         <SidebarGroup>
-          <SidebarGroupLabel className="px-2 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <SidebarGroupLabel className="px-2 pt-4 pb-2 text-xs font-semibold text-text-secondary uppercase tracking-wider">
             Administração
           </SidebarGroupLabel>
           <SidebarGroupContent>

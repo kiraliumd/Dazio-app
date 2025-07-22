@@ -22,7 +22,8 @@ import { Separator } from "@/components/ui/separator"
 import { getClients } from "../lib/database/clients"
 import { getEquipments } from "../lib/database/equipments"
 import { transformClientFromDB, transformEquipmentFromDB } from "../lib/utils/data-transformers"
-import type { Client, Equipment } from "../lib/utils/data-transformers"
+import type { Client, Equipment, RecurrenceType } from "../lib/utils/data-transformers"
+import { RecurrenceConfig } from "./recurrence-config"
 
 export interface RentalItem {
   id: string
@@ -48,9 +49,17 @@ export interface Rental {
   totalValue: number
   discount: number
   finalValue: number
-  status: "Instalação Pendente" | "Ativo" | "Concluído"
   observations: string
   budgetId?: string
+  
+  // Novos campos para recorrência
+  isRecurring?: boolean
+  recurrenceType?: RecurrenceType
+  recurrenceInterval?: number
+  recurrenceEndDate?: string
+  recurrenceStatus?: "active" | "paused" | "cancelled" | "completed"
+  parentRentalId?: string
+  nextOccurrenceDate?: string
 }
 
 interface RentalFormProps {
@@ -80,6 +89,12 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
     items: [] as RentalItem[],
     discount: 0,
     observations: "",
+    
+    // Novos campos para recorrência
+    isRecurring: false,
+    recurrenceType: "none" as RecurrenceType,
+    recurrenceInterval: 1,
+    recurrenceEndDate: "",
   })
 
   const [selectedEquipment, setSelectedEquipment] = useState("")
@@ -134,6 +149,12 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
         items: [],
         discount: 0,
         observations: "",
+        
+        // Novos campos para recorrência
+        isRecurring: false,
+        recurrenceType: "none" as RecurrenceType,
+        recurrenceInterval: 1,
+        recurrenceEndDate: "",
       })
       setSelectedEquipment("")
       setQuantity(1)
@@ -150,6 +171,12 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
         items: rental.items,
         discount: rental.discount,
         observations: rental.observations,
+        
+        // Novos campos para recorrência
+        isRecurring: rental.isRecurring || false,
+        recurrenceType: rental.recurrenceType || "none" as RecurrenceType,
+        recurrenceInterval: rental.recurrenceInterval || 1,
+        recurrenceEndDate: rental.recurrenceEndDate || "",
       })
       setEquipmentSearch("")
     } else if (open && budgetData) {
@@ -164,6 +191,12 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
         items: budgetData.items,
         discount: 0,
         observations: "",
+        
+        // Novos campos para recorrência
+        isRecurring: false,
+        recurrenceType: "none" as RecurrenceType,
+        recurrenceInterval: 1,
+        recurrenceEndDate: "",
       })
       setEquipmentSearch("")
     }
@@ -221,7 +254,7 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
       ...formData,
       totalValue,
       finalValue,
-      status: "Instalação Pendente",
+      observations: formData.observations,
       ...(rental && { id: rental.id }),
       ...(budgetData && { budgetId: budgetData.budgetId }),
     })
@@ -410,6 +443,27 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                 )}
               </CardContent>
             </Card>
+
+            {/* Configuração de Recorrência */}
+            {formData.startDate && formData.endDate && (
+              <RecurrenceConfig
+                startDate={formData.startDate}
+                endDate={formData.endDate}
+                isRecurring={formData.isRecurring}
+                recurrenceType={formData.recurrenceType}
+                recurrenceInterval={formData.recurrenceInterval}
+                recurrenceEndDate={formData.recurrenceEndDate || undefined}
+                onConfigChange={(config) => {
+                  setFormData({
+                    ...formData,
+                    isRecurring: config.isRecurring,
+                    recurrenceType: config.recurrenceType,
+                    recurrenceInterval: config.recurrenceInterval,
+                    recurrenceEndDate: config.recurrenceEndDate || "",
+                  })
+                }}
+              />
+            )}
 
             {/* Adicionar Equipamentos - só mostrar se não veio de orçamento */}
             {!budgetData && (

@@ -182,12 +182,12 @@ export default function RelatoriosPage() {
           <div className="flex flex-1 items-center justify-between">
             <div>
               <h1 className="text-lg font-semibold text-foreground">Relatórios</h1>
-              <p className="text-sm text-gray-600">Análise de desempenho e métricas do negócio</p>
+              <p className="text-sm text-text-secondary">Análise de desempenho e métricas do negócio</p>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 space-y-6 p-6 bg-gray-50">
+        <main className="flex-1 space-y-6 p-6 bg-background">
           {/* Filtros */}
           <Card>
             <CardHeader>
@@ -197,8 +197,8 @@ export default function RelatoriosPage() {
             <CardContent>
               <div className="grid gap-4 md:grid-cols-3 items-end">
                 <div className="grid gap-2">
-                  <Label htmlFor="period">Período</Label>
-                  <Select value={selectedPeriod} onValueChange={setSelectedPeriod} disabled={loading}>
+                  <Label htmlFor="period" className="text-gray-900 font-medium">Período</Label>
+                  <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o período" />
                     </SelectTrigger>
@@ -211,105 +211,96 @@ export default function RelatoriosPage() {
                     </SelectContent>
                   </Select>
                 </div>
-
                 {selectedPeriod === "custom" && (
                   <>
                     <div className="grid gap-2">
-                      <Label htmlFor="startDate">Data Inicial</Label>
+                      <Label htmlFor="startDate" className="text-gray-900 font-medium">Data Inicial</Label>
                       <Input
                         id="startDate"
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        disabled={loading}
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="endDate">Data Final</Label>
+                      <Label htmlFor="endDate" className="text-gray-900 font-medium">Data Final</Label>
                       <Input
                         id="endDate"
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        min={startDate}
-                        disabled={loading}
                       />
                     </div>
                   </>
                 )}
               </div>
-              {loading && (
-                <div className="mt-4 text-center text-sm text-gray-600">
-                  Carregando dados...
-                </div>
-              )}
             </CardContent>
           </Card>
 
-          {/* Cards de Métricas */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
-              title="Contratos Fechados"
-              value={contractsCount}
-              icon={FileText}
-              description="No período selecionado"
-              variant="default"
-            />
-            <MetricCard
-              title="Orçamentos Aprovados"
-              value={budgetsCount}
-              icon={TrendingUp}
-              description="No período selecionado"
-              variant="accent"
-            />
+          {/* Métricas Principais */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               title="Receita Total"
               value={formatCurrency(totalRevenue)}
               icon={DollarSign}
-              description="Valor total faturado"
-              variant="accent"
+              description="Receita total do período"
+            />
+            <MetricCard
+              title="Contratos"
+              value={contractsCount.toString()}
+              icon={FileText}
+              description="Número de contratos realizados"
+            />
+            <MetricCard
+              title="Orçamentos"
+              value={budgetsCount.toString()}
+              icon={TrendingUp}
+              description="Orçamentos gerados"
             />
             <MetricCard
               title="Ticket Médio"
               value={formatCurrency(averageTicket)}
               icon={Calendar}
               description="Valor médio por contrato"
-              variant="default"
             />
           </div>
 
+          {/* Análises Detalhadas */}
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Top 3 Clientes */}
+            {/* Top Clientes */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-foreground">Top 3 Clientes</CardTitle>
-                <CardDescription>Clientes com maior número de contratos no período</CardDescription>
+                <CardDescription>Clientes com mais contratos no período</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {topClients.length > 0 ? (
-                  topClients.map((client, index) => (
-                    <div
-                      key={client.name}
-                      className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary font-semibold text-sm">
-                          {index + 1}
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-foreground">{client.name}</p>
-                          <p className="text-xs text-gray-600">{formatCurrency(client.totalValue)} em receita</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-foreground">{client.contracts} contratos</p>
-                      </div>
-                    </div>
-                  ))
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    <span className="ml-2 text-text-secondary">Carregando...</span>
+                  </div>
+                ) : topClients.length === 0 ? (
+                  <div className="text-center py-8 text-text-secondary">
+                    Nenhum cliente encontrado no período selecionado.
+                  </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p>Nenhum dado encontrado para o período selecionado</p>
+                  <div className="space-y-4">
+                    {topClients.map((client, index) => (
+                      <div key={client.name} className="flex items-center justify-between p-3 rounded-lg border">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-medium">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <div className="font-medium text-foreground">{client.name}</div>
+                            <div className="text-sm text-text-secondary">{client.contracts} contrato(s)</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium text-foreground">{formatCurrency(client.totalValue)}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>
@@ -319,33 +310,36 @@ export default function RelatoriosPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-foreground">Equipamentos Mais Alugados</CardTitle>
-                <CardDescription>Top 5 equipamentos por quantidade no período</CardDescription>
+                <CardDescription>Equipamentos com maior demanda no período</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {topEquipments.length > 0 ? (
-                  topEquipments.map((equipment, index) => (
-                    <div
-                      key={equipment.name}
-                      className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent font-semibold text-sm">
-                          {index + 1}
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-foreground">{equipment.name}</p>
-                          <p className="text-xs text-gray-600">{equipment.rentals} locações</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-foreground">{equipment.quantity} unidades</p>
-                      </div>
-                    </div>
-                  ))
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    <span className="ml-2 text-text-secondary">Carregando...</span>
+                  </div>
+                ) : topEquipments.length === 0 ? (
+                  <div className="text-center py-8 text-text-secondary">
+                    Nenhum equipamento encontrado no período selecionado.
+                  </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p>Nenhum dado encontrado para o período selecionado</p>
+                  <div className="space-y-4">
+                    {topEquipments.map((equipment, index) => (
+                      <div key={equipment.name} className="flex items-center justify-between p-3 rounded-lg border">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-medium">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <div className="font-medium text-foreground">{equipment.name}</div>
+                            <div className="text-sm text-text-secondary">{equipment.rentals} locação(ões)</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium text-foreground">{equipment.quantity} unidade(s)</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>

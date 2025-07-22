@@ -18,11 +18,14 @@ import {
   FileText,
   Search,
   MapPin,
+  Repeat,
 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { getClients } from "../lib/database/clients"
 import { getEquipments } from "../lib/database/equipments"
 import { transformClientFromDB, transformEquipmentFromDB } from "../lib/utils/data-transformers"
+import { RecurrenceConfig } from "./recurrence-config"
+import type { RecurrenceType } from "../lib/utils/data-transformers"
 
 export interface BudgetItem {
   id: string
@@ -48,6 +51,9 @@ export interface Budget {
   totalValue: number
   status: "Pendente" | "Aprovado" | "Rejeitado"
   observations: string
+  recurrenceType?: RecurrenceType
+  recurrenceInterval?: number
+  recurrenceEndDate?: string
 }
 
 interface BudgetFormProps {
@@ -58,7 +64,7 @@ interface BudgetFormProps {
 }
 
 const steps = [
-  { id: 1, title: "Dados Básicos", icon: User, description: "Cliente e período" },
+  { id: 1, title: "Dados Básicos", icon: User, description: "Cliente, recorrência e período" },
   { id: 2, title: "Equipamentos", icon: Package, description: "Selecionar itens" },
   { id: 3, title: "Finalização", icon: FileText, description: "Resumo e observações" },
 ]
@@ -70,9 +76,29 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
   // Função para formatar datas
   const formatDate = (dateString: string) => {
     try {
-      // Criar data considerando o fuso horário local
-      const [year, month, day] = dateString.split('-').map(Number)
-      const date = new Date(year, month - 1, day)
+      if (!dateString) return ""
+      
+      // Se já estiver no formato YYYY-MM-DD, converter para pt-BR
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        const [year, month, day] = dateString.split('-').map(Number)
+        const date = new Date(year, month - 1, day)
+        return date.toLocaleDateString("pt-BR")
+      }
+      
+      // Se for timestamp UTC, converter para timezone local
+      if (dateString.includes('T') && dateString.includes('+')) {
+        const utcDate = new Date(dateString)
+        if (isNaN(utcDate.getTime())) {
+          throw new Error("Data inválida")
+        }
+        return utcDate.toLocaleDateString("pt-BR")
+      }
+      
+      // Para outros formatos, tentar conversão simples
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) {
+        throw new Error("Data inválida")
+      }
       return date.toLocaleDateString("pt-BR")
     } catch (error) {
       return dateString
@@ -126,7 +152,15 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
     items: [] as BudgetItem[],
     discount: 0,
     observations: "",
+    // Campos de recorrência
+    isRecurring: false,
+    recurrenceType: "weekly" as RecurrenceType,
+    recurrenceInterval: 1,
+    recurrenceEndDate: "",
   })
+
+  // Estado separado para o input de intervalo (permite valores vazios)
+  const [intervalInputValue, setIntervalInputValue] = useState("1")
 
   const [selectedEquipment, setSelectedEquipment] = useState("")
   const [quantity, setQuantity] = useState(1)
@@ -177,7 +211,13 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
         items: [],
         discount: 0,
         observations: "",
+        // Campos de recorrência
+        isRecurring: false,
+        recurrenceType: "weekly",
+        recurrenceInterval: 1,
+        recurrenceEndDate: "",
       })
+      setIntervalInputValue("1")
       setSelectedEquipment("")
       setQuantity(1)
       setEquipmentSearch("")
@@ -194,20 +234,39 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
         items: budget.items,
         discount: budget.discount,
         observations: budget.observations,
+        // Campos de recorrência
+        isRecurring: budget.recurrenceType ? true : false,
+        recurrenceType: budget.recurrenceType || "weekly",
+        recurrenceInterval: budget.recurrenceInterval || 1,
+        recurrenceEndDate: budget.recurrenceEndDate || "",
       })
+      setIntervalInputValue((budget.recurrenceInterval || 1).toString())
       setEquipmentSearch("")
     }
     // Não resetar quando o modal está fechando (open = false)
   }, [open, budget])
 
-  // Calcular dias automaticamente
-  const calculateDays = () => {
+  // Calcular dias reais da locação (para exibição)
+  const calculateRealDays = () => {
     if (formData.startDate && formData.endDate) {
       const start = new Date(formData.startDate)
       const end = new Date(formData.endDate)
       const diffTime = Math.abs(end.getTime() - start.getTime())
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
       return diffDays
+    }
+    return 1
+  }
+
+  // Calcular dias para faturamento (máximo 30 dias)
+  const calculateDays = () => {
+    if (formData.startDate && formData.endDate) {
+      const start = new Date(formData.startDate)
+      const end = new Date(formData.endDate)
+      const diffTime = Math.abs(end.getTime() - start.getTime())
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+      // Para faturamento, sempre usar máximo de 30 dias
+      return Math.min(diffDays, 30)
     }
     return 1
   }
@@ -236,6 +295,69 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
       setFormData((prev) => ({ ...prev, items: updatedItems }))
     }
   }, [formData.startDate, formData.endDate])
+
+  // Calcular automaticamente data de término e renovação para recorrências
+  useEffect(() => {
+    if (formData.isRecurring && formData.startDate && formData.recurrenceType && formData.recurrenceInterval > 0) {
+      try {
+        const startDate = new Date(formData.startDate + 'T00:00:00')
+        
+        if (isNaN(startDate.getTime())) {
+          console.error("Data de início inválida:", formData.startDate)
+          return
+        }
+        
+        // Calcular data de término baseada na duração
+        let endDate = new Date(startDate)
+        switch (formData.recurrenceType) {
+          case "weekly":
+            endDate.setDate(startDate.getDate() + (formData.recurrenceInterval * 7))
+            break
+          case "monthly":
+            endDate.setMonth(startDate.getMonth() + formData.recurrenceInterval)
+            break
+          case "yearly":
+            endDate.setFullYear(startDate.getFullYear() + formData.recurrenceInterval)
+            break
+        }
+        
+        // Calcular data de renovação (30 dias após início para mensal, etc.)
+        let renewalDate = new Date(startDate)
+        switch (formData.recurrenceType) {
+          case "weekly":
+            renewalDate.setDate(startDate.getDate() + 7)
+            break
+          case "monthly":
+            renewalDate.setDate(startDate.getDate() + 30)
+            break
+          case "yearly":
+            renewalDate.setDate(startDate.getDate() + 365)
+            break
+        }
+        
+        // Formatar datas para YYYY-MM-DD
+        const formatDateForInput = (date: Date) => {
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          return `${year}-${month}-${day}`
+        }
+        
+        const newEndDate = formatDateForInput(endDate)
+        const newRenewalDate = formatDateForInput(renewalDate)
+        
+        setFormData(prev => ({
+          ...prev,
+          endDate: newEndDate,
+          recurrenceEndDate: newRenewalDate
+        }))
+      } catch (error) {
+        console.error("Erro ao calcular datas de recorrência:", error)
+      }
+    }
+  }, [formData.isRecurring, formData.startDate, formData.recurrenceType, formData.recurrenceInterval])
+
+
 
   const handleClientChange = (clientId: string) => {
     const client = clients.find((c) => c.id === clientId)
@@ -308,7 +430,22 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
 
   const canProceedToNextStep = () => {
     if (currentStep === 1) {
-      return formData.clientId && formData.startDate && formData.endDate
+      const hasBasicData = formData.clientId && formData.startDate && formData.endDate
+      
+      // Validar se as datas são válidas
+      const isStartDateValid = formData.startDate && /^\d{4}-\d{2}-\d{2}$/.test(formData.startDate)
+      const isEndDateValid = formData.endDate && /^\d{4}-\d{2}-\d{2}$/.test(formData.endDate)
+      
+      // Se for recorrente, verificar se tem tipo e duração (datas são calculadas automaticamente)
+      if (formData.isRecurring) {
+        return hasBasicData && 
+               isStartDateValid && 
+               isEndDateValid &&
+               formData.recurrenceType && 
+               formData.recurrenceInterval > 0
+      }
+      
+      return hasBasicData && isStartDateValid && isEndDateValid
     }
     if (currentStep === 2) {
       return formData.items.length > 0
@@ -317,35 +454,34 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
   }
 
   const handleSaveBudget = async () => {
-    if (isSubmitting) return
-
-    // Validação final
-    if (formData.items.length === 0) {
-      alert("Adicione pelo menos um equipamento ao orçamento")
-      return
-    }
-
-    if (!formData.clientId) {
-      alert("Selecione um cliente")
-      setCurrentStep(1)
+    if (!canProceedToNextStep()) {
+      alert("Por favor, preencha todos os campos obrigatórios.")
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      await onSave({
-        ...formData,
-        subtotal,
-        totalValue,
-        status: "Pendente",
-        ...(budget && { id: budget.id }),
-      })
+      const totalValue = formData.items.reduce((sum, item) => sum + item.total, 0)
+      const finalValue = totalValue - formData.discount
 
-      // Fechar o modal imediatamente após salvar com sucesso
-        onOpenChange(false)
-        setIsSubmitting(false)
+      const budgetData = {
+        ...formData,
+        subtotal: totalValue,
+        totalValue: finalValue,
+        status: "Pendente" as const,
+        // Campos de recorrência
+        recurrenceType: formData.isRecurring ? formData.recurrenceType : "weekly",
+        recurrenceInterval: formData.isRecurring ? formData.recurrenceInterval : 1,
+        recurrenceEndDate: formData.isRecurring ? formData.recurrenceEndDate : undefined,
+      }
+
+      await onSave(budgetData)
+      onOpenChange(false)
     } catch (error) {
+      console.error("Erro ao salvar orçamento:", error)
+      alert("Erro ao salvar orçamento. Tente novamente.")
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -419,38 +555,169 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Período da Locação</CardTitle>
+          <CardTitle className="text-lg">Configuração de Recorrência</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="startDate">Data de Início *</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="endDate">Data de Término *</Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                min={formData.startDate}
-              />
-            </div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="isRecurring"
+              checked={formData.isRecurring}
+              onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
+              className="mr-2 h-4 w-4 text-primary focus:ring-primary"
+            />
+            <Label htmlFor="isRecurring" className="text-sm">
+              Orçamento recorrente
+            </Label>
           </div>
 
-          {formData.startDate && formData.endDate && (
-            <div className="bg-primary/10 text-primary p-3 rounded-lg text-center">
-              <strong>{days} dia(s)</strong> de locação
+                    {formData.isRecurring && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="recurrenceType">Tipo de Recorrência *</Label>
+                  <Select
+                    value={formData.recurrenceType}
+                    onValueChange={(value) => setFormData({ ...formData, recurrenceType: value as RecurrenceType })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo de recorrência" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weekly">Semanal</SelectItem>
+                      <SelectItem value="monthly">Mensal</SelectItem>
+                      <SelectItem value="yearly">Anual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="recurrenceInterval">Duração *</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="99"
+                    value={intervalInputValue}
+                    onChange={(e) => {
+                      const inputValue = e.target.value
+                      setIntervalInputValue(inputValue)
+                      
+                      // Atualizar o formData apenas se o valor for válido
+                      const value = parseInt(inputValue)
+                      if (!isNaN(value) && value > 0) {
+                        setFormData(prev => ({ ...prev, recurrenceInterval: value }))
+                      }
+                    }}
+                    onBlur={() => {
+                      // Quando sair do campo, garantir que tenha um valor válido
+                      const value = parseInt(intervalInputValue) || 1
+                      setIntervalInputValue(value.toString())
+                      setFormData(prev => ({ ...prev, recurrenceInterval: value }))
+                    }}
+                    placeholder="Ex: 1, 3, 6, 12"
+                  />
+                  <p className="text-xs text-gray-600">
+                    {formData.recurrenceType === "weekly" && "Duração em semanas (ex: 1 = 1 semana, 4 = 1 mês)"}
+                    {formData.recurrenceType === "monthly" && "Duração em meses (ex: 1 = 1 mês, 3 = 3 meses, 6 = 6 meses)"}
+                    {formData.recurrenceType === "yearly" && "Duração em anos (ex: 1 = 1 ano, 2 = 2 anos)"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="startDate">Data de Início *</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="endDate">Data de Término *</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    min={formData.startDate}
+                    readOnly
+                  />
+                </div>
+              </div>
+
+              {formData.startDate && formData.recurrenceType && formData.recurrenceInterval > 0 && (
+                <div className="bg-blue-50 text-blue-700 p-3 rounded-lg text-center">
+                  <strong>Resumo da Locação Recorrente:</strong>
+                  <br />
+                  <span className="text-sm">
+                    Início: {formatDate(formData.startDate)} | 
+                    Término: {formData.endDate ? formatDate(formData.endDate) : "Calculando..."} | 
+                    Duração: {formData.recurrenceInterval} 
+                    {formData.recurrenceType === "weekly" ? " semana(s)" : 
+                     formData.recurrenceType === "monthly" ? " mês(es)" : 
+                     formData.recurrenceType === "yearly" ? " ano(s)" : ""}
+                  </span>
+                  <br />
+                  <span className="text-xs text-blue-600">
+                    Período real: {calculateRealDays()} dia(s) | 
+                    Faturamento: {calculateDays()} dia(s) (máx. 30) | 
+                    Renovação: {formData.recurrenceEndDate ? formatDate(formData.recurrenceEndDate) : "Calculando..."}
+                  </span>
+                  {!formData.endDate && (
+                    <div className="text-xs text-orange-600 mt-1">
+                      ⚠️ Aguardando cálculo automático da data de término...
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {!formData.isRecurring && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Período da Locação</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="startDate">Data de Início *</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="endDate">Data de Término *</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  min={formData.startDate}
+                />
+              </div>
+            </div>
+
+            {formData.startDate && formData.endDate && (
+              <div className="bg-primary/10 text-primary p-3 rounded-lg text-center">
+                <strong>{calculateRealDays()} dia(s)</strong> de locação
+                {calculateRealDays() > 30 && (
+                  <div className="text-xs text-gray-600 mt-1">
+                    Faturamento: {calculateDays()} dia(s) (máximo 30 dias)
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
 
     </div>
@@ -461,6 +728,11 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Adicionar Equipamentos</CardTitle>
+          {calculateRealDays() > 30 && (
+            <p className="text-sm text-gray-600">
+              ⚠️ Período de {calculateRealDays()} dias detectado. O faturamento será limitado a 30 dias conforme política da empresa.
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-4">
@@ -532,6 +804,11 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                     )}
                   </span>
                 </div>
+                {calculateRealDays() > 30 && (
+                  <div className="text-xs text-gray-600 mt-1">
+                    Baseado em {days} dias de faturamento (máximo 30 dias)
+                  </div>
+                )}
               </div>
 
               {(() => {
@@ -578,6 +855,11 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                     <p className="font-medium">{item.equipmentName}</p>
                     <p className="text-sm text-gray-600">
                       R$ {item.dailyRate.toFixed(2)}/dia • {item.days} dia(s)
+                      {calculateRealDays() > 30 && (
+                        <span className="text-xs text-gray-500 ml-1">
+                          (faturamento)
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -613,7 +895,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
     </div>
   )
 
-  const renderStep3 = () => (
+  const renderStep4 = () => (
     <div className="space-y-8">
       <Card>
         <CardHeader>
@@ -633,19 +915,52 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
               </div>
             )}
 
+            {formData.isRecurring && (
+              <div className="flex justify-between items-start">
+                <span className="font-medium">Recorrência:</span>
+                <span className="text-right text-sm">
+                  {formData.recurrenceType === "weekly" ? "Semanal" : 
+                   formData.recurrenceType === "monthly" ? "Mensal" : 
+                   formData.recurrenceType === "yearly" ? "Anual" : "Nenhum"} 
+                  - Duração: {formData.recurrenceInterval} 
+                  {formData.recurrenceType === "weekly" ? " semana(s)" : 
+                   formData.recurrenceType === "monthly" ? " mês(es)" : 
+                   formData.recurrenceType === "yearly" ? " ano(s)" : ""}
+                  <br />
+                  Renovação automática: {formData.recurrenceEndDate ? formatDate(formData.recurrenceEndDate) : "Calculando..."}
+                </span>
+              </div>
+            )}
+
             <div className="flex justify-between items-start">
               <span className="font-medium">Período:</span>
               <span className="text-right">
                 {formData.startDate && formData.endDate
                   ? `${formatDate(formData.startDate)} - ${formatDate(formData.endDate)}`
-                  : ""}
+                  : "Datas não definidas"}
               </span>
             </div>
 
+
+
             <div className="flex justify-between">
               <span className="font-medium">Duração:</span>
-              <span>{days} dia(s)</span>
+              <span>{calculateRealDays()} dia(s)</span>
+              {calculateRealDays() > 30 && (
+                <span className="text-xs text-gray-600 ml-2">
+                  (Faturamento: {calculateDays()} dias)
+                </span>
+              )}
             </div>
+
+            {formData.isRecurring && formData.recurrenceEndDate && (
+              <div className="flex justify-between items-start">
+                <span className="font-medium">Próxima Renovação:</span>
+                <span className="text-right text-sm">
+                  {formatDate(formData.recurrenceEndDate)}
+                </span>
+              </div>
+            )}
 
             <div className="flex justify-between">
               <span className="font-medium">Equipamentos:</span>
@@ -667,6 +982,11 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                   <p className="font-medium">{item.equipmentName}</p>
                   <p className="text-gray-600">
                     {item.quantity}x • {item.days} dia(s)
+                    {calculateRealDays() > 30 && (
+                      <span className="text-xs text-gray-500 ml-1">
+                        (faturamento)
+                      </span>
+                    )}
                   </p>
                 </div>
                 <span className="font-medium">R$ {item.total.toFixed(2)}</span>
@@ -684,7 +1004,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
           <div className="space-y-3">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>R$ {subtotal.toFixed(2)}</span>
+              <span>R$ {formData.items.reduce((sum, item) => sum + item.total, 0).toFixed(2)}</span>
             </div>
 
             <div className="grid gap-2">
@@ -694,7 +1014,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                 type="number"
                 step="0.01"
                 min="0"
-                max={subtotal}
+                max={formData.items.reduce((sum, item) => sum + item.total, 0)}
                 value={formData.discount}
                 onChange={(e) => setFormData({ ...formData, discount: Number.parseFloat(e.target.value) || 0 })}
                 placeholder="0,00"
@@ -705,7 +1025,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
 
             <div className="flex justify-between font-semibold text-xl">
               <span>Total Final:</span>
-              <span className="text-primary">R$ {totalValue.toFixed(2)}</span>
+              <span className="text-primary">R$ {(formData.items.reduce((sum, item) => sum + item.total, 0) - formData.discount).toFixed(2)}</span>
             </div>
 
             {formData.discount > 0 && (
@@ -753,7 +1073,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
           <div className="min-h-[400px]">
             {currentStep === 1 && renderStep1()}
             {currentStep === 2 && renderStep2()}
-            {currentStep === 3 && renderStep3()}
+            {currentStep === 3 && renderStep4()}
           </div>
 
           <div className="flex justify-between pt-6 border-t">

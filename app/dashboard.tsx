@@ -8,6 +8,7 @@ import { Calendar, DollarSign, FileText, TrendingUp, Users, Package, BarChart3, 
 
 import { AppSidebar } from "../components/app-sidebar"
 import { MetricCard } from "../components/metric-card"
+import { NotificationBell } from "../components/notification-bell"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
@@ -57,10 +58,10 @@ export default function Dashboard() {
           variant: "accent" as const,
         },
         {
-          title: "Locações Ativas",
-          value: metrics.activeRentals,
+          title: "Total de Locações no Mês",
+          value: metrics.monthlyRentals,
           icon: TrendingUp,
-          description: "Em andamento",
+          description: "Contratos fechados",
         },
         {
           title: "Faturamento do Mês",
@@ -135,12 +136,15 @@ export default function Dashboard() {
           <div className="flex flex-1 items-center justify-between">
             <div>
               <h1 className="text-lg font-semibold text-foreground">Dashboard</h1>
-              <p className="text-sm text-gray-600">Bem-vindo de volta! Aqui está o resumo do seu negócio.</p>
+              <p className="text-sm text-text-secondary">Bem-vindo de volta! Aqui está o resumo do seu negócio.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
             </div>
           </div>
         </header>
 
-        <main className="flex-1 space-y-6 p-6 bg-gray-50">
+        <main className="flex-1 space-y-6 p-6 bg-background">
           {/* Cards de Métricas */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {loading
@@ -179,7 +183,7 @@ export default function Dashboard() {
               </CardTitle>
               <CardDescription>Acesse rapidamente as principais funcionalidades do sistema</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-3">
+            <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
               <Button
                 variant="outline"
                 className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-blue-50 hover:border-blue-200 bg-transparent"
@@ -188,7 +192,7 @@ export default function Dashboard() {
                 <FileText className="h-6 w-6 text-blue-600" />
                 <div className="text-center">
                   <div className="font-medium text-foreground">Orçamentos</div>
-                  <div className="text-xs text-gray-500">Criar e gerenciar</div>
+                  <div className="text-xs text-text-secondary">Criar e gerenciar</div>
                 </div>
               </Button>
 
@@ -200,7 +204,7 @@ export default function Dashboard() {
                 <Wrench className="h-6 w-6 text-green-600" />
                 <div className="text-center">
                   <div className="font-medium text-foreground">Locações</div>
-                  <div className="text-xs text-gray-500">Contratos ativos</div>
+                  <div className="text-xs text-text-secondary">Contratos ativos</div>
                 </div>
               </Button>
 
@@ -212,9 +216,11 @@ export default function Dashboard() {
                 <Calendar className="h-6 w-6 text-purple-600" />
                 <div className="text-center">
                   <div className="font-medium text-foreground">Agenda</div>
-                  <div className="text-xs text-gray-500">Instalações e desmontagens</div>
+                  <div className="text-xs text-text-secondary">Instalações e desmontagens</div>
                 </div>
               </Button>
+
+              
             </CardContent>
           </Card>
         </main>
