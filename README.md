@@ -14,7 +14,7 @@ Sistema completo de gestão de locações de equipamentos, desenvolvido com Next
 - **Relatórios Dinâmicos**: Análises e métricas de negócio
 - **Gestão de Clientes**: Base de dados completa de clientes
 - **Gestão de Equipamentos**: Catálogo com categorias e controle de estoque
-- **Módulo Financeiro**: Controle completo de recebíveis, transações e contas
+
 - **Geração de Contratos**: PDF automático com dados da empresa
 - **Sistema de Notificações**: Alertas para recorrências no dia
 - **Configurações**: Personalização do sistema e dados da empresa
@@ -50,7 +50,7 @@ precisa-admim-1.0-main/
 │   ├── locacoes-recorrentes/ # Gestão de locações recorrentes
 │   ├── clientes/          # Gestão de clientes
 │   ├── equipamentos/      # Catálogo de equipamentos
-│   ├── financeiro/        # Módulo financeiro completo
+
 │   ├── agenda/            # Agenda de eventos
 │   ├── relatorios/        # Relatórios e análises
 │   └── configuracoes/     # Configurações do sistema
@@ -122,14 +122,7 @@ precisa-admim-1.0-main/
 
 ## 🆕 Funcionalidades Recentes
 
-### Módulo Financeiro Completo
-- **Dashboard Financeiro**: Métricas em tempo real com cards informativos
-- **Aprovação de Recebíveis**: Workflow completo com modal de configuração
-- **Transações**: Listagem com filtros por tipo, conta e período
-- **Gestão de Contas**: Contas bancárias e caixa com saldos atualizados
-- **Relatórios Financeiros**: Análises de recebíveis vencidos e resumos por tipo
-- **Interface em Abas**: Organização intuitiva das funcionalidades
-- **Integração com Sidebar**: Navegação consistente com o sistema
+
 
 ### Sistema de Recorrência
 - **Tipos de recorrência**: Semanal, mensal, anual
@@ -210,14 +203,7 @@ precisa-admim-1.0-main/
 - **Validação em Tempo Real**: Verificação de dados
 - **Template de Contrato**: Personalização do PDF
 
-### Módulo Financeiro
-- **Interface em Abas**: Dashboard, Aprovação, Transações, Contas e Relatórios
-- **Aprovação de Recebíveis**: Modal com configuração de pagamento
-- **Filtros Avançados**: Por tipo, conta, período e busca textual
-- **Métricas em Tempo Real**: Cards com totais e indicadores
-- **Gestão de Contas**: Contas bancárias e caixa com saldos
-- **Relatórios Detalhados**: Recebíveis vencidos e resumos por tipo
-- **Integração Completa**: Geração automática de recebíveis e transações
+
 
 ## 📊 Estrutura do Banco de Dados
 
@@ -232,12 +218,7 @@ precisa-admim-1.0-main/
 - **rental_logistics_events**: Eventos de logística
 - **company_settings**: Configurações da empresa
 
-### Tabelas Financeiras
-- **accounts**: Contas bancárias e caixa
-- **receivables**: Recebíveis gerados a partir das locações
-- **financial_transactions**: Transações financeiras (receitas e despesas)
-- **financial_summary**: View para relatórios financeiros
-- **overdue_receivables**: View para recebíveis vencidos
+
 
 ### Campos de Recorrência (Novos)
 - **is_recurring**: Boolean - Se é recorrente
@@ -254,9 +235,7 @@ precisa-admim-1.0-main/
 - Locações → Itens de Locação
 - Locações → Eventos de Logística
 - Locações → Locações Recorrentes (self-referencing)
-- Locações → Recebíveis (automático)
-- Recebíveis → Transações Financeiras
-- Transações → Contas (atualização de saldo)
+
 
 ## 🚀 Como Executar o Projeto
 
@@ -322,7 +301,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima
 ## 📝 Changelog
 
 ### Versão Atual (v1.0)
-- ✅ Módulo financeiro completo
+
 - ✅ Sistema de recorrência completo
 - ✅ Geração de contratos em PDF
 - ✅ Sistema de notificações
@@ -336,7 +315,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima
 - ✅ Dashboard com métricas em tempo real
 - ✅ Gestão completa de orçamentos
 - ✅ Controle de locações com recorrência
-- ✅ Gestão financeira completa
+
 - ✅ Agenda de eventos de logística
 - ✅ Relatórios dinâmicos
 - ✅ Gestão de clientes e equipamentos
@@ -347,7 +326,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima
 
 - [ ] Sistema de autenticação
 - [ ] Múltiplos usuários
-- [ ] Relatórios financeiros avançados
+
 - [ ] Integração com gateways de pagamento
 - [ ] App mobile
 - [ ] Backup automático

@@ -2,7 +2,8 @@ import { supabase } from "../supabase";
 
 // Define a interface para os dados de configuração da empresa
 export interface CompanySettings {
-  id?: number;
+  id?: string;
+  company_id?: string;
   company_name: string | null;
   cnpj: string | null;
   address: string | null;
@@ -14,15 +15,13 @@ export interface CompanySettings {
 }
 
 /**
- * Busca as configurações da empresa.
- * Como há apenas uma linha (id=1), busca sempre por ela.
+ * Busca as configurações da empresa do usuário logado.
  * @returns {Promise<CompanySettings>}
  */
 export async function getCompanySettings(): Promise<CompanySettings> {
   const { data, error } = await supabase
     .from("company_settings")
     .select("*")
-    .eq("id", 1)
     .single();
 
   if (error && error.code !== "PGRST116") { // PGRST116: a consulta não retornou linhas
@@ -47,7 +46,7 @@ export async function getCompanySettings(): Promise<CompanySettings> {
 }
 
 /**
- * Atualiza as configurações da empresa.
+ * Atualiza as configurações da empresa do usuário logado.
  * @param {Omit<CompanySettings, "id" | "updated_at">} settings - Os novos dados de configuração.
  * @returns {Promise<CompanySettings>}
  */
@@ -57,7 +56,6 @@ export async function updateCompanySettings(
   const { data, error } = await supabase
     .from("company_settings")
     .update(settings)
-    .eq("id", 1)
     .select()
     .single();
 

@@ -3,14 +3,15 @@
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import { CheckCircle, Edit, Eye, FileText, Plus, Search, Trash2, Download, User, Calendar, MapPin, Package, Calculator, Repeat } from "lucide-react"
 import { AppSidebar } from "../../components/app-sidebar"
+import { PageHeader } from "../../components/page-header"
 // Lazy load do componente pesado
 const BudgetFormV2 = lazy(() => import("../../components/budget-form-v2").then(module => ({ default: module.BudgetFormV2 })))
 import type { Budget } from "../../components/budget-form-v2"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
+import { Label } from "@/components/ui/label"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   AlertDialog,
@@ -74,6 +75,11 @@ export default function BudgetsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("Todos")
+  
+  // Filtros de período
+  const [periodFilter, setPeriodFilter] = useState("current_month") // current_month, last_month, custom, all
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingBudget, setEditingBudget] = useState<Budget | undefined>()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -98,6 +104,62 @@ export default function BudgetsPage() {
 
   // Debounce do termo de busca para evitar queries desnecessárias
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Funções para calcular períodos
+  const getCurrentMonthRange = () => {
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    return {
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0]
+    }
+  }
+
+  const getLastMonthRange = () => {
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const end = new Date(now.getFullYear(), now.getMonth(), 0)
+    return {
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0]
+    }
+  }
+
+  const getPeriodRange = () => {
+    switch (periodFilter) {
+      case "current_month":
+        return getCurrentMonthRange()
+      case "last_month":
+        return getLastMonthRange()
+      case "custom":
+        return { start: startDate, end: endDate }
+      case "all":
+        return { start: "", end: "" }
+      default:
+        return getCurrentMonthRange()
+    }
+  }
+
+  const getPeriodDisplayText = () => {
+    switch (periodFilter) {
+      case "current_month":
+        const currentRange = getCurrentMonthRange()
+        return `${new Date(currentRange.start).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`
+      case "last_month":
+        const lastRange = getLastMonthRange()
+        return `${new Date(lastRange.start).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`
+      case "custom":
+        if (startDate && endDate) {
+          return `${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}`
+        }
+        return "Período customizado"
+      case "all":
+        return "Todos os períodos"
+      default:
+        return "Mês atual"
+    }
+  }
 
   // Memoização dos filtros aplicados
   const filteredBudgets = useMemo(() => {
@@ -150,13 +212,22 @@ export default function BudgetsPage() {
   // Reset da página quando filtros mudarem
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchTerm, statusFilter]);
+  }, [debouncedSearchTerm, statusFilter, periodFilter, startDate, endDate]);
+
+  // Recarregar dados quando filtros de período mudarem
+  useEffect(() => {
+    loadBudgets()
+  }, [periodFilter, startDate, endDate])
 
   const loadBudgets = async () => {
     try {
       setLoading(true)
-      // Carregar apenas os primeiros 50 orçamentos para melhor performance
-      const dbBudgets = await getBudgets(50)
+      
+      // Obter o período selecionado
+      const periodRange = getPeriodRange()
+      
+      // Carregar orçamentos com filtro de período
+      const dbBudgets = await getBudgets(50, periodRange.start, periodRange.end)
       const transformedBudgets = dbBudgets.map(transformBudgetFromDB)
       setBudgets(transformedBudgets)
     } catch (error) {
@@ -173,6 +244,16 @@ export default function BudgetsPage() {
 
   const handleStatusFilter = useCallback((value: string) => {
     setStatusFilter(value)
+  }, [])
+
+  const handlePeriodFilter = useCallback((value: string) => {
+    setPeriodFilter(value)
+    
+    // Limpar datas customizadas quando não for período customizado
+    if (value !== "custom") {
+      setStartDate("")
+      setEndDate("")
+    }
   }, [])
 
   const handleSaveBudget = async (budgetData: Omit<Budget, "id" | "number" | "createdAt"> & { id?: string }) => {
@@ -224,20 +305,33 @@ export default function BudgetsPage() {
 
       await loadBudgets()
       // Não definir editingBudget como undefined aqui, deixar o modal fechar naturalmente
-    } catch (error) {
-      alert("Erro ao salvar orçamento. Tente novamente.")
+    } catch (error: any) {
+      console.error("Erro ao salvar orçamento:", error)
+      const errorMessage = error.message || "Erro ao salvar orçamento. Tente novamente."
+      alert(errorMessage)
     }
   }
 
   const handleEditBudget = useCallback((budget: Budget) => {
+    // Impedir edição de orçamentos aprovados
+    if (budget.status === "Aprovado") {
+      alert("Orçamentos aprovados não podem ser editados. Para fazer alterações, crie um novo orçamento.")
+      return
+    }
     setEditingBudget(budget)
     setIsFormOpen(true)
   }, [])
 
   const handleDeleteBudget = useCallback((id: string) => {
+    // Verificar se o orçamento está aprovado
+    const budget = budgets.find(b => b.id === id)
+    if (budget?.status === "Aprovado") {
+      alert("Orçamentos aprovados não podem ser excluídos.")
+      return
+    }
     setBudgetToDelete(id)
     setDeleteDialogOpen(true)
-  }, [])
+  }, [budgets])
 
   // Abre o modal de confirmação de logística
   const handleApproveBudget = useCallback((budget: Budget) => {
@@ -338,9 +432,10 @@ export default function BudgetsPage() {
       await loadBudgets()
       setDeleteDialogOpen(false)
       setBudgetToDelete(null)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao excluir orçamento:", error)
-      alert("Erro ao excluir orçamento. Tente novamente.")
+      const errorMessage = error.message || "Erro ao excluir orçamento. Tente novamente."
+      alert(errorMessage)
     } finally {
       setIsDeleting(false)
     }
@@ -456,18 +551,22 @@ export default function BudgetsPage() {
               <Download className="h-4 w-4" />
             )}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => handleEditBudget(budget)} title="Editar">
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleDeleteBudget(budget.id)}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            title="Excluir"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {budget.status === "Pendente" && (
+            <Button variant="outline" size="sm" onClick={() => handleEditBudget(budget)} title="Editar">
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
+          {budget.status === "Pendente" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDeleteBudget(budget.id)}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              title="Excluir"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </TableCell>
     </TableRow>
@@ -477,16 +576,10 @@ export default function BudgetsPage() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <div className="flex flex-1 items-center justify-between">
-            <div className="min-w-0">
-              <h1 className="text-lg font-semibold text-foreground truncate">Orçamentos</h1>
-              <p className="text-sm text-text-secondary hidden sm:block">Gerencie orçamentos pendentes de aprovação</p>
-            </div>
-          </div>
-        </header>
+        <PageHeader 
+          title="Orçamentos" 
+          description="Gerencie orçamentos pendentes de aprovação" 
+        />
 
         <main className="flex-1 space-y-6 p-4 sm:p-6 bg-background">
           {/* Tabela de Orçamentos */}
@@ -495,7 +588,12 @@ export default function BudgetsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="min-w-0">
                   <CardTitle className="text-foreground">Lista de Orçamentos</CardTitle>
-                  <CardDescription className="hidden sm:block">Todos os orçamentos cadastrados no sistema</CardDescription>
+                  <CardDescription className="hidden sm:block">
+                    {periodFilter === "current_month" && "Orçamentos do mês atual"}
+                    {periodFilter === "last_month" && "Orçamentos do mês anterior"}
+                    {periodFilter === "custom" && "Orçamentos do período selecionado"}
+                    {periodFilter === "all" && "Todos os orçamentos cadastrados no sistema"}
+                  </CardDescription>
                 </div>
                 <Button
                   onClick={() => {
@@ -511,29 +609,84 @@ export default function BudgetsPage() {
             </CardHeader>
             <CardContent>
               {/* Filtros */}
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-end mb-6">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    placeholder="Buscar orçamentos..."
-                    value={searchTerm}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearch(e.target.value)}
-                    className="pl-10"
-                  />
+              <div className="space-y-4 mb-6">
+                {/* Filtros principais */}
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 items-end">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <Input
+                      placeholder="Buscar orçamentos..."
+                      value={searchTerm}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Select value={statusFilter} onValueChange={handleStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Status do orçamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Todos">Todos os status</SelectItem>
+                      <SelectItem value="Pendente">Pendente</SelectItem>
+                      <SelectItem value="Aprovado">Aprovado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={periodFilter} onValueChange={handlePeriodFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="current_month">Mês Atual</SelectItem>
+                      <SelectItem value="last_month">Mês Anterior</SelectItem>
+                      <SelectItem value="custom">Período Customizado</SelectItem>
+                      <SelectItem value="all">Todos os Períodos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center text-sm text-text-secondary">
+                    {filteredBudgets.length} orçamento(s) encontrado(s)
+                  </div>
                 </div>
-                <Select value={statusFilter} onValueChange={handleStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status do orçamento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Todos">Todos os status</SelectItem>
-                    <SelectItem value="Pendente">Pendente</SelectItem>
-                    <SelectItem value="Aprovado">Aprovado</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center text-sm text-text-secondary col-span-1 sm:col-span-2 lg:col-span-1">
-                  {filteredBudgets.length} orçamento(s) encontrado(s)
-                </div>
+
+                {/* Filtros de período customizado */}
+                {periodFilter === "custom" && (
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-end">
+                    <div>
+                      <Label htmlFor="startDate" className="text-sm font-medium">Data Inicial</Label>
+                      <Input
+                        id="startDate"
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="endDate" className="text-sm font-medium">Data Final</Label>
+                      <Input
+                        id="endDate"
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="flex items-center text-sm text-text-secondary">
+                      {startDate && endDate && (
+                        <span>
+                          Período: {new Date(startDate).toLocaleDateString('pt-BR')} a {new Date(endDate).toLocaleDateString('pt-BR')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Informação do período atual */}
+                {periodFilter !== "all" && (
+                  <div className="flex items-center text-sm text-text-secondary">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Exibindo orçamentos de: {getPeriodDisplayText()}
+                  </div>
+                )}
               </div>
               
               <div className="rounded-md border">
@@ -827,16 +980,18 @@ export default function BudgetsPage() {
                     <Download className="h-4 w-4" />
                     {isGenerating ? "Gerando..." : "Gerar PDF"}
                   </Button>
-                  <Button
-                    onClick={() => {
-                      setViewDialogOpen(false)
-                      handleEditBudget(viewingBudget)
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Editar Orçamento
-                  </Button>
+                  {viewingBudget.status === "Pendente" && (
+                    <Button
+                      onClick={() => {
+                        setViewDialogOpen(false)
+                        handleEditBudget(viewingBudget)
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Editar Orçamento
+                    </Button>
+                  )}
                 </div>
               </div>
             )}

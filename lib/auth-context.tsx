@@ -1,0 +1,109 @@
+"use client"
+
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { User, Session } from '@supabase/supabase-js'
+import { supabase } from './supabase'
+
+interface AuthContextType {
+  user: User | null
+  session: Session | null
+  loading: boolean
+  signIn: (email: string, password: string) => Promise<{ error: any }>
+  signUp: (email: string, password: string) => Promise<{ data: any; error: any }>
+  signOut: () => Promise<void>
+  updateUser: (updates: Partial<User>) => Promise<{ error: any }>
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Verificar sessão atual
+    const getSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log('AuthContext: Sessão inicial:', session?.user?.email)
+        setSession(session)
+        setUser(session?.user ?? null)
+      } catch (error) {
+        console.error('Erro ao obter sessão:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    getSession()
+
+    // Escutar mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('AuthContext: Auth state changed:', event, session?.user?.email)
+        setSession(session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const signIn = async (email: string, password: string) => {
+    console.log('AuthContext: Tentando login com:', email)
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    if (error) {
+      console.error('AuthContext: Erro no login:', error)
+    } else {
+      console.log('AuthContext: Login bem-sucedido')
+    }
+    return { error }
+  }
+
+  const signUp = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    })
+    return { data, error }
+  }
+
+  const signOut = async () => {
+    console.log('AuthContext: Fazendo logout')
+    await supabase.auth.signOut()
+  }
+
+  const updateUser = async (updates: Partial<User>) => {
+    const { error } = await supabase.auth.updateUser(updates)
+    return { error }
+  }
+
+  const value = {
+    user,
+    session,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    updateUser,
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+} 

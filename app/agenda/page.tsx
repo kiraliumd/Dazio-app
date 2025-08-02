@@ -3,10 +3,10 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react"
 import { AppSidebar } from "../../components/app-sidebar"
+import { PageHeader } from "../../components/page-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import Link from "next/link"
 import { getLogisticsEvents } from "../../lib/database/rentals"
 import { formatDateCuiaba } from "@/lib/utils"
@@ -192,16 +192,10 @@ export default function AgendaPage() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <div className="flex flex-1 items-center justify-between">
-            <div>
-              <h1 className="text-lg font-semibold text-foreground">Agenda</h1>
-              <p className="text-sm text-text-secondary">Visualize todos os eventos agendados</p>
-            </div>
-          </div>
-        </header>
+        <PageHeader 
+          title="Agenda" 
+          description="Visualize todos os eventos agendados" 
+        />
 
         <main className="flex-1 space-y-6 p-6 bg-background">
           {/* Calendário */}

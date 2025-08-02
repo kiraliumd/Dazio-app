@@ -15,12 +15,12 @@ import {
   Filter
 } from "lucide-react"
 import { AppSidebar } from "../../components/app-sidebar"
+import { PageHeader } from "../../components/page-header"
 import { NotificationBell } from "../../components/notification-bell"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -196,19 +196,10 @@ export default function RecurringRentalsPage() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <div className="flex flex-1 items-center justify-between">
-            <div className="min-w-0">
-              <h1 className="text-lg font-semibold text-foreground truncate">Locações Recorrentes</h1>
-              <p className="text-sm text-text-secondary hidden sm:block">Gerencie suas locações recorrentes</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <NotificationBell />
-            </div>
-          </div>
-        </header>
+        <PageHeader 
+          title="Locações Recorrentes" 
+          description="Gerencie suas locações recorrentes" 
+        />
 
         <main className="flex-1 space-y-6 p-4 sm:p-6 bg-background">
           {/* Cards de Estatísticas */}

@@ -189,11 +189,11 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
                 </SelectTrigger>
                 <SelectContent>
                   {categoriesLoading ? (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="loading" disabled>
                       Carregando categorias...
                     </SelectItem>
                   ) : categories.length === 0 ? (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="no-categories" disabled>
                       Nenhuma categoria disponível
                     </SelectItem>
                   ) : (

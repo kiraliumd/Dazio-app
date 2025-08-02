@@ -340,21 +340,5 @@ export async function getLogisticsEvents() {
   return data || []
 }
 
-// Buscar locações fechadas aguardando aprovação financeira
-export async function getPendingFinancialApprovalRentals() {
-  const { data, error } = await supabase
-    .from("rentals")
-    .select("*")
-    .eq("status", "Instalação Pendente")
-    .order("created_at", { ascending: false })
 
-  if (error) {
-    console.error("Erro ao buscar locações para aprovação financeira:", error)
-    throw error
-  }
-
-  return data || []
-}
-
-// Criar conta a receber para locação e transação financeira se for pagamento à vista
 

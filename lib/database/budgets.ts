@@ -1,7 +1,7 @@
 import { supabase } from "../supabase"
 import type { Budget, BudgetItem } from "../supabase"
 
-export async function getBudgets(limit?: number) {
+export async function getBudgets(limit?: number, startDate?: string, endDate?: string) {
   let query = supabase
     .from("budgets")
     .select(`
@@ -9,6 +9,12 @@ export async function getBudgets(limit?: number) {
       budget_items (*)
     `)
     .order("created_at", { ascending: false })
+
+  // Aplicar filtros de período se fornecidos
+  if (startDate && endDate) {
+    query = query.gte("created_at", `${startDate}T00:00:00`)
+    query = query.lte("created_at", `${endDate}T23:59:59`)
+  }
 
   // Aplicar limite se fornecido
   if (limit) {
@@ -78,6 +84,21 @@ export async function updateBudget(
   budget: Partial<Omit<Budget, "id" | "created_at" | "updated_at">>,
   items?: Omit<BudgetItem, "id" | "budget_id" | "created_at">[],
 ) {
+  // Verificar se o orçamento está aprovado antes de permitir atualização
+  const { data: existingBudget, error: fetchError } = await supabase
+    .from("budgets")
+    .select("status")
+    .eq("id", id)
+    .single()
+
+  if (fetchError) {
+    console.error("Erro ao verificar status do orçamento:", fetchError)
+    throw fetchError
+  }
+
+  if (existingBudget.status === "Aprovado") {
+    throw new Error("Orçamentos aprovados não podem ser editados")
+  }
   // Atualizar o orçamento
   const { data: budgetData, error: budgetError } = await supabase
     .from("budgets")
@@ -116,6 +137,22 @@ export async function updateBudget(
 }
 
 export async function deleteBudget(id: string) {
+  // Verificar se o orçamento está aprovado antes de permitir exclusão
+  const { data: existingBudget, error: fetchError } = await supabase
+    .from("budgets")
+    .select("status")
+    .eq("id", id)
+    .single()
+
+  if (fetchError) {
+    console.error("Erro ao verificar status do orçamento:", fetchError)
+    throw fetchError
+  }
+
+  if (existingBudget.status === "Aprovado") {
+    throw new Error("Orçamentos aprovados não podem ser excluídos")
+  }
+
   // Os itens serão deletados automaticamente devido ao CASCADE
   const { error } = await supabase.from("budgets").delete().eq("id", id)
 

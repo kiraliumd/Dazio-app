@@ -1,6 +1,6 @@
 "use client"
 
-import { BarChart3, Calendar, FileText, Home, Package, Users, Wrench, Settings, DollarSign, Repeat } from "lucide-react"
+import { BarChart3, Calendar, FileText, Home, Package, Users, Wrench, Settings, Repeat, CreditCard } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -49,11 +49,7 @@ const mainMenuItems = [
     url: "/agenda",
     icon: Calendar,
   },
-  {
-    title: "Financeiro",
-    url: "/financeiro",
-    icon: DollarSign,
-  },
+
 ]
 
 const adminMenuItems = [
@@ -77,6 +73,12 @@ const adminMenuItems = [
     url: "/configuracoes",
     icon: Settings,
   },
+  {
+    title: "Assinatura",
+    url: "/assinatura-gestao",
+    icon: CreditCard,
+  },
+
 ]
 
 export function AppSidebar() {

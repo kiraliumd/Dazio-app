@@ -5,20 +5,32 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false, // Não persistir sessão para melhor performance
-    autoRefreshToken: false,
+    persistSession: true,
+    autoRefreshToken: true,
+    storageKey: 'dazio-auth'
   },
   db: {
     schema: 'public'
   },
   global: {
     headers: {
-      'X-Client-Info': 'precisa-admin'
+      'X-Client-Info': 'dazio-admin'
     }
   }
 })
 
 // Tipos para as tabelas
+export interface User {
+  id: string
+  email: string
+  full_name: string
+  role: "admin"
+  is_active: boolean
+  last_login: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface Client {
   id: string
   name: string

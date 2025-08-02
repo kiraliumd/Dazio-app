@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react"
 import { Calendar, DollarSign, FileText, TrendingUp, Users, Package } from "lucide-react"
 import { AppSidebar } from "../../components/app-sidebar"
+import { PageHeader } from "../../components/page-header"
 import { MetricCard } from "../../components/metric-card"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { 
   getRentalsForReports, 
   getBudgetsForReports, 
@@ -176,16 +176,10 @@ export default function RelatoriosPage() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <div className="flex flex-1 items-center justify-between">
-            <div>
-              <h1 className="text-lg font-semibold text-foreground">Relatórios</h1>
-              <p className="text-sm text-text-secondary">Análise de desempenho e métricas do negócio</p>
-            </div>
-          </div>
-        </header>
+        <PageHeader 
+          title="Relatórios" 
+          description="Análise de desempenho e métricas do negócio" 
+        />
 
         <main className="flex-1 space-y-6 p-6 bg-background">
           {/* Filtros */}

@@ -2,17 +2,19 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { AppSidebar } from "../../components/app-sidebar";
+import { PageHeader } from "../../components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { getCompanySettings, updateCompanySettings, CompanySettings } from "../../lib/database/settings";
 import { useToast } from "@/components/ui/use-toast";
-import { Save, CheckCircle, AlertCircle, Search } from "lucide-react";
+import { useAuth } from "../../lib/auth-context";
+import { AuthGuard } from "@/components/auth-guard";
+import { Save, CheckCircle, AlertCircle, Search, Key, Lock } from "lucide-react";
 
 // Lazy load do componente pesado
 const EquipmentCategoriesManager = lazy(() => import("../../components/equipment-categories-manager").then(module => ({ default: module.EquipmentCategoriesManager })))
@@ -32,6 +34,7 @@ export default function SettingsPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Memoizar a função de carregamento
@@ -188,6 +191,8 @@ Contratante                              Contratado`;
     }
   }, [settings]);
 
+
+
   // Memoizar o componente de loading
   const LoadingComponent = useMemo(() => (
     <div className="text-center py-8">
@@ -235,20 +240,140 @@ Contratante                              Contratado`;
     </Button>
   ), [handleSave, isSaving, loading, hasChanges]);
 
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <div className="flex flex-1 items-center justify-between">
-            <div>
-              <h1 className="text-lg font-semibold text-foreground">Configurações</h1>
-              <p className="text-sm text-gray-600">Gerencie as informações da sua empresa</p>
+  // Componente de configurações de segurança
+  function SecuritySettings() {
+    const [newPassword, setNewPassword] = useState('')
+    const [confirmPassword, setConfirmPassword] = useState('')
+    const [passwordLoading, setPasswordLoading] = useState(false)
+
+    const handlePasswordChange = async (e: React.FormEvent) => {
+      e.preventDefault()
+      
+      if (newPassword !== confirmPassword) {
+        toast({
+          title: "Erro",
+          description: "As senhas não coincidem.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (newPassword.length < 6) {
+        toast({
+          title: "Erro",
+          description: "A nova senha deve ter pelo menos 6 caracteres.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      setPasswordLoading(true)
+      try {
+        const { error } = await updateUser({ password: newPassword })
+        
+        if (error) {
+          toast({
+            title: "Erro",
+            description: error.message,
+            variant: "destructive",
+          })
+        } else {
+          toast({
+            title: "Sucesso",
+            description: "Senha alterada com sucesso!",
+          })
+          setNewPassword('')
+          setConfirmPassword('')
+        }
+      } catch (error) {
+        toast({
+          title: "Erro",
+          description: "Erro inesperado ao alterar senha.",
+          variant: "destructive",
+        })
+      } finally {
+        setPasswordLoading(false)
+      }
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Alterar Senha */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-foreground flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              Alterar Senha
+            </CardTitle>
+            <CardDescription>Atualize sua senha de acesso ao sistema</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">Nova Senha</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Digite a nova senha"
+                  required
+                  disabled={passwordLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirme a nova senha"
+                  required
+                  disabled={passwordLoading}
+                />
+              </div>
+              <Button type="submit" disabled={passwordLoading}>
+                {passwordLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Alterando...
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4 mr-2" />
+                    Alterar Senha
+                  </>
+                )}
+              </Button>
+            </form>
+
+            {/* Dicas de Segurança incorporadas */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 mb-2">🔒 Dicas de Segurança</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• Use uma senha forte com pelo menos 8 caracteres</li>
+                <li>• Combine letras maiúsculas, minúsculas, números e símbolos</li>
+                <li>• Não compartilhe suas credenciais de acesso</li>
+                <li>• Faça logout ao sair do sistema</li>
+                <li>• Mantenha seu navegador atualizado</li>
+              </ul>
             </div>
-          </div>
-        </header>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <AuthGuard>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+        <PageHeader 
+          title="Configurações" 
+          description="Gerencie as informações da sua empresa" 
+        />
 
         <main className="flex-1 space-y-6 p-6 bg-gray-50">
           <Tabs defaultValue="company-data">
@@ -256,6 +381,7 @@ Contratante                              Contratado`;
               <TabsTrigger value="company-data">Dados da Empresa</TabsTrigger>
               <TabsTrigger value="equipment-categories">Categorias de Equipamentos</TabsTrigger>
               <TabsTrigger value="contract-template">Contrato de Locação</TabsTrigger>
+              <TabsTrigger value="security">Segurança</TabsTrigger>
             </TabsList>
 
             <TabsContent value="company-data">
@@ -438,9 +564,14 @@ Contratante                              Contratado`;
                 </div>
               </Card>
             </TabsContent>
+
+            <TabsContent value="security">
+              <SecuritySettings />
+            </TabsContent>
           </Tabs>
         </main>
       </SidebarInset>
-    </SidebarProvider>
+      </SidebarProvider>
+    </AuthGuard>
   );
 }

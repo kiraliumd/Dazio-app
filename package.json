@@ -5,8 +5,10 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
+    "dev:clean": "./scripts/clean-dev.sh",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "clean": "rm -rf .next && rm -rf node_modules/.cache"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -38,6 +40,8 @@
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
     "@react-pdf/renderer": "^4.3.0",
+    "@stripe/stripe-js": "^7.8.0",
+    "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "latest",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
@@ -45,6 +49,7 @@
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
     "date-fns-tz": "^3.2.0",
+    "dotenv": "^17.2.1",
     "embla-carousel-react": "8.5.1",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
@@ -57,6 +62,7 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "2.15.0",
     "sonner": "^1.7.1",
+    "stripe": "^18.4.0",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.6",

@@ -73,6 +73,9 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Verificar se o orçamento está aprovado e não pode ser editado
+  const isApprovedBudget = budget?.status === "Aprovado"
+
   // Função para formatar datas
   const formatDate = (dateString: string) => {
     try {
@@ -522,7 +525,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
         <CardContent className="space-y-6">
           <div className="grid gap-2">
             <Label htmlFor="client">Cliente *</Label>
-            <Select value={formData.clientId} onValueChange={handleClientChange} disabled={loadingData}>
+            <Select value={formData.clientId} onValueChange={handleClientChange} disabled={loadingData || isApprovedBudget}>
               <SelectTrigger>
                 <SelectValue placeholder={loadingData ? "Carregando clientes..." : "Selecione o cliente"} />
               </SelectTrigger>
@@ -548,6 +551,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
               value={formData.installationLocation}
               onChange={(e) => setFormData({ ...formData, installationLocation: e.target.value })}
               placeholder="Ex: Salão de Festas Villa Real, Rua das Flores, 123"
+              disabled={isApprovedBudget}
             />
           </div>
         </CardContent>
@@ -565,6 +569,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
               checked={formData.isRecurring}
               onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
               className="mr-2 h-4 w-4 text-primary focus:ring-primary"
+              disabled={isApprovedBudget}
             />
             <Label htmlFor="isRecurring" className="text-sm">
               Orçamento recorrente
@@ -579,6 +584,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                   <Select
                     value={formData.recurrenceType}
                     onValueChange={(value) => setFormData({ ...formData, recurrenceType: value as RecurrenceType })}
+                    disabled={isApprovedBudget}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo de recorrência" />
@@ -598,6 +604,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                     min="1"
                     max="99"
                     value={intervalInputValue}
+                    disabled={isApprovedBudget}
                     onChange={(e) => {
                       const inputValue = e.target.value
                       setIntervalInputValue(inputValue)
@@ -632,6 +639,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                     type="date"
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    disabled={isApprovedBudget}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -695,13 +703,14 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="endDate">Data de Término *</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  min={formData.startDate}
-                />
+                                  <Input
+                    id="endDate"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    min={formData.startDate}
+                    disabled={isApprovedBudget}
+                  />
               </div>
             </div>
 
@@ -745,7 +754,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                   value={equipmentSearch}
                   onChange={(e) => setEquipmentSearch(e.target.value)}
                   className="pl-10"
-                  disabled={loadingData}
+                  disabled={loadingData || isApprovedBudget}
                 />
               </div>
             </div>
@@ -753,7 +762,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2 grid gap-2">
                 <Label>Equipamento</Label>
-                <Select value={selectedEquipment} onValueChange={setSelectedEquipment} disabled={loadingData}>
+                <Select value={selectedEquipment} onValueChange={setSelectedEquipment} disabled={loadingData || isApprovedBudget}>
                   <SelectTrigger>
                     <SelectValue
                       placeholder={loadingData ? "Carregando equipamentos..." : "Selecione um equipamento"}
@@ -787,6 +796,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                   min="1"
                   value={quantity}
                   onChange={(e) => setQuantity(Number.parseInt(e.target.value) || 1)}
+                  disabled={isApprovedBudget}
                 />
               </div>
             </div>
@@ -832,7 +842,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
           <Button
             type="button"
             onClick={addEquipment}
-            disabled={!selectedEquipment || selectedEquipment === "no-results" || loadingData}
+            disabled={!selectedEquipment || selectedEquipment === "no-results" || loadingData || isApprovedBudget}
             className="w-full bg-transparent"
             variant="outline"
           >
@@ -1018,6 +1028,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                 value={formData.discount}
                 onChange={(e) => setFormData({ ...formData, discount: Number.parseFloat(e.target.value) || 0 })}
                 placeholder="0,00"
+                disabled={isApprovedBudget}
               />
             </div>
 
@@ -1048,6 +1059,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
             placeholder="Informações adicionais sobre o orçamento..."
             rows={4}
             className="resize-none"
+            disabled={isApprovedBudget}
           />
         </CardContent>
       </Card>
@@ -1067,6 +1079,20 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
           </DialogDescription>
         </DialogHeader>
 
+        {isApprovedBudget && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+              <p className="text-yellow-800 text-sm font-medium">
+                Orçamento Aprovado
+              </p>
+            </div>
+            <p className="text-yellow-700 text-sm mt-1">
+              Este orçamento foi aprovado e não pode ser editado. Para fazer alterações, crie um novo orçamento.
+            </p>
+          </div>
+        )}
+
         <div className="space-y-8">
           {renderStepIndicator()}
 
@@ -1079,10 +1105,10 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
           <div className="flex justify-between pt-6 border-t">
             <div className="flex gap-3">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-                Cancelar
+                {isApprovedBudget ? "Fechar" : "Cancelar"}
               </Button>
 
-              {currentStep > 1 && (
+              {currentStep > 1 && !isApprovedBudget && (
                 <Button type="button" variant="outline" onClick={prevStep} disabled={isSubmitting}>
                   <ChevronLeft className="h-4 w-4 mr-2" />
                   Anterior
@@ -1091,7 +1117,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
             </div>
 
             <div>
-              {currentStep < 3 ? (
+              {currentStep < 3 && !isApprovedBudget ? (
                 <Button
                   type="button"
                   onClick={nextStep}
@@ -1101,7 +1127,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                   Próximo
                   <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>
-              ) : (
+              ) : currentStep === 3 && !isApprovedBudget ? (
                 <Button
                   type="button"
                   onClick={handleSaveBudget}
@@ -1110,7 +1136,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                 >
                   {isSubmitting ? "Salvando..." : budget ? "Salvar Alterações" : "Criar Orçamento"}
                 </Button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
