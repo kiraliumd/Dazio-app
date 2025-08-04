@@ -134,7 +134,7 @@ export default function CadastroPage() {
             industry: data.industry || null,
             employee_count: data.employeeCount || null,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: `${window.location.origin}/auth/confirm`
         }
       });
 

@@ -1,88 +1,68 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Mail, CheckCircle, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, Mail } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
-function ConfirmacaoContent() {
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<'pending' | 'success' | 'error'>('pending');
+export default function ConfirmPage() {
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
-  const [email, setEmail] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Pegar email do localStorage
-    const pendingEmail = localStorage.getItem('pendingEmail');
-    if (pendingEmail) {
-      setEmail(pendingEmail);
-    }
-
-    // Verificar se há parâmetros de confirmação na URL
     const token = searchParams.get('token');
     const type = searchParams.get('type');
-    const error = searchParams.get('error');
-    const success = searchParams.get('success');
-    const message = searchParams.get('message');
 
-    console.log('🔍 Confirmacao: Parâmetros da URL:', { token, type, error, success, message });
+    console.log('🔍 Confirm Page: Parâmetros recebidos:', { token, type });
 
-    if (success === 'true' && token && type === 'signup') {
-      console.log('✅ Confirmacao: Sucesso detectado, processando confirmação');
-      handleEmailConfirmation(token);
-      return;
-    }
-
-    if (error === 'auth_failed') {
+    if (!token || type !== 'signup') {
       setStatus('error');
-      setMessage(message ? decodeURIComponent(message) : 'Erro na confirmação do email. Tente novamente.');
+      setMessage('Link de confirmação inválido');
+      setLoading(false);
       return;
     }
 
-    // Se há token mas não foi processado ainda (caso de callback direto)
-    if (token && type === 'signup' && !success) {
-      console.log('🔍 Confirmacao: Token detectado, processando confirmação');
-      handleEmailConfirmation(token);
-    }
+    handleConfirmation(token);
   }, [searchParams]);
 
-  const handleEmailConfirmation = async (token: string) => {
-    setLoading(true);
+  const handleConfirmation = async (token: string) => {
     try {
+      console.log('🔍 Confirm Page: Processando confirmação...');
+      
       const { error } = await supabase.auth.verifyOtp({
         token_hash: token,
         type: 'signup'
       });
 
       if (error) {
+        console.error('❌ Confirm Page: Erro na confirmação:', error);
         setStatus('error');
-        setMessage('Erro ao confirmar email. Tente novamente.');
-        toast.error('Erro ao confirmar email');
+        setMessage(`Erro na confirmação: ${error.message}`);
+        toast.error('Erro na confirmação do email');
       } else {
+        console.log('✅ Confirm Page: Email confirmado com sucesso');
+        setStatus('success');
+        setMessage('Email confirmado com sucesso! Redirecionando...');
+        toast.success('Email confirmado com sucesso!');
+        
         // Criar perfil da empresa após confirmação
         await createCompanyProfile();
         
-        setStatus('success');
-        setMessage('Email confirmado com sucesso! Redirecionando para o dashboard...');
-        toast.success('Email confirmado com sucesso!');
-        
-        // Limpar dados do localStorage
-        localStorage.removeItem('pendingEmail');
-        localStorage.removeItem('pendingProfileData');
-        
-        // Redirecionar após 2 segundos
+        // Redirecionar após 3 segundos
         setTimeout(() => {
           router.push('/dashboard');
-        }, 2000);
+        }, 3000);
       }
     } catch (error) {
+      console.error('❌ Confirm Page: Erro inesperado:', error);
       setStatus('error');
       setMessage('Erro inesperado. Tente novamente.');
       toast.error('Erro inesperado');
@@ -96,7 +76,7 @@ function ConfirmacaoContent() {
       // Obter dados temporários do localStorage
       const pendingProfileData = localStorage.getItem('pendingProfileData');
       if (!pendingProfileData) {
-        console.error('Dados do perfil não encontrados');
+        console.log('⚠️ Confirm Page: Dados do perfil não encontrados (pode ser um usuário existente)');
         return;
       }
 
@@ -110,8 +90,7 @@ function ConfirmacaoContent() {
         .single();
 
       if (profileError) {
-        console.error('Erro ao criar perfil:', profileError);
-        toast.error(`Erro ao criar perfil: ${profileError.message}`);
+        console.error('❌ Confirm Page: Erro ao criar perfil:', profileError);
         return;
       }
 
@@ -177,51 +156,25 @@ Data: {contract_date}`
         });
 
       if (settingsError) {
-        console.error('Erro ao criar configurações:', settingsError);
-        toast.error(`Erro ao criar configurações: ${settingsError.message}`);
+        console.error('❌ Confirm Page: Erro ao criar configurações:', settingsError);
         return;
       }
 
-      console.log('Perfil e configurações criados com sucesso');
+      // Limpar dados temporários
+      localStorage.removeItem('pendingProfileData');
+      localStorage.removeItem('pendingEmail');
+
+      console.log('✅ Confirm Page: Perfil e configurações criados com sucesso');
     } catch (error) {
-      console.error('Erro ao criar perfil da empresa:', error);
-      toast.error('Erro ao criar perfil da empresa');
-    }
-  };
-
-  const handleResendEmail = async () => {
-    if (!email) {
-      toast.error('Email não encontrado. Faça o cadastro novamente.');
-      router.push('/cadastro');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email
-      });
-
-      if (error) {
-        toast.error('Erro ao reenviar email');
-      } else {
-        toast.success('Email reenviado com sucesso!');
-      }
-    } catch (error) {
-      toast.error('Erro ao reenviar email');
-    } finally {
-      setLoading(false);
+      console.error('❌ Confirm Page: Erro ao criar perfil da empresa:', error);
     }
   };
 
   const handleGoToLogin = () => {
-    localStorage.removeItem('pendingEmail');
     router.push('/login');
   };
 
   const handleGoToCadastro = () => {
-    localStorage.removeItem('pendingEmail');
     router.push('/cadastro');
   };
 
@@ -243,58 +196,24 @@ Data: {contract_date}`
         {/* Card de Confirmação */}
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Confirme seu email</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">Confirmação de Email</CardTitle>
             <CardDescription className="text-center">
-              Verifique sua caixa de entrada para ativar sua conta
+              Processando sua confirmação...
             </CardDescription>
           </CardHeader>
           
           <CardContent className="space-y-6">
-            {status === 'pending' && (
+            {loading && (
               <div className="text-center space-y-4">
                 <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Mail className="w-8 h-8 text-blue-600" />
+                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
                 </div>
                 
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Email enviado!</h3>
+                  <h3 className="text-lg font-semibold">Processando...</h3>
                   <p className="text-gray-600 text-sm">
-                    Enviamos um link de confirmação para <strong>{email}</strong>. 
-                    Clique no link para ativar sua conta e começar a usar o Dazio.
+                    Aguarde enquanto confirmamos seu email.
                   </p>
-                </div>
-
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Não recebeu o email? Verifique sua pasta de spam ou solicite um novo link.
-                  </AlertDescription>
-                </Alert>
-
-                <div className="space-y-3">
-                  <Button
-                    onClick={handleResendEmail}
-                    variant="outline"
-                    className="w-full"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Reenviando...
-                      </>
-                    ) : (
-                      'Reenviar email'
-                    )}
-                  </Button>
-                  
-                  <Button
-                    onClick={handleGoToLogin}
-                    variant="ghost"
-                    className="w-full"
-                  >
-                    Já confirmei, ir para login
-                  </Button>
                 </div>
               </div>
             )}
@@ -308,7 +227,7 @@ Data: {contract_date}`
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-green-600">Email confirmado!</h3>
                   <p className="text-gray-600 text-sm">
-                    Sua conta foi ativada com sucesso. Você será redirecionado para o dashboard.
+                    {message}
                   </p>
                 </div>
 
@@ -332,33 +251,24 @@ Data: {contract_date}`
                   </p>
                 </div>
 
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Se o problema persistir, tente fazer login ou criar uma nova conta.
+                  </AlertDescription>
+                </Alert>
+
                 <div className="space-y-3">
                   <Button
-                    onClick={handleResendEmail}
-                    className="w-full"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Reenviando...
-                      </>
-                    ) : (
-                      'Reenviar email de confirmação'
-                    )}
-                  </Button>
-                  
-                  <Button
                     onClick={handleGoToLogin}
-                    variant="outline"
                     className="w-full"
                   >
                     Ir para login
                   </Button>
-
+                  
                   <Button
                     onClick={handleGoToCadastro}
-                    variant="ghost"
+                    variant="outline"
                     className="w-full"
                   >
                     Fazer novo cadastro
@@ -375,38 +285,5 @@ Data: {contract_date}`
         </div>
       </div>
     </div>
-  );
-}
-
-// Componente de loading para Suspense
-function ConfirmacaoLoading() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Image
-            src="/logo-dazio.svg"
-            alt="Dazio Logo"
-            width={120}
-            height={48}
-            className="mx-auto"
-            priority
-          />
-        </div>
-        <Card className="shadow-xl border-0">
-          <CardContent className="flex items-center justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-export default function ConfirmacaoPage() {
-  return (
-    <Suspense fallback={<ConfirmacaoLoading />}>
-      <ConfirmacaoContent />
-    </Suspense>
   );
 } 

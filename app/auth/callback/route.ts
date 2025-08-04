@@ -9,17 +9,56 @@ const supabase = createClient(
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
+  const token = searchParams.get('token');
+  const type = searchParams.get('type');
   const next = searchParams.get('next') ?? '/dashboard';
 
-  if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+  console.log('🔍 Auth Callback: Parâmetros recebidos:', { code, token, type, next });
+
+  // Se há um token de confirmação de email
+  if (token && type === 'signup') {
+    console.log('🔍 Auth Callback: Processando confirmação de email');
     
-    if (!error) {
-      // Sucesso na autenticação - redirecionar para dashboard
-      return NextResponse.redirect(`${origin}${next}`);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'signup'
+      });
+
+      if (error) {
+        console.error('❌ Auth Callback: Erro na verificação:', error);
+        return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed&message=${encodeURIComponent(error.message)}`);
+      }
+
+      console.log('✅ Auth Callback: Email confirmado com sucesso');
+      return NextResponse.redirect(`${origin}/cadastro/confirmacao?success=true&token=${token}&type=${type}`);
+    } catch (error) {
+      console.error('❌ Auth Callback: Erro inesperado:', error);
+      return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed&message=Erro inesperado`);
     }
   }
 
-  // Erro na autenticação - redirecionar para página de confirmação com erro
-  return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed`);
+  // Se há um código de autorização (fluxo OAuth)
+  if (code) {
+    console.log('🔍 Auth Callback: Processando código de autorização');
+    
+    try {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      
+      if (error) {
+        console.error('❌ Auth Callback: Erro no exchange:', error);
+        return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed&message=${encodeURIComponent(error.message)}`);
+      }
+
+      console.log('✅ Auth Callback: Sessão criada com sucesso');
+      return NextResponse.redirect(`${origin}${next}`);
+    } catch (error) {
+      console.error('❌ Auth Callback: Erro inesperado no exchange:', error);
+      return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed&message=Erro inesperado`);
+    }
+  }
+
+  // Se não há nem token nem code
+  console.log('❌ Auth Callback: Nenhum token ou código encontrado');
+  return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed&message=Parâmetros inválidos`);
 } 
