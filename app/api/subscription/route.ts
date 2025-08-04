@@ -3,13 +3,31 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
+    console.log('🔍 Subscription API: Iniciando busca da assinatura');
+    
     const supabase = await createClient();
+    console.log('🔍 Subscription API: Cliente Supabase criado');
     
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    console.log('🔍 Subscription API: Resultado da autenticação:', {
+      user: user ? { id: user.id, email: user.email } : null,
+      error: authError?.message || null
+    });
+    
+    if (authError) {
+      console.error('❌ Subscription API: Erro de autenticação:', authError);
+      return NextResponse.json({ 
+        error: 'Erro de autenticação', 
+        details: authError.message 
+      }, { status: 401 });
+    }
+    
+    if (!user) {
+      console.log('❌ Subscription API: Usuário não autenticado');
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
+    console.log('🔍 Subscription API: Buscando assinatura para usuário:', user.id);
     const { data: subscription, error } = await supabase
       .from('subscriptions')
       .select('*')
@@ -19,13 +37,17 @@ export async function GET() {
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.error('Erro ao buscar assinatura:', error);
+      console.error('❌ Subscription API: Erro ao buscar assinatura:', error);
       return NextResponse.json({ error: 'Erro ao buscar assinatura' }, { status: 500 });
     }
 
+    console.log('✅ Subscription API: Assinatura encontrada:', subscription);
     return NextResponse.json({ data: subscription || null });
   } catch (error) {
-    console.error('Erro na API de assinatura:', error);
-    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
+    console.error('❌ Subscription API: Erro inesperado:', error);
+    return NextResponse.json({ 
+      error: 'Erro interno do servidor',
+      details: error instanceof Error ? error.message : 'Erro desconhecido'
+    }, { status: 500 });
   }
 } 

@@ -96,6 +96,8 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     // Apenas rotas de autenticação - deixar as outras para o AuthGuard
+    // Excluir rotas da API para evitar interferência
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
     '/login',
     '/cadastro/:path*',
     '/dashboard/:path*',
