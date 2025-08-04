@@ -4,11 +4,19 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 async function setupStripePrices() {
   try {
-    console.log('🔄 Criando preços recorrentes no Stripe...');
+    console.log('🔄 Criando produtos e preços no Stripe...');
+
+    // Criar produto principal
+    const product = await stripe.products.create({
+      name: 'Dazio Admin',
+      description: 'Sistema de gestão para locação de equipamentos',
+    });
+
+    console.log('✅ Produto criado:', product.id);
 
     // Criar preço mensal recorrente
     const monthlyPrice = await stripe.prices.create({
-      product: 'prod_Sn2n2D1UuSgF4u',
+      product: product.id,
       unit_amount: 9790, // R$ 97,90 em centavos
       currency: 'brl',
       recurring: {
@@ -20,7 +28,7 @@ async function setupStripePrices() {
 
     // Criar preço anual recorrente
     const annualPrice = await stripe.prices.create({
-      product: 'prod_Sn2ndrRgXRp0rC',
+      product: product.id,
       unit_amount: 97900, // R$ 979,00 em centavos
       currency: 'brl',
       recurring: {
@@ -31,12 +39,14 @@ async function setupStripePrices() {
     console.log('✅ Preço anual criado:', annualPrice.id);
 
     console.log('\n📋 Resumo dos preços criados:');
+    console.log('Produto:', product.id);
     console.log('Mensal (R$ 97,90/mês):', monthlyPrice.id);
     console.log('Anual (R$ 979,00/ano):', annualPrice.id);
 
     // Salvar os IDs em um arquivo para uso posterior
     const fs = require('fs');
     const priceIds = {
+      productId: product.id,
       monthlyPriceId: monthlyPrice.id,
       annualPriceId: annualPrice.id,
     };
@@ -47,6 +57,9 @@ async function setupStripePrices() {
     );
 
     console.log('\n💾 IDs salvos em stripe-price-ids.json');
+    console.log('\n🔧 Configure estas variáveis na Vercel:');
+    console.log(`STRIPE_MONTHLY_PRICE_ID=${monthlyPrice.id}`);
+    console.log(`STRIPE_ANNUAL_PRICE_ID=${annualPrice.id}`);
 
     return priceIds;
   } catch (error) {
