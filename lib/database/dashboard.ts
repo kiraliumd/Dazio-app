@@ -1,114 +1,110 @@
 import { supabase } from "../supabase"
+import { getCurrentUserCompanyId } from "./utils"
 
 export interface DashboardMetrics {
-  pendingBudgets: number
+  totalRentals: number
   activeRentals: number
+  totalBudgets: number
+  approvedBudgets: number
+  totalClients: number
+  totalEquipments: number
   monthlyRevenue: number
-  scheduledEvents: number
-  monthlyRentals: number // Novo campo
+  pendingInstallations: number
 }
-
-// Cache simples para métricas do dashboard (5 minutos)
-let dashboardCache: { data: DashboardMetrics; timestamp: number } | null = null
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos em millisegundos
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
-  // Verificar cache
-  if (dashboardCache && (Date.now() - dashboardCache.timestamp) < CACHE_DURATION) {
-    return dashboardCache.data
-  }
-
   try {
-    // Executar todas as consultas em paralelo para melhor performance
-    const [
-      { count: pendingBudgets },
-      { count: activeRentals },
-      { data: monthlyData },
-      { count: scheduledEvents },
-      { count: monthlyRentals }
-    ] = await Promise.all([
-      // Orçamentos pendentes
-      supabase
-        .from("budgets")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "Pendente"),
+    const companyId = await getCurrentUserCompanyId()
+    
+    if (!companyId) {
+      console.error('❌ getDashboardMetrics: Company ID não encontrado')
+      throw new Error('Usuário não autenticado ou empresa não encontrada')
+    }
 
-      // Locações ativas (mantido para compatibilidade, pode ser removido depois)
-      supabase
-        .from("rentals")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "Instalação Pendente"),
+    // Buscar métricas de locações
+    const { data: rentals, error: rentalsError } = await supabase
+      .from("rentals")
+      .select("status, final_value")
+      .eq("company_id", companyId)
 
-      // Faturamento do mês atual
-      (async () => {
-        const currentMonth = new Date().getMonth() + 1
-        const currentYear = new Date().getFullYear()
-        return supabase
-          .from("rentals")
-          .select("final_value")
-          .gte("created_at", `${currentYear}-${currentMonth.toString().padStart(2, "0")}-01`)
-          .lt("created_at", `${currentYear}-${(currentMonth + 1).toString().padStart(2, "0")}-01`)
-          .eq("status", "Concluído")
-      })(),
+    if (rentalsError) {
+      console.error("Erro ao buscar locações:", rentalsError)
+      throw rentalsError
+    }
 
-      // Eventos agendados (próximos 7 dias)
-      (async () => {
-        const today = new Date()
-        const sevenDaysFromNow = new Date()
-        sevenDaysFromNow.setDate(today.getDate() + 7)
-        const startDate = today.toISOString().split('T')[0]
-        const endDate = sevenDaysFromNow.toISOString().split('T')[0]
-        return supabase
-          .from("rental_logistics_events")
-          .select("*", { count: "exact", head: true })
-          .gte("event_date", startDate)
-          .lte("event_date", endDate)
-          .eq("status", "Agendado")
-      })(),
+    // Buscar métricas de orçamentos
+    const { data: budgets, error: budgetsError } = await supabase
+      .from("budgets")
+      .select("status, total_value")
+      .eq("company_id", companyId)
 
-      // Total de locações criadas no mês atual
-      (async () => {
-        const currentMonth = new Date().getMonth() + 1
-        const currentYear = new Date().getFullYear()
-        return supabase
-          .from("rentals")
-          .select("*", { count: "exact", head: true })
-          .gte("created_at", `${currentYear}-${currentMonth.toString().padStart(2, "0")}-01`)
-          .lt("created_at", `${currentYear}-${(currentMonth + 1).toString().padStart(2, "0")}-01`)
-      })()
-    ])
+    if (budgetsError) {
+      console.error("Erro ao buscar orçamentos:", budgetsError)
+      throw budgetsError
+    }
 
-    // Calcular faturamento mensal
-    const monthlyRevenue = monthlyData?.reduce((sum, rental) => sum + (rental.final_value || 0), 0) || 0
+    // Buscar total de clientes
+    const { count: clientsCount, error: clientsError } = await supabase
+      .from("clients")
+      .select("*", { count: "exact", head: true })
+      .eq("company_id", companyId)
 
-    const result = {
-      pendingBudgets: pendingBudgets || 0,
-      activeRentals: activeRentals || 0,
+    if (clientsError) {
+      console.error("Erro ao buscar clientes:", clientsError)
+      throw clientsError
+    }
+
+    // Buscar total de equipamentos
+    const { count: equipmentsCount, error: equipmentsError } = await supabase
+      .from("equipments")
+      .select("*", { count: "exact", head: true })
+      .eq("company_id", companyId)
+
+    if (equipmentsError) {
+      console.error("Erro ao buscar equipamentos:", equipmentsError)
+      throw equipmentsError
+    }
+
+    // Calcular métricas
+    const totalRentals = rentals?.length || 0
+    const activeRentals = rentals?.filter(r => r.status === "Ativo").length || 0
+    const totalBudgets = budgets?.length || 0
+    const approvedBudgets = budgets?.filter(b => b.status === "Aprovado").length || 0
+    const totalClients = clientsCount || 0
+    const totalEquipments = equipmentsCount || 0
+
+    // Calcular receita mensal (últimos 30 dias)
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    
+    const monthlyRevenue = rentals
+      ?.filter(r => new Date(r.created_at) >= thirtyDaysAgo)
+      ?.reduce((sum, r) => sum + (r.final_value || 0), 0) || 0
+
+    // Buscar instalações pendentes
+    const { count: pendingInstallations, error: pendingError } = await supabase
+      .from("rentals")
+      .select("*", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("status", "Instalação Pendente")
+
+    if (pendingError) {
+      console.error("Erro ao buscar instalações pendentes:", pendingError)
+      throw pendingError
+    }
+
+    return {
+      totalRentals,
+      activeRentals,
+      totalBudgets,
+      approvedBudgets,
+      totalClients,
+      totalEquipments,
       monthlyRevenue,
-      scheduledEvents: scheduledEvents || 0,
-      monthlyRentals: monthlyRentals || 0
+      pendingInstallations: pendingInstallations || 0
     }
-
-    // Atualizar cache
-    dashboardCache = {
-      data: result,
-      timestamp: Date.now()
-    }
-
-    return result
   } catch (error) {
     console.error("Erro ao buscar métricas do dashboard:", error)
-    return {
-      pendingBudgets: 0,
-      activeRentals: 0,
-      monthlyRevenue: 0,
-      scheduledEvents: 0,
-      monthlyRentals: 0
-    }
+    throw error
   }
-}
-
-// Função para limpar cache (útil após operações que alteram dados)
-export function clearDashboardCache() {
-  dashboardCache = null
 }

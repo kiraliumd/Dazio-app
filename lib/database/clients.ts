@@ -1,8 +1,20 @@
 import { supabase } from "../supabase"
 import type { Client } from "../supabase"
+import { getCurrentUserCompanyId } from "./utils"
 
 export async function getClients(limit?: number) {
-  let query = supabase.from("clients").select("*").order("created_at", { ascending: false })
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ getClients: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
+  let query = supabase
+    .from("clients")
+    .select("*")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
 
   // Aplicar limite se fornecido
   if (limit) {
@@ -20,7 +32,19 @@ export async function getClients(limit?: number) {
 }
 
 export async function getClientById(id: string) {
-  const { data, error } = await supabase.from("clients").select("*").eq("id", id).single()
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ getClientById: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("id", id)
+    .eq("company_id", companyId)
+    .single()
 
   if (error) {
     console.error("Erro ao buscar cliente:", error)
@@ -31,7 +55,23 @@ export async function getClientById(id: string) {
 }
 
 export async function createClient(client: Omit<Client, "id" | "created_at" | "updated_at">) {
-  const { data, error } = await supabase.from("clients").insert([client]).select().single()
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ createClient: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
+  const clientWithCompany = {
+    ...client,
+    company_id: companyId
+  }
+
+  const { data, error } = await supabase
+    .from("clients")
+    .insert([clientWithCompany])
+    .select()
+    .single()
 
   if (error) {
     console.error("Erro ao criar cliente:", error)
@@ -42,7 +82,20 @@ export async function createClient(client: Omit<Client, "id" | "created_at" | "u
 }
 
 export async function updateClient(id: string, client: Partial<Omit<Client, "id" | "created_at" | "updated_at">>) {
-  const { data, error } = await supabase.from("clients").update(client).eq("id", id).select().single()
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ updateClient: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
+  const { data, error } = await supabase
+    .from("clients")
+    .update(client)
+    .eq("id", id)
+    .eq("company_id", companyId)
+    .select()
+    .single()
 
   if (error) {
     console.error("Erro ao atualizar cliente:", error)
@@ -53,7 +106,18 @@ export async function updateClient(id: string, client: Partial<Omit<Client, "id"
 }
 
 export async function deleteClient(id: string) {
-  const { error } = await supabase.from("clients").delete().eq("id", id)
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ deleteClient: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
+  const { error } = await supabase
+    .from("clients")
+    .delete()
+    .eq("id", id)
+    .eq("company_id", companyId)
 
   if (error) {
     console.error("Erro ao deletar cliente:", error)
@@ -64,7 +128,17 @@ export async function deleteClient(id: string) {
 }
 
 export async function searchClients(searchTerm: string, documentTypeFilter?: string) {
-  let query = supabase.from("clients").select("*")
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ searchClients: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
+  let query = supabase
+    .from("clients")
+    .select("*")
+    .eq("company_id", companyId)
 
   if (searchTerm) {
     query = query.or(

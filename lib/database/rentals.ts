@@ -1,6 +1,7 @@
 import { supabase } from "../supabase"
 import type { Rental, RentalItem } from "../supabase"
 import { format } from "date-fns"
+import { getCurrentUserCompanyId } from "./utils"
 
 // Função para calcular a próxima data de ocorrência
 function calculateNextOccurrenceDate(rental: any): string | null {
@@ -47,12 +48,20 @@ function calculateNextOccurrenceDate(rental: any): string | null {
 }
 
 export async function getRentals(limit?: number) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ getRentals: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   let query = supabase
     .from("rentals")
     .select(`
       *,
       rental_items (*)
     `)
+    .eq("company_id", companyId)
     .order("created_at", { ascending: false })
 
   // Aplicar limite se fornecido
@@ -71,6 +80,13 @@ export async function getRentals(limit?: number) {
 }
 
 export async function getRentalById(id: string) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ getRentalById: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   const { data, error } = await supabase
     .from("rentals")
     .select(`
@@ -78,6 +94,7 @@ export async function getRentalById(id: string) {
       rental_items (*)
     `)
     .eq("id", id)
+    .eq("company_id", companyId)
     .single()
 
   if (error) {
@@ -93,6 +110,13 @@ export async function createRental(
   items: Omit<RentalItem, "id" | "rental_id" | "created_at">[],
   logisticsData: { installation: Date; removal: Date },
 ) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ createRental: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   // Usar as colunas corretas baseado na estrutura real da tabela
   const rentalData: any = {
     client_id: rental.client_id,
@@ -111,7 +135,7 @@ export async function createRental(
     total_value: rental.total_value,
     discount: rental.discount,
     final_value: rental.final_value,
-    observations: rental.observations,
+
     budget_id: rental.budget_id,
     
     // Campos de recorrência
@@ -121,6 +145,7 @@ export async function createRental(
     recurrence_end_date: rental.recurrence_end_date || null,
     recurrence_status: rental.recurrence_status || "active",
     parent_rental_id: rental.parent_rental_id || null,
+    company_id: companyId, // Adicionar company_id
   }
 
   // Calcular próxima ocorrência
@@ -220,6 +245,13 @@ export async function updateRental(
   rental: Partial<Omit<Rental, "id" | "created_at" | "updated_at">>,
   items?: Omit<RentalItem, "id" | "rental_id" | "created_at">[],
 ) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ updateRental: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   // Mapear os campos para as colunas corretas do banco
   const updateData: any = {}
   
@@ -237,7 +269,7 @@ export async function updateRental(
   if (rental.total_value !== undefined) updateData.total_value = rental.total_value
   if (rental.discount !== undefined) updateData.discount = rental.discount
   if (rental.final_value !== undefined) updateData.final_value = rental.final_value
-  if (rental.observations !== undefined) updateData.observations = rental.observations
+
   if (rental.budget_id !== undefined) updateData.budget_id = rental.budget_id
 
   // Atualizar a locação
@@ -245,6 +277,7 @@ export async function updateRental(
     .from("rentals")
     .update(updateData)
     .eq("id", id)
+    .eq("company_id", companyId) // Adicionar company_id na condição
     .select()
     .single()
 
@@ -278,8 +311,15 @@ export async function updateRental(
 }
 
 export async function deleteRental(id: string) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ deleteRental: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   // Os itens serão deletados automaticamente devido ao CASCADE
-  const { error } = await supabase.from("rentals").delete().eq("id", id)
+  const { error } = await supabase.from("rentals").delete().eq("id", id).eq("company_id", companyId) // Adicionar company_id na condição
 
   if (error) {
     console.error("Erro ao deletar locação:", error)
@@ -290,10 +330,18 @@ export async function deleteRental(id: string) {
 }
 
 export async function searchRentals(searchTerm?: string, statusFilter?: string) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ searchRentals: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   let query = supabase.from("rentals").select(`
       *,
       rental_items (*)
     `)
+    .eq("company_id", companyId) // Adicionar company_id na condição
 
   if (searchTerm) {
     query = query.or(`client_name.ilike.%${searchTerm}%,status.ilike.%${searchTerm}%`)
@@ -316,6 +364,13 @@ export async function searchRentals(searchTerm?: string, statusFilter?: string) 
 }
 
 export async function getLogisticsEvents() {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ getLogisticsEvents: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   const { data, error } = await supabase
     .from("rental_logistics_events")
     .select(`
@@ -330,6 +385,7 @@ export async function getLogisticsEvents() {
         )
       )
     `)
+    .eq("company_id", companyId) // Adicionar company_id na condição
     .order("event_date, event_time", { ascending: true })
 
   if (error) {

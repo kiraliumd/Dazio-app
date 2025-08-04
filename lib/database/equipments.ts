@@ -1,8 +1,20 @@
 import { supabase } from "../supabase"
 import type { Equipment } from "../supabase"
+import { getCurrentUserCompanyId } from "./utils"
 
 export async function getEquipments() {
-  const { data, error } = await supabase.from("equipments").select("*").order("created_at", { ascending: false })
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ getEquipments: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
+  const { data, error } = await supabase
+    .from("equipments")
+    .select("*")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
 
   if (error) {
     console.error("Erro ao buscar equipamentos:", error)
@@ -13,7 +25,19 @@ export async function getEquipments() {
 }
 
 export async function getEquipmentById(id: string) {
-  const { data, error } = await supabase.from("equipments").select("*").eq("id", id).single()
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ getEquipmentById: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
+  const { data, error } = await supabase
+    .from("equipments")
+    .select("*")
+    .eq("id", id)
+    .eq("company_id", companyId)
+    .single()
 
   if (error) {
     console.error("Erro ao buscar equipamento:", error)
@@ -24,7 +48,23 @@ export async function getEquipmentById(id: string) {
 }
 
 export async function createEquipment(equipment: Omit<Equipment, "id" | "created_at" | "updated_at">) {
-  const { data, error } = await supabase.from("equipments").insert([equipment]).select().single()
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ createEquipment: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
+  const equipmentWithCompany = {
+    ...equipment,
+    company_id: companyId
+  }
+
+  const { data, error } = await supabase
+    .from("equipments")
+    .insert([equipmentWithCompany])
+    .select()
+    .single()
 
   if (error) {
     console.error("Erro ao criar equipamento:", error)
@@ -38,7 +78,20 @@ export async function updateEquipment(
   id: string,
   equipment: Partial<Omit<Equipment, "id" | "created_at" | "updated_at">>,
 ) {
-  const { data, error } = await supabase.from("equipments").update(equipment).eq("id", id).select().single()
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ updateEquipment: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
+  const { data, error } = await supabase
+    .from("equipments")
+    .update(equipment)
+    .eq("id", id)
+    .eq("company_id", companyId)
+    .select()
+    .single()
 
   if (error) {
     console.error("Erro ao atualizar equipamento:", error)
@@ -49,7 +102,18 @@ export async function updateEquipment(
 }
 
 export async function deleteEquipment(id: string) {
-  const { error } = await supabase.from("equipments").delete().eq("id", id)
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ deleteEquipment: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
+  const { error } = await supabase
+    .from("equipments")
+    .delete()
+    .eq("id", id)
+    .eq("company_id", companyId)
 
   if (error) {
     console.error("Erro ao deletar equipamento:", error)
@@ -60,7 +124,17 @@ export async function deleteEquipment(id: string) {
 }
 
 export async function searchEquipments(searchTerm?: string, categoryFilter?: string, statusFilter?: string) {
-  let query = supabase.from("equipments").select("*")
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ searchEquipments: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
+  let query = supabase
+    .from("equipments")
+    .select("*")
+    .eq("company_id", companyId)
 
   if (searchTerm) {
     query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)

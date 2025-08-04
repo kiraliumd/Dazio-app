@@ -20,6 +20,7 @@ export function ConfirmEmailForm() {
     const type = searchParams.get('type');
 
     console.log('🔍 Confirm Page: Parâmetros recebidos:', { token, type });
+    console.log('🔍 Confirm Page: URL completa:', window.location.href);
 
     if (!token || type !== 'signup') {
       setStatus('error');
@@ -34,7 +35,29 @@ export function ConfirmEmailForm() {
   const handleConfirmation = async (token: string) => {
     try {
       console.log('🔍 Confirm Page: Processando confirmação...');
+      console.log('🔍 Confirm Page: Token recebido:', token);
       
+      // Primeiro, verificar se o usuário já está autenticado
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      console.log('🔍 Confirm Page: Usuário atual:', currentUser);
+      
+      // Se o usuário já está autenticado, pode ser que a confirmação já foi feita
+      if (currentUser && currentUser.email_confirmed_at) {
+        console.log('✅ Confirm Page: Usuário já confirmado anteriormente');
+        setStatus('success');
+        setMessage('Email já foi confirmado anteriormente! Redirecionando...');
+        toast.success('Email já confirmado!');
+        
+        // Criar perfil da empresa se necessário
+        await createCompanyProfile();
+        
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 3000);
+        return;
+      }
+      
+      // Tentar verificar o token
       const { error } = await supabase.auth.verifyOtp({
         token_hash: token,
         type: 'signup'
@@ -42,6 +65,25 @@ export function ConfirmEmailForm() {
 
       if (error) {
         console.error('❌ Confirm Page: Erro na confirmação:', error);
+        
+        // Se o erro for de token inválido, verificar se o usuário já está autenticado
+        if (error.message.includes('invalid') || error.message.includes('expired')) {
+          const { data: { user: userAfterError } } = await supabase.auth.getUser();
+          if (userAfterError && userAfterError.email_confirmed_at) {
+            console.log('✅ Confirm Page: Usuário confirmado apesar do erro de token');
+            setStatus('success');
+            setMessage('Email confirmado com sucesso! Redirecionando...');
+            toast.success('Email confirmado com sucesso!');
+            
+            await createCompanyProfile();
+            
+            setTimeout(() => {
+              router.push('/dashboard');
+            }, 3000);
+            return;
+          }
+        }
+        
         setStatus('error');
         setMessage(`Erro na confirmação: ${error.message}`);
         toast.error('Erro na confirmação do email');

@@ -1,4 +1,5 @@
 import { supabase } from "../supabase"
+import { getCurrentUserCompanyId } from "./utils"
 
 interface RentalItem {
   equipment_name: string
@@ -28,6 +29,7 @@ interface BudgetData {
 export interface ReportFilters {
   startDate: string
   endDate: string
+  status?: string
 }
 
 export interface RentalReport {
@@ -37,14 +39,15 @@ export interface RentalReport {
   endDate: string
   finalValue: number
   status: string
-  items: Array<{
+  items: {
     equipmentName: string
     quantity: number
-  }>
+  }[]
 }
 
 export interface BudgetReport {
   id: string
+  number: string
   clientName: string
   createdAt: string
   totalValue: number
@@ -54,12 +57,20 @@ export interface BudgetReport {
 // Buscar locações para relatórios
 export async function getRentalsForReports(filters: ReportFilters): Promise<RentalReport[]> {
   try {
+    const companyId = await getCurrentUserCompanyId()
+    
+    if (!companyId) {
+      console.error('❌ getRentalsForReports: Company ID não encontrado')
+      throw new Error('Usuário não autenticado ou empresa não encontrada')
+    }
+
     const { data, error } = await supabase
       .from("rentals")
       .select(`
         *,
         rental_items (*)
       `)
+      .eq("company_id", companyId)
       .gte("created_at", filters.startDate)
       .lte("created_at", filters.endDate)
       .in("status", ["Instalação Pendente", "Concluído"])
@@ -94,12 +105,19 @@ export async function getRentalsForReports(filters: ReportFilters): Promise<Rent
 // Buscar orçamentos para relatórios
 export async function getBudgetsForReports(filters: ReportFilters): Promise<BudgetReport[]> {
   try {
+    const companyId = await getCurrentUserCompanyId()
+    
+    if (!companyId) {
+      console.error('❌ getBudgetsForReports: Company ID não encontrado')
+      throw new Error('Usuário não autenticado ou empresa não encontrada')
+    }
+
     const { data, error } = await supabase
       .from("budgets")
       .select("*")
+      .eq("company_id", companyId)
       .gte("created_at", filters.startDate)
       .lte("created_at", filters.endDate)
-      .eq("status", "Aprovado")
       .order("created_at", { ascending: false })
 
     if (error) {
@@ -110,6 +128,7 @@ export async function getBudgetsForReports(filters: ReportFilters): Promise<Budg
     // Transformar dados para o formato do relatório
     const budgets = (data || []).map((budget: BudgetData) => ({
       id: budget.id,
+      number: budget.number,
       clientName: budget.client_name,
       createdAt: budget.created_at,
       totalValue: budget.total_value,

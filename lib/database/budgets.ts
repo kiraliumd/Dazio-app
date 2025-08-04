@@ -1,13 +1,22 @@
 import { supabase } from "../supabase"
 import type { Budget, BudgetItem } from "../supabase"
+import { getCurrentUserCompanyId } from "./utils"
 
 export async function getBudgets(limit?: number, startDate?: string, endDate?: string) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ getBudgets: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   let query = supabase
     .from("budgets")
     .select(`
       *,
       budget_items (*)
     `)
+    .eq("company_id", companyId)
     .order("created_at", { ascending: false })
 
   // Aplicar filtros de período se fornecidos
@@ -32,6 +41,13 @@ export async function getBudgets(limit?: number, startDate?: string, endDate?: s
 }
 
 export async function getBudgetById(id: string) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ getBudgetById: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   const { data, error } = await supabase
     .from("budgets")
     .select(`
@@ -39,6 +55,7 @@ export async function getBudgetById(id: string) {
       budget_items (*)
     `)
     .eq("id", id)
+    .eq("company_id", companyId)
     .single()
 
   if (error) {
@@ -53,8 +70,24 @@ export async function createBudget(
   budget: Omit<Budget, "id" | "created_at" | "updated_at">,
   items: Omit<BudgetItem, "id" | "budget_id" | "created_at">[],
 ) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ createBudget: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
+  const budgetWithCompany = {
+    ...budget,
+    company_id: companyId
+  }
+
   // Criar o orçamento
-  const { data: budgetData, error: budgetError } = await supabase.from("budgets").insert([budget]).select().single()
+  const { data: budgetData, error: budgetError } = await supabase
+    .from("budgets")
+    .insert([budgetWithCompany])
+    .select()
+    .single()
 
   if (budgetError) {
     console.error("Erro ao criar orçamento:", budgetError)

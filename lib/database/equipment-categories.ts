@@ -1,4 +1,5 @@
 import { supabase } from "../supabase"
+import { getCurrentUserCompanyId } from "./utils"
 
 export interface EquipmentCategory {
   id: string
@@ -22,9 +23,17 @@ export interface UpdateEquipmentCategory {
 
 // Buscar todas as categorias
 export async function getEquipmentCategories() {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ getEquipmentCategories: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   const { data, error } = await supabase
     .from("equipment_categories")
     .select("*")
+    .eq("company_id", companyId)
     .order("name", { ascending: true })
 
   if (error) {
@@ -45,9 +54,17 @@ export async function getEquipmentCategories() {
 
 // Buscar categorias ativas
 export async function getActiveEquipmentCategories() {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ getActiveEquipmentCategories: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   const { data, error } = await supabase
     .from("equipment_categories")
     .select("*")
+    .eq("company_id", companyId)
     .eq("is_active", true)
     .order("name", { ascending: true })
 
@@ -69,10 +86,18 @@ export async function getActiveEquipmentCategories() {
 
 // Buscar categoria por ID
 export async function getEquipmentCategoryById(id: string) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ getEquipmentCategoryById: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   const { data, error } = await supabase
     .from("equipment_categories")
     .select("*")
     .eq("id", id)
+    .eq("company_id", companyId)
     .single()
 
   if (error) {
@@ -93,11 +118,19 @@ export async function getEquipmentCategoryById(id: string) {
 
 // Criar nova categoria
 export async function createEquipmentCategory(category: CreateEquipmentCategory) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ createEquipmentCategory: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   const { data, error } = await supabase
     .from("equipment_categories")
     .insert([{
       name: category.name,
       description: category.description || null,
+      company_id: companyId
     }])
     .select()
     .single()
@@ -120,6 +153,13 @@ export async function createEquipmentCategory(category: CreateEquipmentCategory)
 
 // Atualizar categoria
 export async function updateEquipmentCategory(id: string, category: UpdateEquipmentCategory) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ updateEquipmentCategory: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   const { data, error } = await supabase
     .from("equipment_categories")
     .update({
@@ -128,6 +168,7 @@ export async function updateEquipmentCategory(id: string, category: UpdateEquipm
       is_active: category.isActive,
     })
     .eq("id", id)
+    .eq("company_id", companyId)
     .select()
     .single()
 
@@ -149,11 +190,19 @@ export async function updateEquipmentCategory(id: string, category: UpdateEquipm
 
 // Deletar categoria
 export async function deleteEquipmentCategory(id: string) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ deleteEquipmentCategory: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   // Verificar se há equipamentos usando esta categoria
   const { data: equipments, error: equipmentsError } = await supabase
     .from("equipments")
     .select("id, name")
     .eq("category", (await getEquipmentCategoryById(id)).name)
+    .eq("company_id", companyId)
 
   if (equipmentsError) {
     console.error("Erro ao verificar equipamentos:", equipmentsError)
@@ -168,6 +217,7 @@ export async function deleteEquipmentCategory(id: string) {
     .from("equipment_categories")
     .delete()
     .eq("id", id)
+    .eq("company_id", companyId)
 
   if (error) {
     console.error("Erro ao deletar categoria:", error)
@@ -179,9 +229,17 @@ export async function deleteEquipmentCategory(id: string) {
 
 // Buscar categorias com filtro
 export async function searchEquipmentCategories(searchTerm?: string) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ searchEquipmentCategories: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   let query = supabase
     .from("equipment_categories")
     .select("*")
+    .eq("company_id", companyId)
 
   if (searchTerm) {
     query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
