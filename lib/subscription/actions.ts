@@ -21,11 +21,23 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
       throw new Error('Usuário não autenticado');
     }
 
+    // Buscar company_id do usuário
+    const { data: companyProfile } = await supabase
+      .from('company_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!companyProfile) {
+      console.error('❌ createSubscription: Perfil da empresa não encontrado');
+      throw new Error('Perfil da empresa não encontrado');
+    }
+
     // Verificar se já existe assinatura ativa
     const { data: existingSubscription } = await supabase
       .from('subscriptions')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('company_id', companyProfile.id)
       .in('status', ['active', 'trialing'])
       .single();
 
@@ -69,6 +81,10 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
       customerId,
       successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/assinatura/success?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL}/assinatura/cancel`,
+      metadata: {
+        user_id: user.id,
+        company_id: companyProfile.id,
+      },
     });
 
     console.log('✅ createSubscription: Checkout session criada', { sessionId: session.id, url: session.url });
@@ -95,10 +111,21 @@ export async function getSubscription() {
       return null;
     }
 
+    // Buscar company_id do usuário
+    const { data: companyProfile } = await supabase
+      .from('company_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!companyProfile) {
+      return null;
+    }
+
     const { data: subscription } = await supabase
       .from('subscriptions')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('company_id', companyProfile.id)
       .in('status', ['active', 'trialing', 'past_due'])
       .single();
 

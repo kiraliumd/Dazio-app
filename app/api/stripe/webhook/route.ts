@@ -66,10 +66,10 @@ async function handleSubscriptionChange(subscription: any) {
     cancel_at_period_end: subscription.cancel_at_period_end,
   };
 
-  // Buscar user_id pelo customer_id
+  // Buscar user_id e company_id pelo customer_id
   const { data: existingSubscription } = await supabase
     .from('subscriptions')
-    .select('user_id')
+    .select('user_id, company_id')
     .eq('stripe_customer_id', subscription.customer)
     .single();
 
@@ -80,11 +80,13 @@ async function handleSubscriptionChange(subscription: any) {
       .eq('user_id', existingSubscription.user_id);
   } else {
     // Se não existe, criar nova assinatura
+    const companyId = subscription.metadata.company_id;
     await supabase
       .from('subscriptions')
       .insert({
         ...subscriptionData,
         user_id: subscription.metadata.user_id,
+        company_id: companyId,
       });
   }
 }

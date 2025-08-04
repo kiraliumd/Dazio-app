@@ -27,11 +27,23 @@ export async function GET() {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    console.log('🔍 Subscription API: Buscando assinatura para usuário:', user.id);
+    // Buscar company_id do usuário
+    const { data: companyProfile } = await supabase
+      .from('company_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!companyProfile) {
+      console.log('❌ Subscription API: Perfil da empresa não encontrado para usuário:', user.id);
+      return NextResponse.json({ data: null });
+    }
+
+    console.log('🔍 Subscription API: Buscando assinatura para empresa:', companyProfile.id);
     const { data: subscription, error } = await supabase
       .from('subscriptions')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('company_id', companyProfile.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
