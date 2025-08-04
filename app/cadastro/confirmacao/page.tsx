@@ -19,10 +19,16 @@ function ConfirmacaoContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Pegar email do localStorage
+    // Pegar email do localStorage (tentativa de compatibilidade)
     const pendingEmail = localStorage.getItem('pendingEmail');
     if (pendingEmail) {
       setEmail(pendingEmail);
+    } else {
+      // Tentar obter email do usuário autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setEmail(user.email || '');
+      }
     }
 
     // Verificar se há parâmetros de confirmação na URL
@@ -76,6 +82,13 @@ function ConfirmacaoContent() {
         // Limpar dados do localStorage
         localStorage.removeItem('pendingEmail');
         localStorage.removeItem('pendingProfileData');
+        
+        // Limpar dados com chaves únicas também
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          localStorage.removeItem(`pendingEmail_${user.id}`);
+          localStorage.removeItem(`pendingProfileData_${user.id}`);
+        }
         
         // Redirecionar após 2 segundos
         setTimeout(() => {

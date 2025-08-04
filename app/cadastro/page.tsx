@@ -167,11 +167,11 @@ export default function CadastroPage() {
         status: 'trial'
       };
 
-      // Salvar dados temporários no localStorage
-      localStorage.setItem('pendingProfileData', JSON.stringify(tempData));
+      // Salvar dados temporários no localStorage com chave única por usuário
+      localStorage.setItem(`pendingProfileData_${authData.user.id}`, JSON.stringify(tempData));
 
       // 3. Salvar email no localStorage para reenvio
-      localStorage.setItem('pendingEmail', data.email);
+      localStorage.setItem(`pendingEmail_${authData.user.id}`, data.email);
 
       // 4. Redirecionar para página de confirmação
       toast.success('Conta criada com sucesso! Verifique seu email para confirmar o cadastro.');

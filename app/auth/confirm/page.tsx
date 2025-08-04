@@ -73,8 +73,15 @@ export default function ConfirmPage() {
 
   const createCompanyProfile = async () => {
     try {
-      // Obter dados temporários do localStorage
-      const pendingProfileData = localStorage.getItem('pendingProfileData');
+      // Obter usuário atual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('❌ Confirm Page: Usuário não autenticado');
+        return;
+      }
+
+      // Obter dados temporários do localStorage com chave única
+      const pendingProfileData = localStorage.getItem(`pendingProfileData_${user.id}`);
       if (!pendingProfileData) {
         console.log('⚠️ Confirm Page: Dados do perfil não encontrados (pode ser um usuário existente)');
         return;
@@ -161,8 +168,8 @@ Data: {contract_date}`
       }
 
       // Limpar dados temporários
-      localStorage.removeItem('pendingProfileData');
-      localStorage.removeItem('pendingEmail');
+      localStorage.removeItem(`pendingProfileData_${user.id}`);
+      localStorage.removeItem(`pendingEmail_${user.id}`);
 
       console.log('✅ Confirm Page: Perfil e configurações criados com sucesso');
     } catch (error) {
