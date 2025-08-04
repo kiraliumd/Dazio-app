@@ -9,21 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { createClient } from '@supabase/supabase-js';
 import { Eye, EyeOff, Lock, Mail, Building2, Phone, MapPin, Globe, Users, Loader2, ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
 import Image from 'next/image';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      storageKey: 'dazio-auth'
-    }
-  }
-);
+import { supabase } from '@/lib/supabase';
 
 interface CadastroData {
   // Etapa 1 - Login
@@ -161,105 +149,31 @@ export default function CadastroPage() {
         return;
       }
 
-      // 2. Criar perfil da empresa
-      const { data: profileData, error: profileError } = await supabase
-        .from('company_profiles')
-        .insert({
-          user_id: authData.user.id,
-          company_name: data.companyName.trim(),
-          cnpj: data.cnpj.trim(),
-          phone: data.phone.trim(),
-          address: data.address.trim(),
-          city: data.city.trim(),
-          state: data.state.trim(),
-          zip_code: data.zipCode.trim(),
-          website: data.website?.trim() || null,
-          industry: data.industry?.trim() || null,
-          employee_count: data.employeeCount?.trim() || null,
-          trial_start: new Date().toISOString(),
-          trial_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
-          status: 'trial'
-        })
-        .select()
-        .single();
+      // 2. Salvar dados temporários para criar perfil após confirmação
+      const tempData = {
+        user_id: authData.user.id,
+        company_name: data.companyName.trim(),
+        cnpj: data.cnpj.trim(),
+        phone: data.phone.trim(),
+        address: data.address.trim(),
+        city: data.city.trim(),
+        state: data.state.trim(),
+        zip_code: data.zipCode.trim(),
+        website: data.website?.trim() || null,
+        industry: data.industry?.trim() || null,
+        employee_count: data.employeeCount?.trim() || null,
+        trial_start: new Date().toISOString(),
+        trial_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
+        status: 'trial'
+      };
 
-      if (profileError) {
-        console.error('Erro ao criar perfil:', profileError);
-        toast.error(`Erro ao criar perfil: ${profileError.message}`);
-        return;
-      }
+      // Salvar dados temporários no localStorage
+      localStorage.setItem('pendingProfileData', JSON.stringify(tempData));
 
-      // 3. Criar configurações da empresa
-      const { error: settingsError } = await supabase
-        .from('company_settings')
-        .insert({
-          company_id: profileData.id,
-          company_name: data.companyName.trim(),
-          cnpj: data.cnpj.trim(),
-          address: data.address.trim(),
-          phone: data.phone.trim(),
-          website: data.website?.trim() || null,
-          contract_template: `CONTRATO DE LOCAÇÃO DE EQUIPAMENTOS
-
-CONTRATANTE: {company_name}
-CNPJ: {cnpj}
-Endereço: {address}
-Telefone: {phone}
-
-CONTRATADO: {client_name}
-Documento: {client_document}
-Endereço: {client_address}
-Telefone: {client_phone}
-Email: {client_email}
-
-OBJETO DO CONTRATO:
-A locação dos seguintes equipamentos:
-
-{equipment_list}
-
-PERÍODO DE LOCAÇÃO:
-Data de início: {start_date}
-Data de término: {end_date}
-Horário de instalação: {installation_time}
-Horário de retirada: {removal_time}
-
-LOCAL DE INSTALAÇÃO:
-{installation_location}
-
-VALORES:
-Valor total: R$ {total_value}
-Desconto: R$ {discount}
-Valor final: R$ {final_value}
-
-CONDIÇÕES GERAIS:
-1. O contratado se compromete a devolver os equipamentos no estado em que foram recebidos.
-2. Qualquer dano ou perda será de responsabilidade do contratado.
-3. O pagamento deve ser realizado conforme acordado entre as partes.
-4. Este contrato está sujeito às leis brasileiras.
-
-Assinaturas:
-
-_____________________
-{company_name}
-Contratante
-
-_____________________
-{client_name}
-Contratado
-
-Data: {contract_date}`
-        });
-
-      if (settingsError) {
-        console.error('Erro ao criar configurações:', settingsError);
-        toast.error(`Erro ao criar configurações: ${settingsError.message}`);
-        return;
-      }
-
-      // 4. Salvar email no localStorage para reenvio
+      // 3. Salvar email no localStorage para reenvio
       localStorage.setItem('pendingEmail', data.email);
 
-      // 5. Redirecionar para página de confirmação
+      // 4. Redirecionar para página de confirmação
       toast.success('Conta criada com sucesso! Verifique seu email para confirmar o cadastro.');
       router.push('/cadastro/confirmacao');
 
@@ -325,7 +239,7 @@ Data: {contract_date}`
           <CardContent className="space-y-6">
             {step === 1 ? (
               // Etapa 1: Login
-              <div className="space-y-4">
+              <form onSubmit={(e) => { e.preventDefault(); handleNextStep(); }} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail</Label>
                   <div className="relative">
@@ -402,17 +316,17 @@ Data: {contract_date}`
                 </div>
 
                 <Button
-                  onClick={handleNextStep}
+                  type="submit"
                   className="w-full"
                   disabled={loading}
                 >
                   Próximo
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </div>
+              </form>
             ) : (
               // Etapa 2: Dados da empresa
-              <div className="space-y-4">
+              <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="companyName">Nome da empresa *</Label>
@@ -607,7 +521,7 @@ Data: {contract_date}`
                   </Button>
                   
                   <Button
-                    onClick={handleSubmit}
+                    type="submit"
                     className="flex-1"
                     disabled={loading}
                   >
@@ -621,7 +535,7 @@ Data: {contract_date}`
                     )}
                   </Button>
                 </div>
-              </div>
+              </form>
             )}
           </CardContent>
         </Card>

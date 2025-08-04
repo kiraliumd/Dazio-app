@@ -5,22 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { createClient } from '@supabase/supabase-js';
 import { Mail, CheckCircle, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      storageKey: 'dazio-auth'
-    }
-  }
-);
+import { supabase } from '@/lib/supabase';
 
 function ConfirmacaoContent() {
   const [loading, setLoading] = useState(false);
@@ -66,12 +54,16 @@ function ConfirmacaoContent() {
         setMessage('Erro ao confirmar email. Tente novamente.');
         toast.error('Erro ao confirmar email');
       } else {
+        // Criar perfil da empresa após confirmação
+        await createCompanyProfile();
+        
         setStatus('success');
         setMessage('Email confirmado com sucesso! Redirecionando para o dashboard...');
         toast.success('Email confirmado com sucesso!');
         
-        // Limpar email do localStorage
+        // Limpar dados do localStorage
         localStorage.removeItem('pendingEmail');
+        localStorage.removeItem('pendingProfileData');
         
         // Redirecionar após 2 segundos
         setTimeout(() => {
@@ -84,6 +76,104 @@ function ConfirmacaoContent() {
       toast.error('Erro inesperado');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createCompanyProfile = async () => {
+    try {
+      // Obter dados temporários do localStorage
+      const pendingProfileData = localStorage.getItem('pendingProfileData');
+      if (!pendingProfileData) {
+        console.error('Dados do perfil não encontrados');
+        return;
+      }
+
+      const profileData = JSON.parse(pendingProfileData);
+
+      // 1. Criar perfil da empresa
+      const { data: profileResult, error: profileError } = await supabase
+        .from('company_profiles')
+        .insert(profileData)
+        .select()
+        .single();
+
+      if (profileError) {
+        console.error('Erro ao criar perfil:', profileError);
+        toast.error(`Erro ao criar perfil: ${profileError.message}`);
+        return;
+      }
+
+      // 2. Criar configurações da empresa
+      const { error: settingsError } = await supabase
+        .from('company_settings')
+        .insert({
+          company_id: profileResult.id,
+          company_name: profileData.company_name,
+          cnpj: profileData.cnpj,
+          address: profileData.address,
+          phone: profileData.phone,
+          website: profileData.website,
+          contract_template: `CONTRATO DE LOCAÇÃO DE EQUIPAMENTOS
+
+CONTRATANTE: {company_name}
+CNPJ: {cnpj}
+Endereço: {address}
+Telefone: {phone}
+
+CONTRATADO: {client_name}
+Documento: {client_document}
+Endereço: {client_address}
+Telefone: {client_phone}
+Email: {client_email}
+
+OBJETO DO CONTRATO:
+A locação dos seguintes equipamentos:
+
+{equipment_list}
+
+PERÍODO DE LOCAÇÃO:
+Data de início: {start_date}
+Data de término: {end_date}
+Horário de instalação: {installation_time}
+Horário de retirada: {removal_time}
+
+LOCAL DE INSTALAÇÃO:
+{installation_location}
+
+VALORES:
+Valor total: R$ {total_value}
+Desconto: R$ {discount}
+Valor final: R$ {final_value}
+
+CONDIÇÕES GERAIS:
+1. O contratado se compromete a devolver os equipamentos no estado em que foram recebidos.
+2. Qualquer dano ou perda será de responsabilidade do contratado.
+3. O pagamento deve ser realizado conforme acordado entre as partes.
+4. Este contrato está sujeito às leis brasileiras.
+
+Assinaturas:
+
+_____________________
+{company_name}
+Contratante
+
+_____________________
+{client_name}
+Contratado
+
+Data: {contract_date}`
+        });
+
+      if (settingsError) {
+        console.error('Erro ao criar configurações:', settingsError);
+        toast.error(`Erro ao criar configurações: ${settingsError.message}`);
+        return;
+      }
+
+      console.log('Perfil e configurações criados com sucesso');
+    } catch (error) {
+      console.error('Erro ao criar perfil da empresa:', error);
+      toast.error('Erro ao criar perfil da empresa');
     }
   };
 
