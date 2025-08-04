@@ -57,14 +57,41 @@ export default function AssinaturaGestaoPage() {
     try {
       setLoading(true);
       
-      const { data: profileData } = await fetch('/api/company/profile').then(res => res.json());
-      setCompanyProfile(profileData);
+      console.log('🔄 Assinatura Gestão: Carregando dados da assinatura');
+      
+      // Testar autenticação primeiro
+      const authResponse = await fetch('/api/test-auth');
+      const authResult = await authResponse.json();
+      console.log('🔍 Assinatura Gestão: Teste de autenticação:', authResult);
+      
+      if (!authResponse.ok) {
+        console.error('❌ Assinatura Gestão: Falha na autenticação:', authResult);
+        toast.error('Erro de autenticação. Por favor, faça login novamente.');
+        return;
+      }
+      
+      const profileResponse = await fetch('/api/company/profile');
+      const profileResult = await profileResponse.json();
+      console.log('🔍 Assinatura Gestão: Resposta do perfil:', profileResult);
+      
+      if (profileResponse.ok) {
+        setCompanyProfile(profileResult.data);
+      } else {
+        console.error('❌ Assinatura Gestão: Erro ao carregar perfil:', profileResult);
+      }
 
-      const { data: subscriptionData } = await fetch('/api/subscription').then(res => res.json());
-      setSubscription(subscriptionData);
+      const subscriptionResponse = await fetch('/api/subscription');
+      const subscriptionResult = await subscriptionResponse.json();
+      console.log('🔍 Assinatura Gestão: Resposta da assinatura:', subscriptionResult);
+      
+      if (subscriptionResponse.ok) {
+        setSubscription(subscriptionResult.data);
+      } else {
+        console.error('❌ Assinatura Gestão: Erro ao carregar assinatura:', subscriptionResult);
+      }
 
     } catch (error) {
-      console.error('Erro ao carregar dados da assinatura:', error);
+      console.error('❌ Assinatura Gestão: Erro ao carregar dados da assinatura:', error);
       toast.error('Erro ao carregar dados da assinatura');
     } finally {
       setLoading(false);
@@ -288,6 +315,25 @@ export default function AssinaturaGestaoPage() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Debug - Botão de Teste */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Debug - Teste de Autenticação</CardTitle>
+                  <CardDescription>
+                    Teste a autenticação e veja os logs no console
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={loadSubscriptionData}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    🔍 Testar Autenticação e Carregar Dados
+                  </Button>
+                </CardContent>
+              </Card>
 
               {/* Ações */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
