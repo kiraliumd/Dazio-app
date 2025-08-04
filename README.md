@@ -288,10 +288,42 @@ pnpm lint         # Verificação de código
 ## 🔧 Configurações Avançadas
 
 ### Variáveis de Ambiente
+
+#### **Configuração no Vercel (Recomendado)**
+
+1. **Acesse o Dashboard do Vercel**
+2. **Vá para seu projeto** `dazio-admin`
+3. **Clique em "Settings"** (Configurações)
+4. **Vá para a aba "Environment Variables"**
+5. **Adicione as seguintes variáveis:**
+
 ```env
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=sua_url_do_supabase
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima
+SUPABASE_SERVICE_ROLE_KEY=sua_chave_de_servico
+
+# Stripe
+STRIPE_SECRET_KEY=sua_chave_secreta_stripe
+STRIPE_PUBLISHABLE_KEY=sua_chave_publica_stripe
+STRIPE_MONTHLY_PRICE_ID=price_xxx
+STRIPE_ANNUAL_PRICE_ID=price_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
 ```
+
+#### **Configuração da Conexão Direta Vercel-Supabase**
+
+Para melhorar a performance e resolver problemas de autenticação:
+
+1. **No Dashboard do Vercel, vá para "Settings" > "Storage"**
+2. **Clique em "Connect Database"**
+3. **Selecione "Supabase"**
+4. **Configure:**
+   - **Database URL**: `postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres`
+   - **Use as**: `Environment Variable`
+   - **Nome da variável**: `DATABASE_URL`
+
+#### **Configuração Local (.env.local)**
 
 ### Configurações do Supabase
 - Autenticação desabilitada para performance

@@ -26,6 +26,10 @@ export async function createClient() {
             }
           },
         },
+        auth: {
+          persistSession: false, // Importante: não persistir sessão no servidor
+          autoRefreshToken: false, // Importante: não auto-refresh no servidor
+        },
       }
     );
   } catch (error) {
