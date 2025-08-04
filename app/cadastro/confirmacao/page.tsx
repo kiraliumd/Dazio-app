@@ -19,17 +19,21 @@ function ConfirmacaoContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Pegar email do localStorage (tentativa de compatibilidade)
-    const pendingEmail = localStorage.getItem('pendingEmail');
-    if (pendingEmail) {
-      setEmail(pendingEmail);
-    } else {
-      // Tentar obter email do usuário autenticado
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setEmail(user.email || '');
+    const initializeEmail = async () => {
+      // Pegar email do localStorage (tentativa de compatibilidade)
+      const pendingEmail = localStorage.getItem('pendingEmail');
+      if (pendingEmail) {
+        setEmail(pendingEmail);
+      } else {
+        // Tentar obter email do usuário autenticado
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setEmail(user.email || '');
+        }
       }
-    }
+    };
+
+    initializeEmail();
 
     // Verificar se há parâmetros de confirmação na URL
     const token = searchParams.get('token');
