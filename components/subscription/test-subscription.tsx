@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createSubscription } from '@/lib/subscription/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -16,10 +15,18 @@ export function TestSubscription() {
     setDebugInfo(`Iniciando teste para ${planType}...`);
     
     try {
-      console.log('📞 TestSubscription: Chamando createSubscription...');
-      setDebugInfo('Chamando createSubscription...');
+      console.log('📞 TestSubscription: Chamando API...');
+      setDebugInfo('Chamando API...');
       
-      const result = await createSubscription(planType);
+      const response = await fetch('/api/test-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ planType }),
+      });
+      
+      const result = await response.json();
       
       console.log('📋 TestSubscription: Resultado recebido:', result);
       setDebugInfo(`Resultado: ${JSON.stringify(result, null, 2)}`);
