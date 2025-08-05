@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { sendConfirmationEmail } from '@/lib/resend';
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     
     // Criar usuário diretamente via admin API para evitar envio automático de email
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { sendConfirmationEmail } from '@/lib/resend';
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     
     // Buscar token no banco de dados
     const { data: tokenData, error: tokenError } = await supabase
@@ -103,7 +103,7 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     
     // Buscar usuário pelo email usando a função correta do Supabase
     const { data: { users }, error: userError } = await supabase.auth.admin.listUsers();
