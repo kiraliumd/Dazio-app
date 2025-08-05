@@ -51,8 +51,34 @@ export default function CreateProfilePage() {
     }
   };
 
+  const validateForm = () => {
+    const requiredFields = [
+      { field: 'company_name', label: 'Nome da empresa' },
+      { field: 'cnpj', label: 'CNPJ' },
+      { field: 'address', label: 'Endereço' },
+      { field: 'city', label: 'Cidade' },
+      { field: 'state', label: 'Estado' },
+      { field: 'zip_code', label: 'CEP' },
+      { field: 'phone', label: 'Telefone' }
+    ];
+
+    for (const { field, label } of requiredFields) {
+      if (!formData[field as keyof typeof formData] || formData[field as keyof typeof formData].trim() === '') {
+        toast.error(`Campo obrigatório: ${label}`);
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -64,7 +90,7 @@ export default function CreateProfilePage() {
       console.log('🔍 Create Profile: Iniciando criação de perfil...');
       console.log('🔍 Create Profile: Dados do formulário:', formData);
 
-      // Criar perfil da empresa com todos os campos obrigatórios
+      // Validar e preparar dados para inserção
       const profileData = {
         user_id: user.id,
         company_name: formData.company_name.trim(),
@@ -81,6 +107,16 @@ export default function CreateProfilePage() {
         trial_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
         status: 'trial'
       };
+
+      // Verificar se todos os campos obrigatórios estão preenchidos
+      const requiredFields = ['company_name', 'cnpj', 'address', 'city', 'state', 'zip_code', 'phone'];
+      for (const field of requiredFields) {
+        if (!profileData[field as keyof typeof profileData] || profileData[field as keyof typeof profileData] === '') {
+          console.error(`❌ Create Profile: Campo obrigatório vazio: ${field}`);
+          toast.error(`Campo obrigatório não preenchido: ${field}`);
+          return;
+        }
+      }
 
       console.log('🔍 Create Profile: Dados para inserção:', profileData);
 
