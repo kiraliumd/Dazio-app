@@ -1,5 +1,4 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendConfirmationEmail } from '@/lib/resend';
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 
@@ -156,10 +155,31 @@ export async function PUT(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Enviar email via Resend
+    // Enviar email via nova API
     try {
-      await sendConfirmationEmail(email, confirmationToken);
-      console.log('✅ Resend Email API: Email reenviado com sucesso');
+      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          token: confirmationToken,
+          type: 'confirmation'
+        })
+      });
+
+      const emailResult = await emailResponse.json();
+      
+      if (emailResult.success) {
+        console.log('✅ Resend Email API: Email reenviado com sucesso');
+      } else {
+        console.error('❌ Resend Email API: Erro ao enviar email:', emailResult.error);
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Erro ao enviar email' 
+        }, { status: 500 });
+      }
     } catch (emailError) {
       console.error('❌ Resend Email API: Erro ao enviar email:', emailError);
       return NextResponse.json({ 

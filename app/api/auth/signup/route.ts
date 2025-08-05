@@ -1,5 +1,4 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendConfirmationEmail } from '@/lib/resend';
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 
@@ -74,14 +73,29 @@ export async function POST(request: NextRequest) {
       // mas usar o sistema padrão do Supabase
     }
 
-    // Enviar email de confirmação via Resend
+    // Enviar email de confirmação via nova API
     try {
-      await sendConfirmationEmail(email, confirmationToken);
-      console.log('✅ Signup API: Email de confirmação enviado via Resend');
+      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          token: confirmationToken,
+          type: 'confirmation'
+        })
+      });
+
+      const emailResult = await emailResponse.json();
+      
+      if (emailResult.success) {
+        console.log('✅ Signup API: Email de confirmação enviado com sucesso');
+      } else {
+        console.error('❌ Signup API: Erro ao enviar email:', emailResult.error);
+      }
     } catch (emailError) {
-      console.error('❌ Signup API: Erro ao enviar email via Resend:', emailError);
-      // Se falhar o envio via Resend, usar o sistema padrão do Supabase
-      console.log('🔄 Signup API: Usando sistema padrão do Supabase para email');
+      console.error('❌ Signup API: Erro ao enviar email:', emailError);
     }
 
     return NextResponse.json({ 
