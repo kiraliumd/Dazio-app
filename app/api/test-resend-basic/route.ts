@@ -12,9 +12,9 @@ export async function POST(request: NextRequest) {
     // Teste mais básico possível
     const { data, error } = await resend.emails.send({
       from: 'onboarding@resend.dev',
-      to: ['test@example.com'],
-      subject: 'Teste Básico',
-      html: '<p>Teste</p>',
+      to: ['kiral.digital@gmail.com'],
+      subject: 'Teste Básico - Dazio',
+      html: '<p>Teste do Resend funcionando!</p>',
     });
 
     if (error) {
