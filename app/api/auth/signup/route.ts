@@ -18,12 +18,13 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
     
-    // Criar usuário no Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // Criar usuário diretamente via admin API para evitar envio automático de email
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: email,
       password: password,
-      options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm`
+      email_confirm: false,
+      user_metadata: {
+        email_confirmed: false
       }
     });
 
