@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     // Enviar email via Resend
     const { data, error } = await resend.emails.send({
-      from: 'Dazio <noreply@dazio.com>',
+      from: 'Dazio <transacional@dazio.com.br>',
       to: [email],
       subject: subject,
       html: emailHtml,
