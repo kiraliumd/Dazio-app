@@ -34,7 +34,7 @@ export default function TestAuthPage() {
 
             <div className="space-y-2">
               <Button 
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/')}
                 className="w-full"
               >
                 Ir para Dashboard

@@ -96,7 +96,7 @@ function ConfirmacaoContent() {
         
         // Redirecionar após 2 segundos
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/');
         }, 2000);
       }
     } catch (error) {

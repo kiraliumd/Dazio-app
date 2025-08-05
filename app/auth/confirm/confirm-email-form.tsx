@@ -58,7 +58,7 @@ export function ConfirmEmailForm() {
         await createCompanyProfile();
         
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/');
         }, 3000);
         return;
       }
@@ -97,7 +97,7 @@ export function ConfirmEmailForm() {
         await createCompanyProfile();
         
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/');
         }, 3000);
         return;
       }
@@ -125,7 +125,7 @@ export function ConfirmEmailForm() {
             await createCompanyProfile();
             
             setTimeout(() => {
-              router.push('/dashboard');
+              router.push('/');
             }, 3000);
             return;
           }
@@ -145,7 +145,7 @@ export function ConfirmEmailForm() {
           
           // Redirecionar após 3 segundos
           setTimeout(() => {
-            router.push('/dashboard');
+            router.push('/');
           }, 3000);
         }
       } else {
@@ -173,7 +173,7 @@ export function ConfirmEmailForm() {
           
           // Redirecionar após 3 segundos
           setTimeout(() => {
-            router.push('/dashboard');
+            router.push('/');
           }, 3000);
         }
       }
@@ -342,12 +342,9 @@ Data: {contract_date}`
         <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
         </div>
-        
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold">Processando...</h3>
-          <p className="text-gray-600 text-sm">
-            Aguarde enquanto confirmamos seu email.
-          </p>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">Processando confirmação...</h2>
+          <p className="text-gray-600">Aguarde enquanto verificamos seu email.</p>
         </div>
       </div>
     );
@@ -359,62 +356,31 @@ Data: {contract_date}`
         <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
           <CheckCircle className="w-8 h-8 text-green-600" />
         </div>
-        
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-green-600">Email confirmado!</h3>
-          <p className="text-gray-600 text-sm">
-            {message}
-          </p>
-        </div>
-
-        <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Redirecionando...</span>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">Email confirmado!</h2>
+          <p className="text-gray-600">{message}</p>
         </div>
       </div>
     );
   }
 
-  if (status === 'error') {
-    return (
-      <div className="text-center space-y-4">
-        <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-          <AlertCircle className="w-8 h-8 text-red-600" />
-        </div>
-        
+  return (
+    <div className="text-center space-y-4">
+      <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+        <AlertCircle className="w-8 h-8 text-red-600" />
+      </div>
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900">Erro na confirmação</h2>
+        <p className="text-gray-600 mb-4">{message}</p>
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-red-600">Erro na confirmação</h3>
-          <p className="text-gray-600 text-sm">
-            {message}
-          </p>
-        </div>
-
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Se o problema persistir, tente fazer login ou criar uma nova conta.
-          </AlertDescription>
-        </Alert>
-
-        <div className="space-y-3">
-          <Button
-            onClick={handleGoToLogin}
-            className="w-full"
-          >
-            Ir para login
+          <Button onClick={handleGoToLogin} className="w-full">
+            Ir para Login
           </Button>
-          
-          <Button
-            onClick={handleGoToCadastro}
-            variant="outline"
-            className="w-full"
-          >
-            Fazer novo cadastro
+          <Button onClick={handleGoToCadastro} variant="outline" className="w-full">
+            Criar Nova Conta
           </Button>
         </div>
       </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 } 

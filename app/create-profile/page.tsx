@@ -208,7 +208,7 @@ Data: {contract_date}`
       console.log('✅ Create Profile: Configurações criadas com sucesso');
 
       toast.success('Perfil da empresa criado com sucesso!');
-      router.push('/dashboard');
+      router.push('/');
 
     } catch (error) {
       console.error('❌ Create Profile: Erro inesperado:', error);

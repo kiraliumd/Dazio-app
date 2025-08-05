@@ -113,7 +113,7 @@ export default function AssinaturaPage() {
 
   // Se tem assinatura ativa, redirecionar para dashboard
   if (subscription?.status === 'active' || subscription?.status === 'trialing' || subscription?.status === 'past_due') {
-    router.push('/dashboard');
+          router.push('/');
     return null;
   }
 
