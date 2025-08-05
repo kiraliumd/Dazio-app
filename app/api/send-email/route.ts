@@ -57,10 +57,25 @@ export async function POST(request: NextRequest) {
     const { data, error } = await resend.emails.send({
       from: 'Dazio <onboarding@resend.dev>',
       to: ['kiral.digital@gmail.com'], // Enviar para email verificado
-      subject: subject,
-      html: emailHtml,
-      // Adicionar o email original no corpo para facilitar o teste
-      text: `Email original: ${email}\nToken: ${token}\nURL: ${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?token=${token}`,
+      subject: `[${email}] ${subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 2px solid #007bff; border-radius: 10px;">
+          <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+            <strong>📧 Email original:</strong> ${email}<br>
+            <strong>🔗 URL de confirmação:</strong> <a href="${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?token=${token}">Clique aqui para confirmar</a>
+          </div>
+          ${emailHtml}
+        </div>
+      `,
+      text: `
+=== EMAIL DE CONFIRMAÇÃO DAZIO ===
+
+📧 Email original: ${email}
+🔗 URL de confirmação: ${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?token=${token}
+🔑 Token: ${token}
+
+${emailHtml.replace(/<[^>]*>/g, '')}
+      `,
     });
 
     if (error) {
