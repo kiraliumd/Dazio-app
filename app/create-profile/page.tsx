@@ -18,6 +18,9 @@ export default function CreateProfilePage() {
     company_name: '',
     cnpj: '',
     address: '',
+    city: '',
+    state: '',
+    zip_code: '',
     phone: '',
     website: ''
   });
@@ -58,37 +61,52 @@ export default function CreateProfilePage() {
         return;
       }
 
-      // Criar perfil da empresa
+      console.log('🔍 Create Profile: Iniciando criação de perfil...');
+      console.log('🔍 Create Profile: Dados do formulário:', formData);
+
+      // Criar perfil da empresa com todos os campos obrigatórios
+      const profileData = {
+        user_id: user.id,
+        company_name: formData.company_name.trim(),
+        cnpj: formData.cnpj.trim(),
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        zip_code: formData.zip_code.trim(),
+        phone: formData.phone.trim(),
+        website: formData.website?.trim() || null,
+        industry: null,
+        employee_count: null,
+        trial_start: new Date().toISOString(),
+        trial_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
+        status: 'trial'
+      };
+
+      console.log('🔍 Create Profile: Dados para inserção:', profileData);
+
       const { data: profileResult, error: profileError } = await supabase
         .from('company_profiles')
-        .insert({
-          user_id: user.id,
-          company_name: formData.company_name,
-          cnpj: formData.cnpj,
-          address: formData.address,
-          phone: formData.phone,
-          website: formData.website
-        })
+        .insert(profileData)
         .select()
         .single();
 
       if (profileError) {
-        console.error('Erro ao criar perfil:', profileError);
-        toast.error('Erro ao criar perfil da empresa');
+        console.error('❌ Create Profile: Erro ao criar perfil:', profileError);
+        toast.error(`Erro ao criar perfil da empresa: ${profileError.message}`);
         return;
       }
 
+      console.log('✅ Create Profile: Perfil criado com sucesso:', profileResult);
+
       // Criar configurações da empresa
-      const { error: settingsError } = await supabase
-        .from('company_settings')
-        .insert({
-          company_id: profileResult.id,
-          company_name: formData.company_name,
-          cnpj: formData.cnpj,
-          address: formData.address,
-          phone: formData.phone,
-          website: formData.website,
-          contract_template: `CONTRATO DE LOCAÇÃO DE EQUIPAMENTOS
+      const settingsData = {
+        company_id: profileResult.id,
+        company_name: formData.company_name.trim(),
+        cnpj: formData.cnpj.trim(),
+        address: formData.address.trim(),
+        phone: formData.phone.trim(),
+        website: formData.website?.trim() || null,
+        contract_template: `CONTRATO DE LOCAÇÃO DE EQUIPAMENTOS
 
 CONTRATANTE: {company_name}
 CNPJ: {cnpj}
@@ -137,20 +155,28 @@ _____________________
 Contratado
 
 Data: {contract_date}`
-        });
+      };
+
+      console.log('🔍 Create Profile: Criando configurações...');
+
+      const { error: settingsError } = await supabase
+        .from('company_settings')
+        .insert(settingsData);
 
       if (settingsError) {
-        console.error('Erro ao criar configurações:', settingsError);
-        toast.error('Erro ao criar configurações da empresa');
+        console.error('❌ Create Profile: Erro ao criar configurações:', settingsError);
+        toast.error(`Erro ao criar configurações da empresa: ${settingsError.message}`);
         return;
       }
+
+      console.log('✅ Create Profile: Configurações criadas com sucesso');
 
       toast.success('Perfil da empresa criado com sucesso!');
       router.push('/dashboard');
 
     } catch (error) {
-      console.error('Erro inesperado:', error);
-      toast.error('Erro inesperado');
+      console.error('❌ Create Profile: Erro inesperado:', error);
+      toast.error('Erro inesperado ao criar perfil da empresa');
     } finally {
       setLoading(false);
     }
@@ -166,7 +192,7 @@ Data: {contract_date}`
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Criar Perfil da Empresa</CardTitle>
           <CardDescription>
@@ -175,55 +201,97 @@ Data: {contract_date}`
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="company_name">Nome da Empresa *</Label>
-              <Input
-                id="company_name"
-                value={formData.company_name}
-                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                required
-                placeholder="Digite o nome da sua empresa"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="company_name">Nome da Empresa *</Label>
+                <Input
+                  id="company_name"
+                  value={formData.company_name}
+                  onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                  required
+                  placeholder="Digite o nome da sua empresa"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="cnpj">CNPJ *</Label>
+                <Input
+                  id="cnpj"
+                  value={formData.cnpj}
+                  onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                  required
+                  placeholder="00.000.000/0000-00"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="phone">Telefone *</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  required
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="website">Website</Label>
+                <Input
+                  id="website"
+                  value={formData.website}
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  placeholder="https://www.suaempresa.com.br"
+                />
+              </div>
             </div>
 
             <div>
-              <Label htmlFor="cnpj">CNPJ</Label>
-              <Input
-                id="cnpj"
-                value={formData.cnpj}
-                onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                placeholder="00.000.000/0000-00"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="address">Endereço</Label>
+              <Label htmlFor="address">Endereço *</Label>
               <Input
                 id="address"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="Rua, número, bairro, cidade"
+                required
+                placeholder="Rua, número, bairro"
               />
             </div>
 
-            <div>
-              <Label htmlFor="phone">Telefone</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="(11) 99999-9999"
-              />
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="city">Cidade *</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  required
+                  placeholder="São Paulo"
+                />
+              </div>
 
-            <div>
-              <Label htmlFor="website">Website</Label>
-              <Input
-                id="website"
-                value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                placeholder="https://www.suaempresa.com.br"
-              />
+              <div>
+                <Label htmlFor="state">Estado *</Label>
+                <Input
+                  id="state"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  required
+                  placeholder="SP"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="zip_code">CEP *</Label>
+                <Input
+                  id="zip_code"
+                  value={formData.zip_code}
+                  onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
+                  required
+                  placeholder="00000-000"
+                />
+              </div>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
