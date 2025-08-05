@@ -53,18 +53,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Enviar email via Resend
+    // Por enquanto, enviar apenas para o email verificado até o domínio ser configurado
     const { data, error } = await resend.emails.send({
       from: 'Dazio <onboarding@resend.dev>',
-      to: [email],
+      to: ['kiral.digital@gmail.com'], // Enviar para email verificado
       subject: subject,
       html: emailHtml,
+      // Adicionar o email original no corpo para facilitar o teste
+      text: `Email original: ${email}\nToken: ${token}\nURL: ${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?token=${token}`,
     });
 
     if (error) {
       console.error('❌ Send Email API: Erro ao enviar email:', error);
       return NextResponse.json({ 
         success: false, 
-        error: 'Erro ao enviar email' 
+        error: 'Erro ao enviar email',
+        details: error
       }, { status: 500 });
     }
 
@@ -72,8 +76,9 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ 
       success: true, 
-      message: 'Email enviado com sucesso',
-      emailId: data?.id
+      message: 'Email enviado com sucesso (enviado para email verificado)',
+      emailId: data?.id,
+      originalEmail: email
     });
 
   } catch (error) {
