@@ -117,6 +117,18 @@ export default function CadastroPage() {
     setLoading(true);
     
     try {
+      console.log('🔍 Cadastro: Iniciando criação de conta...');
+      console.log('🔍 Cadastro: Email:', data.email);
+      console.log('🔍 Cadastro: Dados da empresa:', {
+        company_name: data.companyName,
+        cnpj: data.cnpj,
+        phone: data.phone,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        zip_code: data.zipCode
+      });
+
       // 1. Criar usuário no Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
@@ -138,16 +150,29 @@ export default function CadastroPage() {
         }
       });
 
+      console.log('🔍 Cadastro: Resposta do Supabase:', { authData, authError });
+
       if (authError) {
-        console.error('Erro no cadastro:', authError);
-        toast.error(`Erro no cadastro: ${authError.message}`);
+        console.error('❌ Cadastro: Erro no cadastro:', authError);
+        
+        // Tratamento específico para diferentes tipos de erro
+        if (authError.message.includes('confirmation email')) {
+          toast.error('Erro ao enviar email de confirmação. Verifique se o email está correto.');
+        } else if (authError.message.includes('already registered')) {
+          toast.error('Este email já está cadastrado. Tente fazer login.');
+        } else {
+          toast.error(`Erro no cadastro: ${authError.message}`);
+        }
         return;
       }
 
       if (!authData.user) {
+        console.error('❌ Cadastro: Usuário não foi criado');
         toast.error('Erro: Usuário não foi criado');
         return;
       }
+
+      console.log('✅ Cadastro: Usuário criado com sucesso:', authData.user.id);
 
       // 2. Salvar dados temporários para criar perfil após confirmação
       const tempData = {
@@ -167,21 +192,127 @@ export default function CadastroPage() {
         status: 'trial'
       };
 
+      console.log('🔍 Cadastro: Dados temporários salvos:', tempData);
+
       // Salvar dados temporários no localStorage com chave única por usuário
       localStorage.setItem(`pendingProfileData_${authData.user.id}`, JSON.stringify(tempData));
 
       // 3. Salvar email no localStorage para reenvio
       localStorage.setItem(`pendingEmail_${authData.user.id}`, data.email);
 
-      // 4. Redirecionar para página de confirmação
-      toast.success('Conta criada com sucesso! Verifique seu email para confirmar o cadastro.');
-      router.push('/cadastro/confirmacao');
+      // 4. Criar perfil imediatamente (independente da confirmação de email)
+      console.log('✅ Cadastro: Criando perfil da empresa...');
+      await createCompanyProfile(authData.user.id, tempData);
+      
+      // 5. Verificar se o email foi enviado
+      if (authData.user.email_confirmed_at) {
+        console.log('✅ Cadastro: Email já confirmado');
+        toast.success('Conta criada com sucesso!');
+        router.push('/dashboard');
+      } else {
+        console.log('📧 Cadastro: Email de confirmação enviado');
+        toast.success('Conta criada com sucesso! Verifique seu email para confirmar o cadastro.');
+        router.push('/cadastro/confirmacao');
+      }
 
     } catch (error) {
-      console.error('Erro no cadastro:', error);
+      console.error('❌ Cadastro: Erro inesperado:', error);
       toast.error('Erro ao realizar cadastro. Tente novamente.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createCompanyProfile = async (userId: string, profileData: any) => {
+    try {
+      console.log('🔍 Cadastro: Criando perfil da empresa...');
+      
+      // Criar perfil da empresa
+      const { data: profileResult, error: profileError } = await supabase
+        .from('company_profiles')
+        .insert(profileData)
+        .select()
+        .single();
+
+      if (profileError) {
+        console.error('❌ Cadastro: Erro ao criar perfil:', profileError);
+        return;
+      }
+
+      // Criar configurações da empresa
+      const { error: settingsError } = await supabase
+        .from('company_settings')
+        .insert({
+          company_id: profileResult.id,
+          company_name: profileData.company_name,
+          cnpj: profileData.cnpj,
+          address: profileData.address,
+          phone: profileData.phone,
+          website: profileData.website,
+          contract_template: `CONTRATO DE LOCAÇÃO DE EQUIPAMENTOS
+
+CONTRATANTE: {company_name}
+CNPJ: {cnpj}
+Endereço: {address}
+Telefone: {phone}
+
+CONTRATADO: {client_name}
+Documento: {client_document}
+Endereço: {client_address}
+Telefone: {client_phone}
+Email: {client_email}
+
+OBJETO DO CONTRATO:
+A locação dos seguintes equipamentos:
+
+{equipment_list}
+
+PERÍODO DE LOCAÇÃO:
+Data de início: {start_date}
+Data de término: {end_date}
+Horário de instalação: {installation_time}
+Horário de retirada: {removal_time}
+
+LOCAL DE INSTALAÇÃO:
+{installation_location}
+
+VALORES:
+Valor total: R$ {total_value}
+Desconto: R$ {discount}
+Valor final: R$ {final_value}
+
+CONDIÇÕES GERAIS:
+1. O contratado se compromete a devolver os equipamentos no estado em que foram recebidos.
+2. Qualquer dano ou perda será de responsabilidade do contratado.
+3. O pagamento deve ser realizado conforme acordado entre as partes.
+4. Este contrato está sujeito às leis brasileiras.
+
+Assinaturas:
+
+_____________________
+{company_name}
+Contratante
+
+_____________________
+{client_name}
+Contratado
+
+Data: {contract_date}`
+        });
+
+      if (settingsError) {
+        console.error('❌ Cadastro: Erro ao criar configurações:', settingsError);
+        return;
+      }
+
+      console.log('✅ Cadastro: Perfil e configurações criados com sucesso');
+      
+      // Limpar dados temporários
+      localStorage.removeItem(`pendingProfileData_${userId}`);
+      localStorage.removeItem(`pendingEmail_${userId}`);
+
+    } catch (error) {
+      console.error('❌ Cadastro: Erro ao criar perfil da empresa:', error);
     }
   };
 
@@ -270,6 +401,7 @@ export default function CadastroPage() {
                       className="pl-10 pr-10"
                       required
                       disabled={loading}
+                      autoComplete="new-password"
                     />
                     <button
                       type="button"
@@ -299,6 +431,7 @@ export default function CadastroPage() {
                       className="pl-10 pr-10"
                       required
                       disabled={loading}
+                      autoComplete="new-password"
                     />
                     <button
                       type="button"
