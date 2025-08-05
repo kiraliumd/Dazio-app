@@ -25,10 +25,24 @@ export async function POST(request: NextRequest) {
       const confirmationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?token=${token}`;
       
       // Renderizar o template React Email
-      emailHtml = render(ConfirmationEmail({
+      const emailComponent = ConfirmationEmail({
         userEmail: email,
         confirmationUrl: confirmationUrl,
-      }));
+      });
+      
+      emailHtml = render(emailComponent);
+      
+      // Verificar se o HTML foi renderizado corretamente
+      console.log('🔍 Send Email API: Tipo do HTML:', typeof emailHtml);
+      console.log('🔍 Send Email API: HTML renderizado:', emailHtml.substring(0, 200) + '...');
+      
+      if (typeof emailHtml !== 'string') {
+        console.error('❌ Send Email API: HTML não é uma string:', emailHtml);
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Erro ao renderizar template de email' 
+        }, { status: 500 });
+      }
       
       subject = 'Confirme seu email - Dazio';
     } else {
