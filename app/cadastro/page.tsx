@@ -64,44 +64,34 @@ export default function CadastroPage() {
       console.log('🔍 Cadastro: Iniciando criação de conta...');
       console.log('🔍 Cadastro: Email:', data.email);
 
-      // Criar usuário no Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm`
-        }
+      // Usar a nova API com Resend
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password
+        })
       });
 
-      console.log('🔍 Cadastro: Resposta do Supabase:', { authData, authError });
+      const result = await response.json();
+      console.log('🔍 Cadastro: Resposta da API:', result);
 
-      if (authError) {
-        console.error('❌ Cadastro: Erro no cadastro:', authError);
-        
-        // Tratamento específico para diferentes tipos de erro
-        if (authError.message.includes('confirmation email')) {
-          toast.error('Erro ao enviar email de confirmação. Verifique se o email está correto.');
-        } else if (authError.message.includes('already registered')) {
-          toast.error('Este email já está cadastrado. Tente fazer login.');
-        } else {
-          toast.error(`Erro no cadastro: ${authError.message}`);
-        }
+      if (!result.success) {
+        console.error('❌ Cadastro: Erro no cadastro:', result.error);
+        toast.error(result.error || 'Erro ao realizar cadastro');
         return;
       }
 
-      if (!authData.user) {
-        console.error('❌ Cadastro: Usuário não foi criado');
-        toast.error('Erro: Usuário não foi criado');
-        return;
-      }
-
-      console.log('✅ Cadastro: Usuário criado com sucesso:', authData.user.id);
+      console.log('✅ Cadastro: Usuário criado com sucesso:', result.user.id);
 
       // Salvar email no localStorage para reenvio
-      localStorage.setItem(`pendingEmail_${authData.user.id}`, data.email);
+      localStorage.setItem(`pendingEmail_${result.user.id}`, data.email);
 
-      // Verificar se o email foi enviado
-      if (authData.user.email_confirmed_at) {
+      // Verificar se o email foi confirmado
+      if (result.user.emailConfirmed) {
         console.log('✅ Cadastro: Email já confirmado');
         toast.success('Conta criada com sucesso!');
         router.push('/create-profile');

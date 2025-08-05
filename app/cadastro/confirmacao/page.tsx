@@ -66,15 +66,21 @@ function ConfirmacaoContent() {
   const handleEmailConfirmation = async (token: string) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: 'signup'
+      // Usar a nova API com Resend
+      const response = await fetch('/api/auth/confirm-email-resend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token })
       });
 
-      if (error) {
+      const result = await response.json();
+
+      if (!result.success) {
         setStatus('error');
-        setMessage('Erro ao confirmar email. Tente novamente.');
-        toast.error('Erro ao confirmar email');
+        setMessage(result.error || 'Erro ao confirmar email. Tente novamente.');
+        toast.error(result.error || 'Erro ao confirmar email');
       } else {
         // Criar perfil da empresa após confirmação
         await createCompanyProfile();
@@ -215,13 +221,19 @@ Data: {contract_date}`
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email
+      // Usar a nova API com Resend
+      const response = await fetch('/api/auth/confirm-email-resend', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email })
       });
 
-      if (error) {
-        toast.error('Erro ao reenviar email');
+      const result = await response.json();
+
+      if (!result.success) {
+        toast.error(result.error || 'Erro ao reenviar email');
       } else {
         toast.success('Email reenviado com sucesso!');
       }
