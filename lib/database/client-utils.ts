@@ -19,7 +19,7 @@ export async function getCurrentUserCompanyId(): Promise<string | null> {
       console.error('❌ getCurrentUserCompanyId: Usuário não autenticado')
       return null
     }
-
+    
     console.log('🔍 getCurrentUserCompanyId: Usuário encontrado:', user.email, 'ID:', user.id)
 
     // 2. Buscar o perfil da empresa
@@ -31,6 +31,21 @@ export async function getCurrentUserCompanyId(): Promise<string | null> {
 
     if (error) {
       console.error('❌ getCurrentUserCompanyId: Erro ao buscar perfil da empresa:', error)
+      
+      // Se não encontrou perfil, verificar se é erro de "não encontrado"
+      if (error.code === 'PGRST116') {
+        console.log('⚠️ getCurrentUserCompanyId: Usuário não tem perfil de empresa criado')
+        
+        // Redirecionar para página de criação de perfil se estiver no browser
+        if (typeof window !== 'undefined') {
+          const currentPath = window.location.pathname
+          if (currentPath !== '/create-profile' && currentPath !== '/login' && currentPath !== '/cadastro') {
+            console.log('🔄 getCurrentUserCompanyId: Redirecionando para criação de perfil')
+            window.location.href = '/create-profile'
+            return null
+          }
+        }
+      }
       
       // Se não encontrou perfil, vamos verificar se existe algum
       const { data: allProfiles, error: listError } = await supabase
@@ -87,6 +102,16 @@ export async function getCurrentUserCompanyProfile() {
 
     if (error) {
       console.error('❌ getCurrentUserCompanyProfile: Erro:', error)
+      
+      // Se não encontrou perfil, redirecionar para criação
+      if (error.code === 'PGRST116' && typeof window !== 'undefined') {
+        const currentPath = window.location.pathname
+        if (currentPath !== '/create-profile' && currentPath !== '/login' && currentPath !== '/cadastro') {
+          console.log('🔄 getCurrentUserCompanyProfile: Redirecionando para criação de perfil')
+          window.location.href = '/create-profile'
+        }
+      }
+      
       return null
     }
 
