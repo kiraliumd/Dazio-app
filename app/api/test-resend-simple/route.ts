@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     
     // Teste simples com HTML básico
     const { data, error } = await resend.emails.send({
-      from: 'Dazio <transacional@dazio.com.br>',
+      from: 'Dazio <onboarding@resend.dev>',
       to: ['test@example.com'],
       subject: 'Teste Resend - Dazio',
       html: '<h1>Teste de Email</h1><p>Este é um teste do Resend.</p>',
