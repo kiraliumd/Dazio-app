@@ -1,5 +1,5 @@
 import { supabase } from "../supabase"
-import { getCurrentUserCompanyId } from "./utils"
+import { getCurrentUserCompanyId } from "./client-utils"
 
 export interface EquipmentCategory {
   id: string

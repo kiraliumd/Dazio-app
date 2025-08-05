@@ -1,6 +1,6 @@
 import { supabase } from "../supabase"
 import type { Equipment } from "../supabase"
-import { getCurrentUserCompanyId } from "./utils"
+import { getCurrentUserCompanyId } from "./client-utils"
 
 export async function getEquipments() {
   const companyId = await getCurrentUserCompanyId()

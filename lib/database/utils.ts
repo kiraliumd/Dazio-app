@@ -1,7 +1,8 @@
 import { supabase } from "../supabase"
+import { createClient } from "../supabase/server"
 
 /**
- * Obtém o company_id do usuário autenticado
+ * Obtém o company_id do usuário autenticado (versão cliente)
  */
 export async function getCurrentUserCompanyId(): Promise<string | null> {
   try {
@@ -26,6 +27,62 @@ export async function getCurrentUserCompanyId(): Promise<string | null> {
     return companyProfile.id
   } catch (error) {
     console.error('❌ getCurrentUserCompanyId: Erro inesperado:', error)
+    return null
+  }
+}
+
+/**
+ * Obtém o company_id do usuário autenticado (versão servidor)
+ */
+export async function getCurrentUserCompanyIdServer(): Promise<string | null> {
+  try {
+    const supabaseServer = await createClient()
+    const { data: { user } } = await supabaseServer.auth.getUser()
+    
+    if (!user) {
+      console.error('❌ getCurrentUserCompanyIdServer: Usuário não autenticado')
+      return null
+    }
+
+    const { data: companyProfile, error } = await supabaseServer
+      .from('company_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (error) {
+      console.error('❌ getCurrentUserCompanyIdServer: Erro ao buscar perfil da empresa:', error)
+      return null
+    }
+
+    return companyProfile.id
+  } catch (error) {
+    console.error('❌ getCurrentUserCompanyIdServer: Erro inesperado:', error)
+    return null
+  }
+}
+
+/**
+ * Obtém o company_id por user_id (versão servidor)
+ */
+export async function getCompanyIdByUserId(userId: string): Promise<string | null> {
+  try {
+    const supabaseServer = await createClient()
+    
+    const { data: companyProfile, error } = await supabaseServer
+      .from('company_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .single()
+
+    if (error) {
+      console.error('❌ getCompanyIdByUserId: Erro ao buscar perfil da empresa:', error)
+      return null
+    }
+
+    return companyProfile.id
+  } catch (error) {
+    console.error('❌ getCompanyIdByUserId: Erro inesperado:', error)
     return null
   }
 }

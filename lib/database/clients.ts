@@ -1,6 +1,6 @@
 import { supabase } from "../supabase"
 import type { Client } from "../supabase"
-import { getCurrentUserCompanyId } from "./utils"
+import { getCurrentUserCompanyId } from "./client-utils"
 
 export async function getClients(limit?: number) {
   const companyId = await getCurrentUserCompanyId()

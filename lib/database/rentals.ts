@@ -1,7 +1,7 @@
 import { supabase } from "../supabase"
 import type { Rental, RentalItem } from "../supabase"
 import { format } from "date-fns"
-import { getCurrentUserCompanyId } from "./utils"
+import { getCurrentUserCompanyId } from "./client-utils"
 
 // Função para calcular a próxima data de ocorrência
 function calculateNextOccurrenceDate(rental: any): string | null {

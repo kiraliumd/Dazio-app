@@ -1,6 +1,6 @@
 import { supabase } from "../supabase"
 import type { Budget, BudgetItem } from "../supabase"
-import { getCurrentUserCompanyId } from "./utils"
+import { getCurrentUserCompanyId } from "./client-utils"
 
 export async function getBudgets(limit?: number, startDate?: string, endDate?: string) {
   const companyId = await getCurrentUserCompanyId()
