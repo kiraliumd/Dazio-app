@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
-import { AppSidebar } from "../../components/app-sidebar";
-import { PageHeader } from "../../components/page-header";
+import { AppSidebar } from "../../../components/app-sidebar";
+import { PageHeader } from "../../../components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,14 +10,14 @@ import { Label } from "@/components/ui/label";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { getCompanySettings, updateCompanySettings, CompanySettings } from "../../lib/database/settings";
+import { getCompanySettings, updateCompanySettings, CompanySettings } from "../../../lib/database/settings";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "../../lib/auth-context";
+import { useAuth } from "../../../lib/auth-context";
 import { AuthGuard } from "@/components/auth-guard";
 import { Save, CheckCircle, AlertCircle, Search, Key, Lock } from "lucide-react";
 
 // Lazy load do componente pesado
-const EquipmentCategoriesManager = lazy(() => import("../../components/equipment-categories-manager").then(module => ({ default: module.EquipmentCategoriesManager })))
+const EquipmentCategoriesManager = lazy(() => import("../../../components/equipment-categories-manager").then(module => ({ default: module.EquipmentCategoriesManager })))
 
 // Componente de loading para lazy components
 const LoadingSpinner = () => (

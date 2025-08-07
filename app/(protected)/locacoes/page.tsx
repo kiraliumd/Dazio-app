@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import { Edit, Eye, Plus, Search, Trash2, Clock, Calendar, DollarSign, FileText, Package, MessageSquare, User, MapPin } from "lucide-react"
-import { AppSidebar } from "../../components/app-sidebar"
-import { PageHeader } from "../../components/page-header"
-import { type Rental } from "../../components/rental-form"
-import { NotificationBell } from "../../components/notification-bell"
+import { AppSidebar } from "../../../components/app-sidebar"
+import { PageHeader } from "../../../components/page-header"
+import { type Rental } from "../../../components/rental-form"
+import { NotificationBell } from "../../../components/notification-bell"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -29,15 +29,15 @@ import { useToast } from "@/hooks/use-toast"
 
 
 
-import { getRentals, createRental, updateRental, deleteRental, searchRentals } from "../../lib/database/rentals"
-import { transformRentalFromDB } from "../../lib/utils/data-transformers"
-import { getCompanySettings } from "../../lib/database/settings"
-import { getClientById } from "../../lib/database/clients"
+import { getRentals, createRental, updateRental, deleteRental, searchRentals } from "../../../lib/database/rentals"
+import { transformRentalFromDB } from "../../../lib/utils/data-transformers"
+import { getCompanySettings } from "../../../lib/database/settings"
+import { getClientById } from "../../../lib/database/clients"
 import { pdf } from '@react-pdf/renderer'
-import { ContractPDF } from "../../components/contract-pdf"
+import { ContractPDF } from "../../../components/contract-pdf"
 
 // Lazy load dos componentes pesados
-const RentalForm = lazy(() => import("../../components/rental-form").then(module => ({ default: module.RentalForm })))
+const RentalForm = lazy(() => import("../../../components/rental-form").then(module => ({ default: module.RentalForm })))
 
 // Hook para debounce
 function useDebounce<T>(value: T, delay: number): T {

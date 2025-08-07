@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Calendar, DollarSign, FileText, TrendingUp, Users, Package } from "lucide-react"
-import { AppSidebar } from "../../components/app-sidebar"
-import { PageHeader } from "../../components/page-header"
-import { MetricCard } from "../../components/metric-card"
+import { AppSidebar } from "../../../components/app-sidebar"
+import { PageHeader } from "../../../components/page-header"
+import { MetricCard } from "../../../components/metric-card"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,7 +17,7 @@ import {
   getAllBudgetsForReports,
   type RentalReport,
   type BudgetReport 
-} from "../../lib/database/reports"
+} from "../../../lib/database/reports"
 
 // Estados para dados dos relatórios
 

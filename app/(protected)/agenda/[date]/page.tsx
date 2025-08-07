@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react"
 import { ArrowLeft, Calendar, Clock, MapPin, Package, DollarSign, Copy, CalendarDays, MessageSquare } from "lucide-react"
-import { AppSidebar } from "../../../components/app-sidebar"
+import { AppSidebar } from "../../../../components/app-sidebar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
@@ -11,11 +11,11 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import Link from "next/link"
-import { getLogisticsEvents } from "../../../lib/database/rentals"
+import { getLogisticsEvents } from "../../../../lib/database/rentals"
 import { formatDateCuiaba, formatTimeCuiaba } from "@/lib/utils"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { supabase } from "../../../lib/supabase"
+import { supabase } from "../../../../lib/supabase"
 
 interface LogisticsEvent {
   id: string

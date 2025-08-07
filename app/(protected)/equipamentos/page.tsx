@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import { Edit, Plus, Search, Trash2, Package, Wrench, AlertTriangle } from "lucide-react"
-import { AppSidebar } from "../../components/app-sidebar"
-import { PageHeader } from "../../components/page-header"
+import { AppSidebar } from "../../../components/app-sidebar"
+import { PageHeader } from "../../../components/page-header"
 // Lazy load do componente pesado
-const EquipmentForm = lazy(() => import("../../components/equipment-form").then(module => ({ default: module.EquipmentForm })))
-import type { Equipment } from "../../components/equipment-form"
+const EquipmentForm = lazy(() => import("../../../components/equipment-form").then(module => ({ default: module.EquipmentForm })))
+import type { Equipment } from "../../../components/equipment-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -39,9 +39,9 @@ import {
   createEquipment,
   updateEquipment,
   deleteEquipment,
-} from "../../lib/database/equipments"
-import { transformEquipmentFromDB, transformEquipmentToDB } from "../../lib/utils/data-transformers"
-import { useEquipmentCategories } from "../../hooks/useEquipmentCategories"
+} from "../../../lib/database/equipments"
+import { transformEquipmentFromDB, transformEquipmentToDB } from "../../../lib/utils/data-transformers"
+import { useEquipmentCategories } from "../../../hooks/useEquipmentCategories"
 import { useToast } from "@/components/ui/use-toast"
 
 // Hook para debounce

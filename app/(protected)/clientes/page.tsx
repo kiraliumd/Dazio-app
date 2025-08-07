@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import { Edit, Mail, Phone, Plus, Search, Trash2, User } from "lucide-react"
-import { AppSidebar } from "../../components/app-sidebar"
-import { PageHeader } from "../../components/page-header"
+import { AppSidebar } from "../../../components/app-sidebar"
+import { PageHeader } from "../../../components/page-header"
 // Lazy load do componente pesado
-const ClientForm = lazy(() => import("../../components/client-form").then(module => ({ default: module.ClientForm })))
-import type { Client } from "../../components/client-form"
+const ClientForm = lazy(() => import("../../../components/client-form").then(module => ({ default: module.ClientForm })))
+import type { Client } from "../../../components/client-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -34,8 +34,8 @@ import {
   PaginationEllipsis
 } from "@/components/ui/pagination";
 
-import { getClients, createClient, updateClient, deleteClient } from "../../lib/database/clients"
-import { transformClientFromDB, transformClientToDB } from "../../lib/utils/data-transformers"
+import { getClients, createClient, updateClient, deleteClient } from "../../../lib/database/clients"
+import { transformClientFromDB, transformClientToDB } from "../../../lib/utils/data-transformers"
 
 // Hook para debounce
 function useDebounce<T>(value: T, delay: number): T {

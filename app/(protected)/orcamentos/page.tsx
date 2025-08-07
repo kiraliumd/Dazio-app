@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import { CheckCircle, Edit, Eye, FileText, Plus, Search, Trash2, Download, User, Calendar, MapPin, Package, Calculator, Repeat } from "lucide-react"
-import { AppSidebar } from "../../components/app-sidebar"
-import { PageHeader } from "../../components/page-header"
+import { AppSidebar } from "../../../components/app-sidebar"
+import { PageHeader } from "../../../components/page-header"
 // Lazy load do componente pesado
-const BudgetFormV2 = lazy(() => import("../../components/budget-form-v2").then(module => ({ default: module.BudgetFormV2 })))
-import type { Budget } from "../../components/budget-form-v2"
+const BudgetFormV2 = lazy(() => import("../../../components/budget-form-v2").then(module => ({ default: module.BudgetFormV2 })))
+import type { Budget } from "../../../components/budget-form-v2"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -38,13 +38,13 @@ import {
   PaginationEllipsis
 } from "@/components/ui/pagination";
 
-import { getBudgets, createBudget, updateBudget, deleteBudget, generateBudgetNumber } from "../../lib/database/budgets";
-import { createRental } from "../../lib/database/rentals";
-import { transformBudgetFromDB } from "../../lib/utils/data-transformers";
+import { getBudgets, createBudget, updateBudget, deleteBudget, generateBudgetNumber } from "../../../lib/database/budgets";
+import { createRental } from "../../../lib/database/rentals";
+import { transformBudgetFromDB } from "../../../lib/utils/data-transformers";
 // Lazy load do modal pesado
-const LogisticsConfirmationModal = lazy(() => import("../../components/logistics-confirmation-modal").then(module => ({ default: module.LogisticsConfirmationModal })))
-import { usePDFGenerator } from "../../hooks/usePDFGenerator";
-import { getCompanySettings } from "../../lib/database/settings";
+const LogisticsConfirmationModal = lazy(() => import("../../../components/logistics-confirmation-modal").then(module => ({ default: module.LogisticsConfirmationModal })))
+import { usePDFGenerator } from "../../../hooks/usePDFGenerator";
+import { getCompanySettings } from "../../../lib/database/settings";
 
 // Hook para debounce
 function useDebounce<T>(value: T, delay: number): T {

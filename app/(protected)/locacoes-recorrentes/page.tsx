@@ -14,9 +14,9 @@ import {
   Search,
   Filter
 } from "lucide-react"
-import { AppSidebar } from "../../components/app-sidebar"
-import { PageHeader } from "../../components/page-header"
-import { NotificationBell } from "../../components/notification-bell"
+import { AppSidebar } from "../../../components/app-sidebar"
+import { PageHeader } from "../../../components/page-header"
+import { NotificationBell } from "../../../components/notification-bell"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -35,9 +35,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { formatDateCuiaba } from "@/lib/utils"
-import { getRecurringRentals, pauseRecurrence, resumeRecurrence, cancelRecurrence } from "../../lib/database/recurring-rentals"
-import { transformRentalFromDB } from "../../lib/utils/data-transformers"
-import type { Rental } from "../../lib/utils/data-transformers"
+import { getRecurringRentals, pauseRecurrence, resumeRecurrence, cancelRecurrence } from "../../../lib/database/recurring-rentals"
+import { transformRentalFromDB } from "../../../lib/utils/data-transformers"
+import type { Rental } from "../../../lib/utils/data-transformers"
 import { useToast } from "@/components/ui/use-toast"
 
 // Hook para debounce

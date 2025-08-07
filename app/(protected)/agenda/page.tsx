@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react"
-import { AppSidebar } from "../../components/app-sidebar"
-import { PageHeader } from "../../components/page-header"
+import { AppSidebar } from "../../../components/app-sidebar"
+import { PageHeader } from "../../../components/page-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import Link from "next/link"
-import { getLogisticsEvents } from "../../lib/database/rentals"
+import { getLogisticsEvents } from "../../../lib/database/rentals"
 import { formatDateCuiaba } from "@/lib/utils"
 
 interface LogisticsEvent {
