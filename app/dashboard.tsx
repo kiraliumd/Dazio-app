@@ -61,27 +61,27 @@ export default function Dashboard() {
     ? [
         {
           title: "Orçamentos Pendentes",
-          value: metrics.pendingBudgets,
+          value: metrics.pendingBudgets || 0,
           icon: FileText,
           description: "Aguardando aprovação",
           variant: "accent" as const,
         },
         {
           title: "Total de Locações no Mês",
-          value: metrics.monthlyRentals,
+          value: metrics.monthlyRentals || 0,
           icon: TrendingUp,
           description: "Contratos fechados",
         },
         {
           title: "Faturamento do Mês",
-          value: formatCurrency(metrics.monthlyRevenue),
+          value: formatCurrency(metrics.monthlyRevenue || 0),
           icon: DollarSign,
           description: "Receita atual",
           variant: "accent" as const,
         },
         {
           title: "Eventos Agendados",
-          value: metrics.scheduledEvents,
+          value: metrics.scheduledEvents || 0,
           icon: Calendar,
           description: "Próximos 7 dias",
         },

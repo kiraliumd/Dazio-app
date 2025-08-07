@@ -6,10 +6,13 @@ export interface DashboardMetrics {
   activeRentals: number
   totalBudgets: number
   approvedBudgets: number
+  pendingBudgets: number
+  monthlyRentals: number
   totalClients: number
   totalEquipments: number
   monthlyRevenue: number
   pendingInstallations: number
+  scheduledEvents: number
 }
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
@@ -24,7 +27,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     // Buscar métricas de locações
     const { data: rentals, error: rentalsError } = await supabase
       .from("rentals")
-      .select("status, final_value")
+      .select("status, final_value, created_at")
       .eq("company_id", companyId)
 
     if (rentalsError) {
@@ -35,7 +38,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     // Buscar métricas de orçamentos
     const { data: budgets, error: budgetsError } = await supabase
       .from("budgets")
-      .select("status, total_value")
+      .select("status, total_value, created_at")
       .eq("company_id", companyId)
 
     if (budgetsError) {
@@ -70,6 +73,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     const activeRentals = rentals?.filter(r => r.status === "Ativo").length || 0
     const totalBudgets = budgets?.length || 0
     const approvedBudgets = budgets?.filter(b => b.status === "Aprovado").length || 0
+    const pendingBudgets = budgets?.filter(b => b.status === "Pendente").length || 0
     const totalClients = clientsCount || 0
     const totalEquipments = equipmentsCount || 0
 
@@ -80,6 +84,14 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     const monthlyRevenue = rentals
       ?.filter(r => new Date(r.created_at) >= thirtyDaysAgo)
       ?.reduce((sum, r) => sum + (r.final_value || 0), 0) || 0
+
+    // Calcular locações do mês atual
+    const currentMonth = new Date()
+    const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1)
+    
+    const monthlyRentals = rentals
+      ?.filter(r => new Date(r.created_at) >= firstDayOfMonth)
+      ?.length || 0
 
     // Buscar instalações pendentes
     const { count: pendingInstallations, error: pendingError } = await supabase
@@ -93,15 +105,34 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
       throw pendingError
     }
 
+    // Buscar eventos agendados para os próximos 7 dias
+    const sevenDaysFromNow = new Date()
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
+    
+    const { count: scheduledEvents, error: eventsError } = await supabase
+      .from("rental_logistics_events")
+      .select("*", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .gte("event_date", new Date().toISOString().split('T')[0])
+      .lte("event_date", sevenDaysFromNow.toISOString().split('T')[0])
+
+    if (eventsError) {
+      console.error("Erro ao buscar eventos agendados:", eventsError)
+      // Não vamos falhar por causa dos eventos, usar 0 como padrão
+    }
+
     return {
       totalRentals,
       activeRentals,
       totalBudgets,
       approvedBudgets,
+      pendingBudgets,
+      monthlyRentals,
       totalClients,
       totalEquipments,
       monthlyRevenue,
-      pendingInstallations: pendingInstallations || 0
+      pendingInstallations: pendingInstallations || 0,
+      scheduledEvents: scheduledEvents || 0
     }
   } catch (error) {
     console.error("Erro ao buscar métricas do dashboard:", error)
