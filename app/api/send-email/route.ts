@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { render } from '@react-email/render';
-import SimpleConfirmationEmail from '@/emails/simple-confirmation-email';
+import DazioConfirmationEmail from '@/emails/dazio-confirmation-email';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       const confirmationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?token=${token}`;
       
       // Renderizar o template React Email
-      const emailComponent = SimpleConfirmationEmail({
+      const emailComponent = DazioConfirmationEmail({
         userEmail: email,
         confirmationUrl: confirmationUrl,
       });
