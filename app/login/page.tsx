@@ -31,7 +31,7 @@ export default function LoginPage() {
       if (error) {
         setError(error.message)
       } else {
-        router.push('/')
+        router.push('/dashboard')
       }
     } catch (err) {
       setError('Erro inesperado. Tente novamente.')
@@ -136,6 +136,34 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
+
+            {/* Links de ajuda */}
+            <div className="mt-6 space-y-3">
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => router.push('/cadastro')}
+                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                  disabled={loading}
+                >
+                  Ainda não tenho conta
+                </button>
+              </div>
+              
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    // TODO: Implementar recuperação de senha
+                    alert('Funcionalidade de recuperação de senha será implementada em breve.')
+                  }}
+                  className="text-sm text-gray-600 hover:text-gray-800 hover:underline transition-colors"
+                  disabled={loading}
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
+            </div>
 
             {/* Informações adicionais */}
             <div className="mt-6 text-center text-sm text-gray-600">

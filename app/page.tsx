@@ -1,10 +1,5 @@
-import Dashboard from "./dashboard"
-import { AuthGuard } from "@/components/auth-guard"
+import { redirect } from 'next/navigation'
 
 export default function Page() {
-  return (
-    <AuthGuard>
-      <Dashboard />
-    </AuthGuard>
-  )
+  redirect('/dashboard')
 }
