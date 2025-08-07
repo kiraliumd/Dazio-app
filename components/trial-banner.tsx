@@ -80,7 +80,7 @@ export function TrialBanner() {
         <AlertDescription className="text-red-800">
           <div className="flex items-center justify-between">
             <span>Seu período de teste gratuito expirou. Para continuar usando o sistema, assine um plano.</span>
-            <Link href="/assinatura">
+            <Link href="/assinatura-gestao">
               <Button size="sm" className="ml-4">
                 Assinar agora
               </Button>
@@ -101,7 +101,7 @@ export function TrialBanner() {
             <strong>Teste gratuito ativo:</strong> {formatDaysLeft(trialStatus.daysLeft)}
           </span>
           <div className="flex space-x-2">
-            <Link href="/assinatura">
+            <Link href="/assinatura-gestao">
               <Button size="sm" variant="outline">
                 Assinar agora
               </Button>

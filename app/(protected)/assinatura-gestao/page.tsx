@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { Calendar, Clock, CreditCard, AlertTriangle, CheckCircle, ExternalLink, RefreshCw, Star, Zap, Crown } from 'lucide-react';
+import { Calendar, Clock, CreditCard, AlertTriangle, CheckCircle, ExternalLink, RefreshCw } from 'lucide-react';
 import { format, differenceInDays, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { createSubscription } from '@/lib/subscription/actions';
@@ -298,127 +298,95 @@ export default function AssinaturaGestaoPage() {
                 </Card>
               )}
 
-              {/* Seção de Preços */}
+              {/* Planos de Assinatura */}
               {(!subscription || subscription.status === 'canceled' || subscription.status === 'unpaid') && (
-                <div className="space-y-6">
-                  <div className="text-center">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">Escolha seu Plano</h2>
-                    <p className="text-lg text-gray-600">Desbloqueie todo o potencial do Dazio</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    {/* Plano Mensal */}
-                    <Card className="relative border-2 border-gray-200 hover:border-blue-300 transition-all duration-300">
-                      <CardHeader className="text-center pb-4">
-                        <div className="flex items-center justify-center mb-2">
-                          <Zap className="h-8 w-8 text-blue-600" />
-                        </div>
-                        <CardTitle className="text-2xl">Plano Mensal</CardTitle>
-                        <CardDescription>Ideal para começar</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="text-center">
-                          <div className="text-4xl font-bold text-gray-900">R$ 97,90</div>
-                          <div className="text-gray-600">por mês</div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm">Acesso completo ao sistema</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm">Suporte por email</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm">Atualizações gratuitas</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm">Cancelamento a qualquer momento</span>
-                          </div>
-                        </div>
-
-                        <Button 
-                          onClick={() => handleSubscribe('monthly')}
-                          disabled={checkoutLoading}
-                          className="w-full"
-                          variant="outline"
-                        >
-                          {checkoutLoading ? (
-                            <>
-                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                              Carregando...
-                            </>
-                          ) : (
-                            'Escolher Plano Mensal'
-                          )}
-                        </Button>
-                      </CardContent>
-                    </Card>
-
-                    {/* Plano Anual - Destaque */}
-                    <Card className="relative border-2 border-blue-500 bg-gradient-to-br from-blue-50 to-white hover:border-blue-600 transition-all duration-300 transform hover:scale-105">
-                      <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                        <Badge className="bg-blue-600 text-white px-4 py-1 text-sm font-semibold">
-                          <Star className="h-3 w-3 mr-1" />
-                          MAIS POPULAR
-                        </Badge>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  {/* Plano Mensal */}
+                  <Card className="border-2 hover:border-primary transition-colors">
+                    <CardHeader>
+                      <CardTitle className="text-center">Plano Mensal</CardTitle>
+                      <CardDescription className="text-center">
+                        Ideal para começar
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="text-center">
+                      <div className="mb-4">
+                        <span className="text-3xl font-bold">R$ 97,90</span>
+                        <span className="text-gray-600">/mês</span>
                       </div>
-                      <CardHeader className="text-center pb-4 pt-6">
-                        <div className="flex items-center justify-center mb-2">
-                          <Crown className="h-8 w-8 text-blue-600" />
-                        </div>
-                        <CardTitle className="text-2xl">Plano Anual</CardTitle>
-                        <CardDescription>Melhor custo-benefício</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="text-center">
-                          <div className="text-4xl font-bold text-gray-900">R$ 979,00</div>
-                          <div className="text-gray-600">por ano</div>
-                          <div className="text-sm text-green-600 font-semibold mt-1">
-                            Economia de R$ 195,80 (2 meses grátis!)
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm">Tudo do plano mensal</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm">2 meses grátis</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm">Suporte prioritário</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm">Acesso antecipado a novos recursos</span>
-                          </div>
-                        </div>
+                      
+                      <ul className="text-sm text-gray-600 mb-6 space-y-2">
+                        <li className="flex items-center justify-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          Todos os recursos
+                        </li>
+                        <li className="flex items-center justify-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          Suporte por email
+                        </li>
+                        <li className="flex items-center justify-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          Cancelamento a qualquer momento
+                        </li>
+                      </ul>
+                      
+                      <Button 
+                        onClick={() => handleSubscribe('monthly')}
+                        disabled={checkoutLoading}
+                        className="w-full"
+                      >
+                        {checkoutLoading ? 'Carregando...' : 'Assinar Mensal'}
+                      </Button>
+                    </CardContent>
+                  </Card>
 
-                        <Button 
-                          onClick={() => handleSubscribe('annual')}
-                          disabled={checkoutLoading}
-                          className="w-full bg-blue-600 hover:bg-blue-700"
-                        >
-                          {checkoutLoading ? (
-                            <>
-                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                              Carregando...
-                            </>
-                          ) : (
-                            'Escolher Plano Anual'
-                          )}
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </div>
+                  {/* Plano Anual */}
+                  <Card className="border-2 border-primary relative">
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <Badge className="bg-primary text-primary-foreground">
+                        Mais Popular
+                      </Badge>
+                    </div>
+                    <CardHeader>
+                      <CardTitle className="text-center">Plano Anual</CardTitle>
+                      <CardDescription className="text-center">
+                        Economia de 2 meses
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="text-center">
+                      <div className="mb-4">
+                        <span className="text-3xl font-bold">R$ 979,00</span>
+                        <span className="text-gray-600">/ano</span>
+                        <div className="text-sm text-green-600 font-medium">
+                          Economia de R$ 195,80
+                        </div>
+                      </div>
+                      
+                      <ul className="text-sm text-gray-600 mb-6 space-y-2">
+                        <li className="flex items-center justify-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          Todos os recursos
+                        </li>
+                        <li className="flex items-center justify-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          Suporte prioritário
+                        </li>
+                        <li className="flex items-center justify-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          2 meses grátis
+                        </li>
+                      </ul>
+                      
+                      <Button 
+                        onClick={() => handleSubscribe('annual')}
+                        disabled={checkoutLoading}
+                        className="w-full"
+                        variant="default"
+                      >
+                        {checkoutLoading ? 'Carregando...' : 'Assinar Anual'}
+                      </Button>
+                    </CardContent>
+                  </Card>
                 </div>
               )}
 

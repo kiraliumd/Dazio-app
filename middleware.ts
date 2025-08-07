@@ -54,9 +54,9 @@ export async function middleware(req: NextRequest) {
         const now = new Date();
         
         if (now > trialEndDate) {
-          // Trial expirado, redirecionar para página de assinatura
-          console.log('Middleware: Trial expirado, redirecionando para assinatura');
-          return NextResponse.redirect(new URL('/assinatura', req.url));
+          // Trial expirado, redirecionar para página de assinatura-gestao
+          console.log('Middleware: Trial expirado, redirecionando para assinatura-gestao');
+          return NextResponse.redirect(new URL('/assinatura-gestao', req.url));
         }
       }
     } catch (error) {

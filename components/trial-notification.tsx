@@ -30,7 +30,7 @@ export function TrialNotification({ trialEnd, companyName }: TrialNotificationPr
   }, [trialEnd]);
 
   const handleUpgrade = () => {
-    router.push('/assinatura');
+    router.push('/assinatura-gestao');
   };
 
   const handleDismiss = () => {
