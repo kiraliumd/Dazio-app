@@ -3,7 +3,9 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function middleware(req: NextRequest) {
-  // Middleware para proteção de rotas e redirecionamentos
+  // Middleware simplificado - apenas verificação de trial
+  // Deixa a proteção de rotas para o AuthGuard
+  
   let response = NextResponse.next({
     request: {
       headers: req.headers,
@@ -37,47 +39,8 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // Rotas públicas que não precisam de autenticação
-  const publicRoutes = ['/login', '/cadastro', '/landing', '/'];
-  
-  // Rotas protegidas que precisam de autenticação
-  const protectedRoutes = [
-    '/dashboard',
-    '/clientes',
-    '/equipamentos',
-    '/orcamentos',
-    '/locacoes',
-    '/locacoes-recorrentes',
-    '/agenda',
-    '/relatorios',
-    '/configuracoes',
-    '/assinatura-gestao',
-    '/create-profile',
-    '/assinatura' // Página de assinatura também protegida
-  ];
-
-  const isPublicRoute = publicRoutes.some(route => 
-    req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith(route + '/')
-  );
-  
-  const isProtectedRoute = protectedRoutes.some(route => 
-    req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith(route + '/')
-  );
-
-  // 1. Se está autenticado e tentando acessar login/cadastro, redirecionar para dashboard
-  if (session && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/cadastro')) {
-    console.log('Middleware: Usuário autenticado, redirecionando para dashboard');
-    return NextResponse.redirect(new URL('/dashboard', req.url));
-  }
-
-  // 2. Se NÃO está autenticado e tentando acessar rotas protegidas, redirecionar para login
-  if (!session && isProtectedRoute) {
-    console.log('Middleware: Usuário não autenticado, redirecionando para login');
-    return NextResponse.redirect(new URL('/login', req.url));
-  }
-
-  // 3. Se está autenticado e tentando acessar rotas protegidas, verificar trial
-  if (session && isProtectedRoute) {
+  // Apenas verificar trial para usuários autenticados
+  if (session) {
     try {
       // Verificar se o trial expirou
       const { data: profile } = await supabase
@@ -91,14 +54,13 @@ export async function middleware(req: NextRequest) {
         const now = new Date();
         
         if (now > trialEndDate) {
-          // Trial expirou, redirecionar para página de assinatura
+          // Trial expirado, redirecionar para página de assinatura
           console.log('Middleware: Trial expirado, redirecionando para assinatura');
           return NextResponse.redirect(new URL('/assinatura', req.url));
         }
       }
     } catch (error) {
       console.error('Middleware: Erro ao verificar trial:', error);
-      // Em caso de erro, deixa o AuthGuard lidar
     }
   }
 
@@ -107,19 +69,8 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // Apenas rotas de autenticação - deixar as outras para o AuthGuard
+    // Apenas rotas protegidas que precisam de verificação de trial
     // Excluir rotas da API para evitar interferência
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
-    '/login',
-    '/cadastro/:path*',
-    '/dashboard/:path*',
-    '/clientes/:path*',
-    '/equipamentos/:path*',
-    '/orcamentos/:path*',
-    '/locacoes/:path*',
-    '/locacoes-recorrentes/:path*',
-    '/agenda/:path*',
-    '/relatorios/:path*',
-    '/configuracoes/:path*',
   ],
 }; 
