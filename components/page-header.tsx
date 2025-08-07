@@ -58,7 +58,7 @@ export function PageHeader({ title, description }: PageHeaderProps) {
           <div className="flex items-center gap-2">
             <NotificationBell />
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Olá, {user?.email}</span>
+              <span>Olá, {companyName || user?.email}</span>
               <Button
                 variant="ghost"
                 size="sm"

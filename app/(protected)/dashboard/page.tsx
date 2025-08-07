@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [companyName, setCompanyName] = useState<string>('')
   const router = useRouter()
   const { user, signOut } = useAuth()
 
@@ -35,13 +36,23 @@ export default function Dashboard() {
       setLoading(true)
       console.log('Dashboard: Carregando dados...')
       
-      // Adicionar um pequeno delay para evitar flash de loading muito rápido
-      const [metricsData] = await Promise.all([
+      // Carregar métricas e dados da empresa em paralelo
+      const [metricsData, companyResponse] = await Promise.all([
         getDashboardMetrics(),
+        fetch('/api/company/profile'),
         new Promise(resolve => setTimeout(resolve, 300)) // Delay mínimo de 300ms
       ])
       
       setMetrics(metricsData)
+      
+      // Buscar nome da empresa
+      if (companyResponse.ok) {
+        const { data } = await companyResponse.json()
+        if (data?.company_name) {
+          setCompanyName(data.company_name)
+        }
+      }
+      
       console.log('Dashboard: Dados carregados com sucesso')
     } catch (error) {
       console.error("Erro ao carregar dados do dashboard:", error)
@@ -159,7 +170,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <NotificationBell />
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Olá, {user?.email}</span>
+                <span>Olá, {companyName || user?.email}</span>
                 <Button
                   variant="ghost"
                   size="sm"
