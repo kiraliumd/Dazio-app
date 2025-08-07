@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
+import { addContactToAudience } from '@/lib/resend-contacts';
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,6 +53,21 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Signup API: Usuário criado com sucesso:', authData.user.id);
+
+    // Adicionar contato à audiência do Resend
+    const audienceResult = await addContactToAudience({
+      email: email,
+      firstName: '', // Pode ser expandido para incluir nome se disponível
+      lastName: '',
+      unsubscribed: false
+    });
+
+    if (!audienceResult.success) {
+      console.warn('⚠️ Signup API: Erro ao adicionar à audiência:', audienceResult.error);
+      // Não falha o cadastro se não conseguir adicionar à audiência
+    } else {
+      console.log('✅ Signup API: Contato adicionado à audiência:', audienceResult.contactId);
+    }
 
     // Gerar token de confirmação personalizado
     const confirmationToken = randomBytes(32).toString('hex');

@@ -159,10 +159,22 @@ export const DazioConfirmationEmail: React.FC<DazioConfirmationEmailProps> = ({
             <Text style={{
               fontSize: '12px',
               color: '#707070',
-              margin: '0',
+              margin: '0 0 8px 0',
               textAlign: 'center'
             }}>
               © 2024 Dazio. Todos os direitos reservados.
+            </Text>
+
+            <Text style={{
+              fontSize: '11px',
+              color: '#707070',
+              margin: '0',
+              textAlign: 'center'
+            }}>
+              <a href={`${process.env.NEXT_PUBLIC_APP_URL}/unsubscribe?email=${userEmail}`} 
+                 style={{ color: '#707070', textDecoration: 'underline' }}>
+                Desinscrever-se
+              </a>
             </Text>
           </Section>
         </Container>
