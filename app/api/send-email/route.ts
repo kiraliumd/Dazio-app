@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ 
       success: true, 
-      message: 'Email enviado com sucesso (enviado para email verificado)',
+      message: 'Email enviado com sucesso',
       emailId: data?.id,
       originalEmail: email
     });
