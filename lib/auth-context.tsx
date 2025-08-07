@@ -29,6 +29,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('AuthContext: Sessão inicial:', session?.user?.email)
         setSession(session)
         setUser(session?.user ?? null)
+
+        // Sincronizar sessão inicial com o servidor
+        try {
+          await fetch('/auth/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event: 'INITIAL_SESSION', session }),
+          })
+        } catch (e) {
+          console.warn('Falha ao sincronizar sessão inicial no servidor:', e)
+        }
       } catch (error) {
         console.error('Erro ao obter sessão:', error)
       } finally {
@@ -45,6 +56,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session)
         setUser(session?.user ?? null)
         setLoading(false)
+
+        // Enviar evento para o servidor atualizar cookies
+        try {
+          await fetch('/auth/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event, session }),
+          })
+        } catch (e) {
+          console.warn('Falha ao sincronizar evento de auth no servidor:', e)
+        }
       }
     )
 

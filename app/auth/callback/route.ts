@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient as createServerSupabaseClient } from '@/lib/supabase/server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -62,3 +63,28 @@ export async function GET(request: NextRequest) {
   console.log('❌ Auth Callback: Nenhum token ou código encontrado');
   return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed&message=Parâmetros inválidos`);
 } 
+
+// Sincroniza os eventos de autenticação do cliente com o servidor (cookies)
+export async function POST(request: NextRequest) {
+  try {
+    const { event, session } = await request.json();
+
+    // Cria cliente do servidor com suporte a cookies (setAll)
+    const supabase = await createServerSupabaseClient();
+
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+      if (session) {
+        await supabase.auth.setSession(session);
+      }
+    }
+
+    if (event === 'SIGNED_OUT') {
+      await supabase.auth.signOut();
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('❌ Auth Callback (POST): Erro inesperado:', error);
+    return NextResponse.json({ ok: false, error: 'Erro inesperado' }, { status: 500 });
+  }
+}
