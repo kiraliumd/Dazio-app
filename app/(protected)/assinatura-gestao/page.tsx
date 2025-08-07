@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { Calendar, Clock, CreditCard, AlertTriangle, CheckCircle, ExternalLink, RefreshCw } from 'lucide-react';
+import { Calendar, Clock, CreditCard, AlertTriangle, CheckCircle, ExternalLink, RefreshCw, Star, Zap, Crown } from 'lucide-react';
 import { format, differenceInDays, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { createSubscription } from '@/lib/subscription/actions';
@@ -57,41 +57,23 @@ export default function AssinaturaGestaoPage() {
     try {
       setLoading(true);
       
-      console.log('🔄 Assinatura Gestão: Carregando dados da assinatura');
-      
-      // Testar autenticação primeiro
-      const authResponse = await fetch('/api/test-auth');
-      const authResult = await authResponse.json();
-      console.log('🔍 Assinatura Gestão: Teste de autenticação:', authResult);
-      
-      if (!authResponse.ok) {
-        console.error('❌ Assinatura Gestão: Falha na autenticação:', authResult);
-        toast.error('Erro de autenticação. Por favor, faça login novamente.');
-        return;
-      }
-      
-      const profileResponse = await fetch('/api/company/profile');
-      const profileResult = await profileResponse.json();
-      console.log('🔍 Assinatura Gestão: Resposta do perfil:', profileResult);
+      const [profileResponse, subscriptionResponse] = await Promise.all([
+        fetch('/api/company/profile'),
+        fetch('/api/subscription')
+      ]);
       
       if (profileResponse.ok) {
+        const profileResult = await profileResponse.json();
         setCompanyProfile(profileResult.data);
-      } else {
-        console.error('❌ Assinatura Gestão: Erro ao carregar perfil:', profileResult);
       }
 
-      const subscriptionResponse = await fetch('/api/subscription');
-      const subscriptionResult = await subscriptionResponse.json();
-      console.log('🔍 Assinatura Gestão: Resposta da assinatura:', subscriptionResult);
-      
       if (subscriptionResponse.ok) {
+        const subscriptionResult = await subscriptionResponse.json();
         setSubscription(subscriptionResult.data);
-      } else {
-        console.error('❌ Assinatura Gestão: Erro ao carregar assinatura:', subscriptionResult);
       }
 
     } catch (error) {
-      console.error('❌ Assinatura Gestão: Erro ao carregar dados da assinatura:', error);
+      console.error('Erro ao carregar dados da assinatura:', error);
       toast.error('Erro ao carregar dados da assinatura');
     } finally {
       setLoading(false);
@@ -316,89 +298,161 @@ export default function AssinaturaGestaoPage() {
                 </Card>
               )}
 
-              {/* Debug - Botão de Teste */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Debug - Teste de Autenticação</CardTitle>
-                  <CardDescription>
-                    Teste a autenticação e veja os logs no console
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button 
-                    onClick={loadSubscriptionData}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    🔍 Testar Autenticação e Carregar Dados
-                  </Button>
-                </CardContent>
-              </Card>
+              {/* Seção de Preços */}
+              {(!subscription || subscription.status === 'canceled' || subscription.status === 'unpaid') && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-2">Escolha seu Plano</h2>
+                    <p className="text-lg text-gray-600">Desbloqueie todo o potencial do Dazio</p>
+                  </div>
 
-              {/* Ações */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Gerenciar Assinatura */}
-                {subscription && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Gerenciar Assinatura</CardTitle>
-                      <CardDescription>
-                        Acesse o portal do Stripe para gerenciar pagamentos, cancelamentos e métodos de pagamento
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button 
-                        onClick={handleManageSubscription}
-                        disabled={portalLoading}
-                        className="w-full"
-                        variant="outline"
-                      >
-                        {portalLoading ? (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                            Carregando...
-                          </>
-                        ) : (
-                          <>
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            Acessar Portal do Cliente
-                          </>
-                        )}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    {/* Plano Mensal */}
+                    <Card className="relative border-2 border-gray-200 hover:border-blue-300 transition-all duration-300">
+                      <CardHeader className="text-center pb-4">
+                        <div className="flex items-center justify-center mb-2">
+                          <Zap className="h-8 w-8 text-blue-600" />
+                        </div>
+                        <CardTitle className="text-2xl">Plano Mensal</CardTitle>
+                        <CardDescription>Ideal para começar</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="text-center">
+                          <div className="text-4xl font-bold text-gray-900">R$ 97,90</div>
+                          <div className="text-gray-600">por mês</div>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm">Acesso completo ao sistema</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm">Suporte por email</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm">Atualizações gratuitas</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm">Cancelamento a qualquer momento</span>
+                          </div>
+                        </div>
 
-                {/* Fazer Upgrade */}
-                {(!subscription || subscription.status === 'canceled' || subscription.status === 'unpaid') && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Fazer Upgrade</CardTitle>
-                      <CardDescription>
-                        Escolha um plano para continuar usando todos os recursos do sistema
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <Button 
-                        onClick={() => handleSubscribe('monthly')}
-                        disabled={checkoutLoading}
-                        className="w-full"
-                      >
-                        {checkoutLoading ? 'Carregando...' : 'Assinar Plano Mensal - R$ 97,90/mês'}
-                      </Button>
-                      
-                      <Button 
-                        onClick={() => handleSubscribe('annual')}
-                        disabled={checkoutLoading}
-                        className="w-full"
-                        variant="outline"
-                      >
-                        {checkoutLoading ? 'Carregando...' : 'Assinar Plano Anual - R$ 979,00/ano (2 meses grátis)'}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+                        <Button 
+                          onClick={() => handleSubscribe('monthly')}
+                          disabled={checkoutLoading}
+                          className="w-full"
+                          variant="outline"
+                        >
+                          {checkoutLoading ? (
+                            <>
+                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                              Carregando...
+                            </>
+                          ) : (
+                            'Escolher Plano Mensal'
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    {/* Plano Anual - Destaque */}
+                    <Card className="relative border-2 border-blue-500 bg-gradient-to-br from-blue-50 to-white hover:border-blue-600 transition-all duration-300 transform hover:scale-105">
+                      <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                        <Badge className="bg-blue-600 text-white px-4 py-1 text-sm font-semibold">
+                          <Star className="h-3 w-3 mr-1" />
+                          MAIS POPULAR
+                        </Badge>
+                      </div>
+                      <CardHeader className="text-center pb-4 pt-6">
+                        <div className="flex items-center justify-center mb-2">
+                          <Crown className="h-8 w-8 text-blue-600" />
+                        </div>
+                        <CardTitle className="text-2xl">Plano Anual</CardTitle>
+                        <CardDescription>Melhor custo-benefício</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="text-center">
+                          <div className="text-4xl font-bold text-gray-900">R$ 979,00</div>
+                          <div className="text-gray-600">por ano</div>
+                          <div className="text-sm text-green-600 font-semibold mt-1">
+                            Economia de R$ 195,80 (2 meses grátis!)
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm">Tudo do plano mensal</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm">2 meses grátis</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm">Suporte prioritário</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm">Acesso antecipado a novos recursos</span>
+                          </div>
+                        </div>
+
+                        <Button 
+                          onClick={() => handleSubscribe('annual')}
+                          disabled={checkoutLoading}
+                          className="w-full bg-blue-600 hover:bg-blue-700"
+                        >
+                          {checkoutLoading ? (
+                            <>
+                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                              Carregando...
+                            </>
+                          ) : (
+                            'Escolher Plano Anual'
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              )}
+
+              {/* Gerenciar Assinatura */}
+              {subscription && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Gerenciar Assinatura</CardTitle>
+                    <CardDescription>
+                      Acesse o portal do Stripe para gerenciar pagamentos, cancelamentos e métodos de pagamento
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button 
+                      onClick={handleManageSubscription}
+                      disabled={portalLoading}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      {portalLoading ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Carregando...
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Acessar Portal do Cliente
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
 
               
             </div>
