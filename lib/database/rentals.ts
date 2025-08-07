@@ -208,6 +208,7 @@ export async function createRental(
     const logisticsEvents = [
       {
         rental_id: createdRental.id,
+        company_id: companyId, // Adicionar company_id para multi-tenancy
         event_type: "Instalação",
         event_date: format(logisticsData.installation, "yyyy-MM-dd"), // Data formatada
         event_time: format(logisticsData.installation, "HH:mm"), // Hora formatada
@@ -216,6 +217,7 @@ export async function createRental(
       },
       {
         rental_id: createdRental.id,
+        company_id: companyId, // Adicionar company_id para multi-tenancy
         event_type: "Retirada",
         event_date: format(logisticsData.removal, "yyyy-MM-dd"), // Data formatada
         event_time: format(logisticsData.removal, "HH:mm"), // Hora formatada
@@ -385,7 +387,7 @@ export async function getLogisticsEvents() {
         )
       )
     `)
-    .eq("company_id", companyId) // Adicionar company_id na condição
+    .eq("company_id", companyId) // Filtrar diretamente pelo company_id da tabela rental_logistics_events
     .order("event_date, event_time", { ascending: true })
 
   if (error) {
