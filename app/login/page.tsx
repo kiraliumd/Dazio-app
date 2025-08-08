@@ -65,8 +65,8 @@ export default function LoginPage() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     setError('')
     
     // Validar campos
@@ -94,7 +94,11 @@ export default function LoginPage() {
           setError('Erro ao fazer login. Tente novamente.')
         }
       } else {
-        router.push('/dashboard')
+        try {
+          router.replace('/dashboard')
+        } catch {
+          router.replace('/')
+        }
       }
     } catch (err) {
       setError('Erro inesperado. Tente novamente.')
@@ -127,7 +131,7 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={(e) => e.preventDefault()} noValidate className="space-y-4">
               {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -136,6 +140,7 @@ export default function LoginPage() {
                   <Input
                     id="email"
                     type="email"
+                    autoComplete="email"
                     placeholder="seu@email.com"
                     value={email}
                     onChange={handleEmailChange}
@@ -161,6 +166,7 @@ export default function LoginPage() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     placeholder="••••••••"
                     value={password}
                     onChange={handlePasswordChange}
@@ -200,7 +206,8 @@ export default function LoginPage() {
 
               {/* Botão de Login */}
               <Button
-                type="submit"
+                type="button"
+                onClick={() => handleSubmit()}
                 className="w-full"
                 disabled={loading}
               >

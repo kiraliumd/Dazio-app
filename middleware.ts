@@ -9,9 +9,10 @@ const PUBLIC_ROUTES = [
   '/auth/reset-password',
   '/auth/reset-password/confirm',
   '/auth/confirm',
+  '/auth/callback',
   '/unsubscribe',
   '/landing',
-  '/'
+  '/',
 ];
 
 // Rotas que devem ser acessíveis mesmo com trial expirado
@@ -19,7 +20,7 @@ const SUBSCRIPTION_ROUTES = [
   '/assinatura-gestao',
   '/api/subscription',
   '/api/stripe',
-  '/api/stripe/webhook'
+  '/api/stripe/webhook',
 ];
 
 export async function middleware(req: NextRequest) {
@@ -58,14 +59,13 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // Se não há sessão, permitir acesso apenas a rotas públicas
+  // Sempre permitir rotas públicas
+  if (PUBLIC_ROUTES.includes(pathname)) {
+    return response;
+  }
+
+  // Se não há sessão, bloquear apenas rotas protegidas (não públicas e não arquivos estáticos)
   if (!session) {
-    if (PUBLIC_ROUTES.includes(pathname)) {
-      return response;
-    }
-    
-    // Redirecionar para login se tentar acessar rota protegida
-    console.log('Middleware: Usuário não autenticado, redirecionando para login');
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
@@ -125,13 +125,10 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
+    // Ignorar:
+    // - qualquer arquivo com extensão (ex.: .png, .svg, .jpg, .css, .js, .map, .ico, etc)
+    // - rotas internas do Next (_next)
+    // - rotas de API (api)
+    '/((?!.+\.[\w]+$|_next|api).*)',
   ],
 }; 

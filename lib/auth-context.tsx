@@ -83,6 +83,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('AuthContext: Erro no login:', error)
     } else {
       console.log('AuthContext: Login bem-sucedido')
+      // Garantir sincronização imediata de cookies no servidor antes de navegar
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        await fetch('/auth/callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event: 'SIGNED_IN', session }),
+        })
+      } catch (e) {
+        console.warn('Falha ao sincronizar sessão após login:', e)
+      }
     }
     return { error }
   }
@@ -98,6 +109,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     console.log('AuthContext: Fazendo logout')
     await supabase.auth.signOut()
+    try {
+      await fetch('/auth/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'SIGNED_OUT', session: null }),
+      })
+    } catch (e) {
+      console.warn('Falha ao sincronizar logout no servidor:', e)
+    }
   }
 
   const updateUser = async (updates: Partial<User>) => {
