@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resend } from '../../../../lib/resend'
 import React from 'react'
-import { render } from '@react-email/render'
+import render from '@react-email/render'
 import ResetPasswordEmail from '../../../../emails/reset-password-email'
 
 export async function POST(request: NextRequest) {
@@ -61,7 +61,20 @@ export async function POST(request: NextRequest) {
 
     // Enviar email personalizado (opcional). Se falhar, não impedimos a resposta de sucesso
     try {
-      const emailHtml = render(React.createElement(ResetPasswordEmail, { resetUrl: actionLink!, userEmail: email }))
+      let emailHtml: string
+      try {
+        emailHtml = await render(React.createElement(ResetPasswordEmail, { resetUrl: actionLink!, userEmail: email }))
+      } catch (rErr) {
+        console.warn('Falha ao renderizar template com @react-email/render, usando fallback simples:', rErr)
+        emailHtml = `<!DOCTYPE html><html><body>
+          <p>Olá,</p>
+          <p>Para redefinir sua senha no Dazio clique no link abaixo:</p>
+          <p><a href="${actionLink}">Redefinir Senha</a></p>
+          <p>Se o botão não funcionar, copie e cole este link no seu navegador: ${actionLink}</p>
+          <p>&copy; 2025 Dazio</p>
+        </body></html>`
+      }
+
       await resend.emails.send({
         from: 'Dazio <noreply@dazio.com.br>',
         to: [email],
