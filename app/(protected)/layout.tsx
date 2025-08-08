@@ -1,4 +1,5 @@
 import { AuthGuard } from "@/components/auth-guard"
+import { TrialGuard } from "@/components/trial-guard"
 
 export default function ProtectedLayout({
   children,
@@ -7,7 +8,9 @@ export default function ProtectedLayout({
 }) {
   return (
     <AuthGuard>
-      {children}
+      <TrialGuard>
+        {children}
+      </TrialGuard>
     </AuthGuard>
   )
 }

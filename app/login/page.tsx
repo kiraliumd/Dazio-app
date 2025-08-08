@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, Lock, Mail, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Lock, Mail, Loader2, AlertCircle } from "lucide-react"
 import Image from 'next/image'
 
 export default function LoginPage() {
@@ -17,19 +17,82 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [emailError, setEmailError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
   const { signIn } = useAuth()
   const router = useRouter()
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!email) {
+      setEmailError('Email é obrigatório')
+      return false
+    }
+    if (!emailRegex.test(email)) {
+      setEmailError('Digite um email válido')
+      return false
+    }
+    setEmailError('')
+    return true
+  }
+
+  const validatePassword = (password: string) => {
+    if (!password) {
+      setPasswordError('Senha é obrigatória')
+      return false
+    }
+    if (password.length < 6) {
+      setPasswordError('Senha deve ter pelo menos 6 caracteres')
+      return false
+    }
+    setPasswordError('')
+    return true
+  }
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setEmail(value)
+    if (emailError) {
+      validateEmail(value)
+    }
+  }
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setPassword(value)
+    if (passwordError) {
+      validatePassword(value)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    
+    // Validar campos
+    const isEmailValid = validateEmail(email)
+    const isPasswordValid = validatePassword(password)
+    
+    if (!isEmailValid || !isPasswordValid) {
+      return
+    }
+
     setLoading(true)
 
     try {
       const { error } = await signIn(email, password)
       
       if (error) {
-        setError(error.message)
+        // Mapear erros específicos do Supabase para mensagens mais amigáveis
+        if (error.message.includes('Invalid login credentials')) {
+          setError('Email ou senha incorretos. Verifique suas credenciais e tente novamente.')
+        } else if (error.message.includes('Email not confirmed')) {
+          setError('Email não confirmado. Verifique sua caixa de entrada e confirme seu email.')
+        } else if (error.message.includes('Too many requests')) {
+          setError('Muitas tentativas de login. Aguarde alguns minutos e tente novamente.')
+        } else {
+          setError('Erro ao fazer login. Tente novamente.')
+        }
       } else {
         router.push('/dashboard')
       }
@@ -75,12 +138,19 @@ export default function LoginPage() {
                     type="email"
                     placeholder="seu@email.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
+                    onChange={handleEmailChange}
+                    onBlur={() => validateEmail(email)}
+                    className={`pl-10 ${emailError ? 'border-red-500 focus:border-red-500' : ''}`}
                     required
                     disabled={loading}
                   />
                 </div>
+                {emailError && (
+                  <div className="flex items-center gap-2 text-sm text-red-600">
+                    <AlertCircle className="h-4 w-4" />
+                    {emailError}
+                  </div>
+                )}
               </div>
 
               {/* Senha */}
@@ -93,15 +163,16 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10"
+                    onChange={handlePasswordChange}
+                    onBlur={() => validatePassword(password)}
+                    className={`pl-10 pr-10 ${passwordError ? 'border-red-500 focus:border-red-500' : ''}`}
                     required
                     disabled={loading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                     disabled={loading}
                   >
                     {showPassword ? (
@@ -111,11 +182,18 @@ export default function LoginPage() {
                     )}
                   </button>
                 </div>
+                {passwordError && (
+                  <div className="flex items-center gap-2 text-sm text-red-600">
+                    <AlertCircle className="h-4 w-4" />
+                    {passwordError}
+                  </div>
+                )}
               </div>
 
-              {/* Erro */}
+              {/* Erro geral */}
               {error && (
                 <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
@@ -137,40 +215,29 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {/* Links de ajuda */}
-            <div className="mt-6 space-y-3">
-              <div className="text-center">
-                <button
+            {/* Links de ajuda - Melhorados com boas práticas de UI/UX */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <div className="flex flex-col gap-4">
+                <Button
                   type="button"
+                  variant="link"
                   onClick={() => router.push('/cadastro')}
-                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                  className="text-blue-600 hover:text-blue-800 hover:underline transition-colors p-0 h-auto font-normal"
                   disabled={loading}
                 >
                   Ainda não tenho conta
-                </button>
-              </div>
-              
-              <div className="text-center">
-                <button
+                </Button>
+                
+                <Button
                   type="button"
-                  onClick={() => {
-                    // TODO: Implementar recuperação de senha
-                    alert('Funcionalidade de recuperação de senha será implementada em breve.')
-                  }}
-                  className="text-sm text-gray-600 hover:text-gray-800 hover:underline transition-colors"
+                  variant="link"
+                  onClick={() => router.push('/auth/reset-password')}
+                  className="text-gray-600 hover:text-gray-800 hover:underline transition-colors p-0 h-auto font-normal"
                   disabled={loading}
                 >
                   Esqueci minha senha
-                </button>
+                </Button>
               </div>
-            </div>
-
-            {/* Informações adicionais */}
-            <div className="mt-6 text-center text-sm text-gray-600">
-              <p>Credenciais padrão:</p>
-              <p className="font-mono text-xs mt-1">
-                admin@dazio.com / admin123
-              </p>
             </div>
           </CardContent>
         </Card>

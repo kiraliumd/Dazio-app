@@ -18,7 +18,6 @@ import { ptBR } from 'date-fns/locale';
 import { createSubscription } from '@/lib/subscription/actions';
 import { toast } from 'sonner';
 import { AuthGuard } from '@/components/auth-guard';
-import { TrialWrapper } from '@/components/trial-wrapper';
 
 interface CompanyProfile {
   id: string;
@@ -190,7 +189,6 @@ export default function AssinaturaGestaoPage() {
             description="Gerencie sua assinatura e veja o status do seu período de teste"
           />
           
-          <TrialWrapper>
             <div className="flex-1 space-y-6 p-6">
               {/* Status Geral */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -423,9 +421,8 @@ export default function AssinaturaGestaoPage() {
               )}
 
               
-            </div>
-          </TrialWrapper>
-        </SidebarInset>
+                          </div>
+          </SidebarInset>
       </SidebarProvider>
     </AuthGuard>
   );

@@ -1,67 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { AlertTriangleIcon, ClockIcon, CheckCircleIcon } from 'lucide-react';
+import { AlertTriangleIcon, ClockIcon } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase/client';
-import { TrialStatus, formatDaysLeft } from '@/lib/trial-check';
+import { useTrialStatus } from '@/hooks/useTrialStatus';
 import Link from 'next/link';
 
 export function TrialBanner() {
-  const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
-
-  useEffect(() => {
-    checkTrialStatus();
-  }, []);
-
-  const checkTrialStatus = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      const { data: profile, error } = await supabase
-        .from('company_profiles')
-        .select('trial_end, status')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error || !profile) {
-        setTrialStatus({
-          isActive: false,
-          isExpired: true,
-          daysLeft: 0,
-          trialEnd: null,
-          status: 'expired'
-        });
-        setLoading(false);
-        return;
-      }
-
-      const now = new Date();
-      const trialEnd = new Date(profile.trial_end);
-      const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      const isExpired = now > trialEnd;
-
-      setTrialStatus({
-        isActive: !isExpired && profile.status === 'trial',
-        isExpired,
-        daysLeft: Math.max(0, daysLeft),
-        trialEnd: profile.trial_end,
-        status: profile.status as 'trial' | 'active' | 'expired' | 'cancelled'
-      });
-    } catch (error) {
-      console.error('Erro ao verificar trial:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { trialStatus, loading } = useTrialStatus();
 
   if (loading || !trialStatus) {
     return null;
@@ -98,7 +44,7 @@ export function TrialBanner() {
       <AlertDescription className="text-blue-800">
         <div className="flex items-center justify-between">
           <span>
-            <strong>Teste gratuito ativo:</strong> {formatDaysLeft(trialStatus.daysLeft)}
+            <strong>Teste gratuito ativo:</strong> {trialStatus.daysLeft === 1 ? '1 dia restante' : `${trialStatus.daysLeft} dias restantes`}
           </span>
           <div className="flex space-x-2">
             <Link href="/assinatura-gestao">

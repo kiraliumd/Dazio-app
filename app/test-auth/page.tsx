@@ -50,8 +50,7 @@ export default function TestAuthPage() {
               
               <Button 
                 onClick={handleLogout}
-                className="w-full"
-                variant="destructive"
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white border-0 shadow-sm transition-all duration-200 hover:shadow-md"
               >
                 Logout
               </Button>
