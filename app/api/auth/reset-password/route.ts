@@ -17,24 +17,26 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
+    // Determinar base URL com fallback
+    const requestOrigin = request.headers.get('origin') || ''
+    const envOrigin = process.env.NEXT_PUBLIC_APP_URL || ''
+    const baseUrl = (envOrigin || requestOrigin || 'https://app.dazio.com.br').replace(/\/$/, '')
+    const redirectTo = `${baseUrl}/auth/reset-password/confirm`
+
     // Solicitar reset de senha diretamente (não revela existência do email)
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password/confirm`,
-    })
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
 
     if (error) {
       console.error('Erro ao gerar link de reset:', error)
       return NextResponse.json(
-        { error: 'Erro ao processar solicitação' },
+        { error: 'Erro ao processar solicitação', details: error.message },
         { status: 500 }
       )
     }
 
     // Enviar email personalizado (opcional). Se falhar, não impedimos a resposta de sucesso
     try {
-      const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password/confirm`
-      const emailHtml = render(ResetPasswordEmail({ resetUrl, userEmail: email }))
-      
+      const emailHtml = render(ResetPasswordEmail({ resetUrl: redirectTo, userEmail: email }))
       await resend.emails.send({
         from: 'Dazio <noreply@dazio.com.br>',
         to: [email],
@@ -43,6 +45,7 @@ export async function POST(request: NextRequest) {
       })
     } catch (emailError) {
       console.error('Erro ao enviar email (Resend):', emailError)
+      // Segue com 200 mesmo que o email customizado falhe.
     }
 
     return NextResponse.json(
