@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resend } from '../../../../lib/resend'
 import React from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
+import { render } from '@react-email/render'
 import ResetPasswordEmail from '../../../../emails/reset-password-email'
 
 export async function POST(request: NextRequest) {
@@ -61,9 +61,7 @@ export async function POST(request: NextRequest) {
 
     // Enviar email personalizado (opcional). Se falhar, não impedimos a resposta de sucesso
     try {
-      const emailHtml = renderToStaticMarkup(
-        React.createElement(ResetPasswordEmail, { resetUrl: actionLink!, userEmail: email })
-      )
+      const emailHtml = render(React.createElement(ResetPasswordEmail, { resetUrl: actionLink!, userEmail: email }))
       await resend.emails.send({
         from: 'Dazio <noreply@dazio.com.br>',
         to: [email],
