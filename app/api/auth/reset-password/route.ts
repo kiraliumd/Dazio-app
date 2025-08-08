@@ -21,7 +21,8 @@ export async function POST(request: NextRequest) {
     const requestOrigin = request.headers.get('origin') || ''
     const envOrigin = process.env.NEXT_PUBLIC_APP_URL || ''
     const baseUrl = (envOrigin || requestOrigin || 'https://app.dazio.com.br').replace(/\/$/, '')
-    const redirectTo = `${baseUrl}/auth/reset-password/confirm`
+    // Redireciona via callback para garantir exchangeCodeForSession e cookies, depois vai para a tela de confirmação
+    const redirectTo = `${baseUrl}/auth/callback?next=/auth/reset-password/confirm`
 
     let actionLink: string | null = null
 
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
       actionLink = null
     }
 
-    // 2) Fallback: usar cliente anon para solicitar reset (Supabase envia email e token)
+    // 2) Fallback: usar cliente anon para solicitar reset (Supabase envia email padrão com link válido)
     if (!actionLink) {
       const supabase = await createClient()
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
@@ -55,35 +56,21 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         )
       }
-      // Neste fluxo, não temos o link direto; usamos redirectTo no email customizado
-      actionLink = redirectTo
-    }
-
-    // Enviar email personalizado (opcional). Se falhar, não impedimos a resposta de sucesso
-    try {
-      let emailHtml: string
+      // Deixar o Supabase enviar o email padrão (não enviar customizado sem actionLink)
+    } else {
+      // Enviar email customizado somente quando há actionLink válido
       try {
-        emailHtml = await render(React.createElement(ResetPasswordEmail, { resetUrl: actionLink!, userEmail: email }))
-      } catch (rErr) {
-        console.warn('Falha ao renderizar template com @react-email/render, usando fallback simples:', rErr)
-        emailHtml = `<!DOCTYPE html><html><body>
-          <p>Olá,</p>
-          <p>Para redefinir sua senha no Dazio clique no link abaixo:</p>
-          <p><a href="${actionLink}">Redefinir Senha</a></p>
-          <p>Se o botão não funcionar, copie e cole este link no seu navegador: ${actionLink}</p>
-          <p>&copy; 2025 Dazio</p>
-        </body></html>`
+        const emailHtml = await render(React.createElement(ResetPasswordEmail, { resetUrl: actionLink!, userEmail: email }))
+        await resend.emails.send({
+          from: 'Dazio <noreply@dazio.com.br>',
+          to: [email],
+          subject: 'Redefinir sua senha - Dazio',
+          html: emailHtml,
+        })
+      } catch (emailError) {
+        console.error('Erro ao enviar email (Resend):', emailError)
+        // Segue com 200 mesmo que o email customizado falhe; o fallback do Supabase já foi acionado acima quando não há actionLink
       }
-
-      await resend.emails.send({
-        from: 'Dazio <noreply@dazio.com.br>',
-        to: [email],
-        subject: 'Redefinir sua senha - Dazio',
-        html: emailHtml,
-      })
-    } catch (emailError) {
-      console.error('Erro ao enviar email (Resend):', emailError)
-      // Segue com 200 mesmo que o email customizado falhe.
     }
 
     return NextResponse.json(
