@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { resend } from '../../../../lib/resend'
 import { render } from '@react-email/components'
 import ResetPasswordEmail from '../../../../emails/reset-password-email'
@@ -15,28 +16,51 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
-
     // Determinar base URL com fallback
     const requestOrigin = request.headers.get('origin') || ''
     const envOrigin = process.env.NEXT_PUBLIC_APP_URL || ''
     const baseUrl = (envOrigin || requestOrigin || 'https://app.dazio.com.br').replace(/\/$/, '')
     const redirectTo = `${baseUrl}/auth/reset-password/confirm`
 
-    // Solicitar reset de senha diretamente (não revela existência do email)
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    let actionLink: string | null = null
 
-    if (error) {
-      console.error('Erro ao gerar link de reset:', error)
-      return NextResponse.json(
-        { error: 'Erro ao processar solicitação', details: error.message },
-        { status: 500 }
-      )
+    // 1) Tenta via Service Role (gera link diretamente) se disponível
+    try {
+      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        const admin = createAdminClient()
+        const { data, error } = await admin.auth.admin.generateLink({
+          type: 'recovery',
+          email,
+          options: { redirectTo }
+        })
+        if (error) {
+          throw error
+        }
+        actionLink = data?.properties?.action_link || data?.action_link || null
+      }
+    } catch (adminErr) {
+      console.error('Erro ao gerar link (admin.generateLink):', adminErr)
+      actionLink = null
+    }
+
+    // 2) Fallback: usar cliente anon para solicitar reset (Supabase envia email e token)
+    if (!actionLink) {
+      const supabase = await createClient()
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+      if (error) {
+        console.error('Erro ao gerar link de reset:', error)
+        return NextResponse.json(
+          { error: 'Erro ao processar solicitação', details: error.message },
+          { status: 500 }
+        )
+      }
+      // Neste fluxo, não temos o link direto; usamos redirectTo no email customizado
+      actionLink = redirectTo
     }
 
     // Enviar email personalizado (opcional). Se falhar, não impedimos a resposta de sucesso
     try {
-      const emailHtml = render(ResetPasswordEmail({ resetUrl: redirectTo, userEmail: email }))
+      const emailHtml = render(ResetPasswordEmail({ resetUrl: actionLink!, userEmail: email }))
       await resend.emails.send({
         from: 'Dazio <noreply@dazio.com.br>',
         to: [email],
