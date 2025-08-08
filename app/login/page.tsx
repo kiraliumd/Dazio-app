@@ -117,6 +117,7 @@ export default function LoginPage() {
             alt="Dazio Logo"
             width={120}
             height={48}
+            style={{ height: 'auto', width: '120px' }}
             className="mx-auto"
             priority
           />
