@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,7 +11,7 @@ import { Lock, Eye, EyeOff, Loader2, CheckCircle, ArrowLeft } from "lucide-react
 import Image from 'next/image'
 import { supabase } from '../../../../lib/supabase'
 
-export default function ResetPasswordConfirmPage() {
+function ResetPasswordConfirmContent() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -25,7 +25,6 @@ export default function ResetPasswordConfirmPage() {
   const [isCheckingToken, setIsCheckingToken] = useState(true)
   
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   useEffect(() => {
     const checkToken = async () => {
@@ -392,5 +391,35 @@ export default function ResetPasswordConfirmPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResetPasswordConfirmPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Image
+              src="/logo-dazio.svg"
+              alt="Dazio Logo"
+              width={120}
+              height={48}
+              className="mx-auto"
+              priority
+            />
+          </div>
+          
+          <Card className="shadow-xl border-0">
+            <CardContent className="p-8 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-orange-600" />
+              <p className="text-muted-foreground">Carregando...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    }>
+      <ResetPasswordConfirmContent />
+    </Suspense>
   )
 }
