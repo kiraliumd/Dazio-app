@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '../../../../lib/supabase'
+import { createClient } from '@/lib/supabase/server'
 import { resend } from '../../../../lib/resend'
 import { render } from '@react-email/components'
 import ResetPasswordEmail from '../../../../emails/reset-password-email'
@@ -15,19 +15,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar se o usuário existe
-    const { data: user, error: userError } = await supabase.auth.admin.getUserByEmail(email)
-    
-    if (userError || !user.user) {
-      // Não revelar se o email existe ou não por segurança
-      return NextResponse.json(
-        { message: 'Se o email estiver cadastrado, você receberá um link para redefinir sua senha.' },
-        { status: 200 }
-      )
-    }
+    const supabase = await createClient()
 
-    // Gerar link de reset de senha
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    // Solicitar reset de senha diretamente (não revela existência do email)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password/confirm`,
     })
 
@@ -39,7 +30,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Enviar email personalizado
+    // Enviar email personalizado (opcional). Se falhar, não impedimos a resposta de sucesso
     try {
       const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password/confirm`
       const emailHtml = render(ResetPasswordEmail({ resetUrl, userEmail: email }))
@@ -51,8 +42,7 @@ export async function POST(request: NextRequest) {
         html: emailHtml,
       })
     } catch (emailError) {
-      console.error('Erro ao enviar email:', emailError)
-      // Não falhar se o email não for enviado, pois o Supabase já enviou o email padrão
+      console.error('Erro ao enviar email (Resend):', emailError)
     }
 
     return NextResponse.json(

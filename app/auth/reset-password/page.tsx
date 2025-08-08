@@ -85,7 +85,7 @@ export default function ResetPasswordPage() {
               alt="Dazio Logo"
               width={120}
               height={48}
-              className="mx-auto"
+              style={{ height: 'auto', width: '120px' }}
               priority
             />
           </div>
@@ -154,7 +154,7 @@ export default function ResetPasswordPage() {
             alt="Dazio Logo"
             width={120}
             height={48}
-            className="mx-auto"
+            style={{ height: 'auto', width: '120px' }}
             priority
           />
         </div>
