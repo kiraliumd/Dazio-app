@@ -31,29 +31,23 @@ export const DazioConfirmationEmail: React.FC<DazioConfirmationEmailProps> = ({
           overflow: 'hidden',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
         }}>
-          {/* Header com logo */}
-          <Section style={{ 
-            backgroundColor: '#FF7A00',
-            padding: '32px 24px',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              display: 'inline-block',
+          {/* Header com logo sem fundo */}
+          <Section
+            style={{
               backgroundColor: '#FFFFFF',
-              borderRadius: '8px',
-              padding: '16px 24px',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-            }}>
-              <Text style={{
-                fontSize: '24px',
-                fontWeight: '700',
-                color: '#FF7A00',
-                margin: 0,
-                letterSpacing: '-0.025em'
-              }}>
-                DAZIO
-              </Text>
-            </div>
+              padding: '24px',
+              textAlign: 'center',
+            }}
+         >
+            <Img
+              src={
+                'https://ohernchd3ti5wjig.public.blob.vercel-storage.com/logo-dazio.svg'
+              }
+              width={120}
+              height={48}
+              alt="Dazio"
+              style={{ margin: '0 auto', display: 'block' }}
+            />
           </Section>
 
           {/* Conteúdo principal */}
