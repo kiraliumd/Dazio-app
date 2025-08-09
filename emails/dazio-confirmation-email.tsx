@@ -40,9 +40,7 @@ export const DazioConfirmationEmail: React.FC<DazioConfirmationEmailProps> = ({
             }}
          >
             <Img
-              src={
-                'https://ohernchd3ti5wjig.public.blob.vercel-storage.com/logo-dazio.svg'
-              }
+              src={`${process.env.NEXT_PUBLIC_APP_URL}/logo-dazio.svg`}
               width={120}
               height={48}
               alt="Dazio"
