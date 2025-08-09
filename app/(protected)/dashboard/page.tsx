@@ -22,7 +22,7 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const { companyName, setCompanyName } = useCompanyName()
+  const { companyName, setCompanyName, refreshCompanyName } = useCompanyName()
   const router = useRouter()
   const { user, signOut } = useAuth()
 
@@ -38,22 +38,15 @@ export default function Dashboard() {
       console.log('Dashboard: Carregando dados...')
       
       // Carregar métricas e dados da empresa em paralelo
-      const [metricsData, companyResponse] = await Promise.all([
+      const [metricsData] = await Promise.all([
         getDashboardMetrics(),
-        fetch('/api/company/profile', { cache: 'force-cache' }),
-        new Promise(resolve => setTimeout(resolve, 150)) // Delay mínimo para transição suave
+        new Promise(resolve => setTimeout(resolve, 150)),
+        refreshCompanyName(),
       ])
       
       setMetrics(metricsData)
       
-      // Buscar nome da empresa
-      if (companyResponse.ok) {
-        const { data } = await companyResponse.json()
-        if (data?.company_name) {
-          setCompanyName(data.company_name)
-          try { sessionStorage.setItem('company_name', data.company_name) } catch {}
-        }
-      }
+      // Nome atualizado pelo refreshCompanyName()
       
       console.log('Dashboard: Dados carregados com sucesso')
     } catch (error) {

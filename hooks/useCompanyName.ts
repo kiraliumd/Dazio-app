@@ -17,9 +17,10 @@ export function useCompanyName() {
   const refreshCompanyName = useCallback(async () => {
     try {
       if (!user) return
-      const res = await fetch('/api/company/profile', { cache: 'no-store' })
+      // endpoint leve com nome unificado (settings -> profile -> email)
+      const res = await fetch('/api/company/name', { cache: 'no-store' })
       const json = await res.json()
-      const name = json?.data?.company_name
+      const name = json?.name
       if (name && typeof name === 'string') {
         updateLocal(name)
       }

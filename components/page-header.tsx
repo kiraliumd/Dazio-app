@@ -17,14 +17,14 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description }: PageHeaderProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const { companyName, setCompanyName } = useCompanyName()
+  const { companyName, setCompanyName, refreshCompanyName } = useCompanyName()
   const { user, signOut } = useAuth()
 
   useEffect(() => {
     if (user && !companyName) {
-      // já buscamos em background no hook quando vazio
+      refreshCompanyName()
     }
-  }, [user, companyName])
+  }, [user, companyName, refreshCompanyName])
 
   const handleLogout = async () => {
     try {

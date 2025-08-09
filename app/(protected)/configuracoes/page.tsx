@@ -114,10 +114,13 @@ export default function SettingsPage() {
       setOriginalSettings(settings);
       setHasChanges(false);
       setSaveSuccess(true);
-      // Atualizar header imediatamente
+      // Atualizar header imediatamente e em outras abas
       if (settings.company_name) {
         setHeaderCompanyName(settings.company_name)
-        try { sessionStorage.setItem('company_name', settings.company_name) } catch {}
+        try {
+          sessionStorage.setItem('company_name', settings.company_name)
+          window.dispatchEvent(new CustomEvent('companyNameChanged', { detail: settings.company_name }))
+        } catch {}
       }
       
       // Limpar feedback de sucesso após 3 segundos
