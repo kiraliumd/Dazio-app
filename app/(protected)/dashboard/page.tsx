@@ -16,14 +16,13 @@ import { getDashboardMetrics, type DashboardMetrics } from "../../../lib/databas
 import { useAuth } from "../../../lib/auth-context"
 import { LogoutConfirmationModal } from "../../../components/logout-confirmation-modal"
 import { TrialWrapper } from "@/components/trial-wrapper"
+import { useCompanyName } from "@/hooks/useCompanyName"
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const [companyName, setCompanyName] = useState<string>(
-    typeof window !== 'undefined' ? (sessionStorage.getItem('company_name') || '') : ''
-  )
+  const { companyName, setCompanyName } = useCompanyName()
   const router = useRouter()
   const { user, signOut } = useAuth()
 

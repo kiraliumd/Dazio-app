@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { LogOut } from 'lucide-react'
 import { LogoutConfirmationModal } from './logout-confirmation-modal'
+import { useCompanyName } from '@/hooks/useCompanyName'
 
 interface PageHeaderProps {
   title: string
@@ -16,29 +17,14 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description }: PageHeaderProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const [companyName, setCompanyName] = useState<string>(
-    typeof window !== 'undefined' ? (sessionStorage.getItem('company_name') || '') : ''
-  )
+  const { companyName, setCompanyName } = useCompanyName()
   const { user, signOut } = useAuth()
 
   useEffect(() => {
-    const fetchCompanyName = async () => {
-      if (user) {
-        try {
-          const response = await fetch('/api/company/profile', { cache: 'force-cache' })
-          const { data } = await response.json()
-          if (data?.company_name) {
-            setCompanyName(data.company_name)
-            try { sessionStorage.setItem('company_name', data.company_name) } catch {}
-          }
-        } catch (error) {
-          console.error('Erro ao buscar nome da empresa:', error)
-        }
-      }
+    if (user && !companyName) {
+      // já buscamos em background no hook quando vazio
     }
-
-    fetchCompanyName()
-  }, [user])
+  }, [user, companyName])
 
   const handleLogout = async () => {
     try {

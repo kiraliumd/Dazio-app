@@ -11,6 +11,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { getCompanySettings, updateCompanySettings, CompanySettings } from "../../../lib/database/settings";
+import { useCompanyName } from "@/hooks/useCompanyName";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "../../../lib/auth-context";
 import { AuthGuard } from "@/components/auth-guard";
@@ -36,6 +37,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { setCompanyName: setHeaderCompanyName } = useCompanyName();
 
   // Memoizar a função de carregamento
   const loadSettings = useCallback(async () => {
@@ -112,6 +114,11 @@ export default function SettingsPage() {
       setOriginalSettings(settings);
       setHasChanges(false);
       setSaveSuccess(true);
+      // Atualizar header imediatamente
+      if (settings.company_name) {
+        setHeaderCompanyName(settings.company_name)
+        try { sessionStorage.setItem('company_name', settings.company_name) } catch {}
+      }
       
       // Limpar feedback de sucesso após 3 segundos
       if (saveTimeoutRef.current) {
