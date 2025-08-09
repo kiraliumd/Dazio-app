@@ -20,14 +20,7 @@ export async function GET() {
       return NextResponse.json({ name: user.email || 'Usuário' })
     }
 
-    // Buscar settings para nome oficial, se existir
-    const { data: settings } = await supabase
-      .from('company_settings')
-      .select('company_name')
-      .eq('company_id', profile.id)
-      .single()
-
-    const name = settings?.company_name || profile.company_name || user.email || 'Usuário'
+    const name = profile.company_name || user.email || 'Usuário'
     return NextResponse.json({ name })
   } catch (e) {
     return NextResponse.json({ name: 'Usuário' })

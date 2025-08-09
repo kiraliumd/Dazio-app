@@ -4,7 +4,6 @@ import { getCurrentUserCompanyId } from "./client-utils";
 // Define a interface para os dados de configuração da empresa
 export interface CompanySettings {
   id?: string;
-  company_id?: string;
   company_name: string | null;
   cnpj: string | null;
   address: string | null;
@@ -26,9 +25,9 @@ export async function getCompanySettings(): Promise<CompanySettings> {
   }
 
   const { data, error } = await supabase
-    .from("company_settings")
-    .select("*")
-    .eq('company_id', companyId)
+    .from("company_profiles")
+    .select("company_name, cnpj, address, phone, email, website, contract_template")
+    .eq('id', companyId)
     .single();
 
   if (error && error.code !== "PGRST116") { // PGRST116: a consulta não retornou linhas
@@ -66,10 +65,10 @@ export async function updateCompanySettings(
   }
 
   const { data, error } = await supabase
-    .from("company_settings")
+    .from("company_profiles")
     .update(settings)
-    .eq('company_id', companyId)
-    .select()
+    .eq('id', companyId)
+    .select("company_name, cnpj, address, phone, email, website, contract_template")
     .single();
 
   if (error) {

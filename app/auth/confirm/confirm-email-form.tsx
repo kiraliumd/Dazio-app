@@ -234,29 +234,17 @@ export function ConfirmEmailForm() {
         return;
       }
 
-      // 2. Verificar se as configurações já existem
-      const { data: existingSettings, error: settingsCheckError } = await supabase
-        .from('company_settings')
-        .select('id')
-        .eq('company_id', profileResult.id)
-        .single();
+      // 2. Atualizar template diretamente no profile (unificado)
 
       if (settingsCheckError && settingsCheckError.code !== 'PGRST116') {
         console.error('❌ Confirm Page: Erro ao verificar configurações existentes:', settingsCheckError);
         return;
       }
 
-      if (!existingSettings) {
-        // Criar configurações da empresa apenas se não existirem
+      {
         const { error: settingsError } = await supabase
-          .from('company_settings')
-          .insert({
-            company_id: profileResult.id,
-            company_name: profileData.company_name,
-            cnpj: profileData.cnpj,
-            address: profileData.address,
-            phone: profileData.phone,
-            website: profileData.website,
+          .from('company_profiles')
+          .update({
             contract_template: `CONTRATO DE LOCAÇÃO DE EQUIPAMENTOS
 
 CONTRATANTE: {company_name}
@@ -306,16 +294,17 @@ _____________________
 Contratado
 
 Data: {contract_date}`
-          });
+          })
+          .eq('id', profileResult.id)
+          .select('id')
+          .single();
 
         if (settingsError) {
           console.error('❌ Confirm Page: Erro ao criar configurações:', settingsError);
           return;
         }
 
-        console.log('✅ Confirm Page: Configurações criadas com sucesso');
-      } else {
-        console.log('✅ Confirm Page: Configurações já existem');
+        console.log('✅ Confirm Page: Template atualizado no profile');
       }
 
       // Limpar dados temporários

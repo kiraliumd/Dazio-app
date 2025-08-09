@@ -138,16 +138,10 @@ function ConfirmacaoContent() {
         return;
       }
 
-      // 2. Criar configurações da empresa
+      // 2. Atualizar template no profile
       const { error: settingsError } = await supabase
-        .from('company_settings')
-        .insert({
-          company_id: profileResult.id,
-          company_name: profileData.company_name,
-          cnpj: profileData.cnpj,
-          address: profileData.address,
-          phone: profileData.phone,
-          website: profileData.website,
+        .from('company_profiles')
+        .update({
           contract_template: `CONTRATO DE LOCAÇÃO DE EQUIPAMENTOS
 
 CONTRATANTE: {company_name}
@@ -197,7 +191,10 @@ _____________________
 Contratado
 
 Data: {contract_date}`
-        });
+        })
+        .eq('id', profileResult.id)
+        .select('id')
+        .single();
 
       if (settingsError) {
         console.error('Erro ao criar configurações:', settingsError);
@@ -205,7 +202,7 @@ Data: {contract_date}`
         return;
       }
 
-      console.log('Perfil e configurações criados com sucesso');
+      console.log('Perfil criado e template atualizado com sucesso');
     } catch (error) {
       console.error('Erro ao criar perfil da empresa:', error);
       toast.error('Erro ao criar perfil da empresa');

@@ -134,14 +134,8 @@ export default function CreateProfilePage() {
 
       console.log('✅ Create Profile: Perfil criado com sucesso:', profileResult);
 
-      // Criar configurações da empresa
+      // Atualizar template padrão diretamente no profile (já migrado)
       const settingsData = {
-        company_id: profileResult.id,
-        company_name: formData.company_name.trim(),
-        cnpj: formData.cnpj.trim(),
-        address: formData.address.trim(),
-        phone: formData.phone.trim(),
-        website: formData.website?.trim() || null,
         contract_template: `CONTRATO DE LOCAÇÃO DE EQUIPAMENTOS
 
 CONTRATANTE: {company_name}
@@ -193,11 +187,14 @@ Contratado
 Data: {contract_date}`
       };
 
-      console.log('🔍 Create Profile: Criando configurações...');
+      console.log('🔍 Create Profile: Atualizando template no profile...');
 
       const { error: settingsError } = await supabase
-        .from('company_settings')
-        .insert(settingsData);
+        .from('company_profiles')
+        .update(settingsData)
+        .eq('id', profileResult.id)
+        .select('id')
+        .single();
 
       if (settingsError) {
         console.error('❌ Create Profile: Erro ao criar configurações:', settingsError);
@@ -205,7 +202,7 @@ Data: {contract_date}`
         return;
       }
 
-      console.log('✅ Create Profile: Configurações criadas com sucesso');
+      console.log('✅ Create Profile: Template atualizado no profile');
 
       toast.success('Perfil da empresa criado com sucesso!');
       router.push('/');
