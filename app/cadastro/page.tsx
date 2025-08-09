@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Lock, Mail, Loader2, CheckCircle } from 'lucide-react';
-import Image from 'next/image';
+import { BrandLogo } from '@/components/brand-logo';
 import { supabase } from '@/lib/supabase';
 
 interface CadastroData {
@@ -114,14 +114,7 @@ export default function CadastroPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Image
-            src="/logo-dazio.svg"
-            alt="Dazio Logo"
-            width={120}
-            height={48}
-            className="mx-auto"
-            priority
-          />
+          <BrandLogo width={120} height={48} className="mx-auto" priority />
         </div>
 
         {/* Card de Cadastro */}
