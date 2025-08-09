@@ -87,8 +87,12 @@ export default function CadastroPage() {
 
       console.log('✅ Cadastro: Usuário criado com sucesso:', result.user.id);
 
-      // Salvar email no localStorage para reenvio
+      // Salvar email/senha no localStorage para facilitar login após confirmação
       localStorage.setItem(`pendingEmail_${result.user.id}`, data.email);
+      localStorage.setItem(`pendingPassword_${result.user.id}`, data.password);
+      // Chaves genéricas para leitura sem user.id
+      localStorage.setItem('pendingEmail', data.email);
+      localStorage.setItem('pendingPassword', data.password);
 
       // Verificar se o email foi confirmado
       if (result.user.emailConfirmed) {

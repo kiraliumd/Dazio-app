@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 function ConfirmContent() {
@@ -46,13 +47,29 @@ function ConfirmContent() {
         toast.error(result.error || 'Erro ao confirmar email');
       } else {
         setStatus('success');
-        setMessage('Email confirmado com sucesso! Redirecionando...');
+        setMessage('Email confirmado com sucesso! Redirecionando para completar seu cadastro...');
         toast.success('Email confirmado com sucesso!');
-        
-        // Redirecionar após 2 segundos para login com aviso de confirmação
+
+        // Tentativa de auto login com credenciais pendentes (se existirem)
+        try {
+          const pendingEmail = localStorage.getItem('pendingEmail') || '';
+          const pendingPassword = localStorage.getItem('pendingPassword') || '';
+          if (pendingEmail && pendingPassword) {
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+              email: pendingEmail,
+              password: pendingPassword,
+            });
+            if (!signInError) {
+              localStorage.removeItem('pendingEmail');
+              localStorage.removeItem('pendingPassword');
+            }
+          }
+        } catch {}
+
+        // Redirecionar para criação de perfil
         setTimeout(() => {
-          router.push('/login?confirmed=1');
-        }, 2000);
+          router.push('/create-profile');
+        }, 800);
       }
     } catch (error) {
       setStatus('error');

@@ -26,7 +26,7 @@ export default async function Page() {
     redirect('/login')
   }
 
-  // Sessão existe: validar perfil antes de mandar para o dashboard
+  // Sessão existe: validar perfil
   const { data: profile, error } = await supabase
     .from('company_profiles')
     .select('trial_end, status')
@@ -34,8 +34,8 @@ export default async function Page() {
     .single()
 
   if (error || !profile) {
-    // Sem perfil: ir ao login (evita redirecionar para assinatura ao digitar a raiz)
-    redirect('/login')
+    // Sem perfil ainda: enviar para criar perfil
+    redirect('/create-profile')
   }
 
   const now = new Date()
@@ -47,6 +47,6 @@ export default async function Page() {
     redirect('/dashboard')
   }
 
-  // Qualquer outro caso: ir ao login pela raiz
-  redirect('/login')
+  // Outros casos (ex: trial expirado) ainda permitem criar perfil a partir da raiz
+  redirect('/create-profile')
 }

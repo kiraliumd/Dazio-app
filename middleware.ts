@@ -64,9 +64,9 @@ export async function middleware(req: NextRequest) {
     return response;
   }
 
-  // Se não há sessão, não interceptar a raiz para permitir o app/page.tsx decidir (evita mandar / para assinatura)
+  // Se não há sessão, deixar a raiz e páginas públicas seguirem; demais vão para /login
   if (!session) {
-    if (pathname === '/') return response;
+    if (PUBLIC_ROUTES.includes(pathname)) return response;
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
@@ -79,8 +79,11 @@ export async function middleware(req: NextRequest) {
       .single();
 
     if (error || !profile) {
-      console.log('Middleware: Perfil não encontrado, redirecionando para assinatura');
-      return NextResponse.redirect(new URL('/assinatura-gestao', req.url));
+      // Sem perfil ainda: permita acesso ao fluxo de criação
+      if (pathname.startsWith('/create-profile') || pathname === '/' || PUBLIC_ROUTES.includes(pathname)) {
+        return response;
+      }
+      return NextResponse.redirect(new URL('/create-profile', req.url));
     }
 
     const now = new Date();
@@ -95,7 +98,8 @@ export async function middleware(req: NextRequest) {
         return response;
       }
       
-      // Bloquear acesso a todas as outras rotas
+      // Permitir criar perfil mesmo com trial expirado
+      if (pathname.startsWith('/create-profile')) return response;
       console.log('Middleware: Trial expirado, redirecionando para assinatura-gestao');
       return NextResponse.redirect(new URL('/assinatura-gestao', req.url));
     }
