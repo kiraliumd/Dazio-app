@@ -26,16 +26,34 @@ export function TrialGuard({ children }: TrialGuardProps) {
   const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null)
   const [checkingTrial, setCheckingTrial] = useState(true)
   const [hasCheckedOnce, setHasCheckedOnce] = useState(false)
+  const CACHE_KEY = 'trial-status-cache'
+  const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutos
 
   useEffect(() => {
     if (user && !loading) {
-      checkTrialStatus()
+      try {
+        const raw = sessionStorage.getItem(CACHE_KEY)
+        if (raw) {
+          const cached = JSON.parse(raw) as { status: TrialStatus; cachedAt: number }
+          const isFresh = Date.now() - cached.cachedAt < CACHE_TTL_MS
+          if (isFresh && cached.status) {
+            setTrialStatus(cached.status)
+            setCheckingTrial(false)
+            setHasCheckedOnce(true)
+            // Atualiza em background sem bloquear UI
+            checkTrialStatus(false)
+            return
+          }
+        }
+      } catch {}
+      // Sem cache fresco: checar normalmente (pode mostrar loader apenas na primeira vez)
+      checkTrialStatus(true)
     }
   }, [user, loading])
 
-  const checkTrialStatus = async () => {
+  const checkTrialStatus = async (blockUI: boolean = true) => {
     try {
-      setCheckingTrial(true)
+      if (blockUI) setCheckingTrial(true)
       
       const response = await fetch('/api/company/profile', { cache: 'no-store' })
       const { data: profile } = await response.json()
@@ -65,6 +83,10 @@ export function TrialGuard({ children }: TrialGuardProps) {
       }
 
       setTrialStatus(status)
+      // Cachear
+      try {
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({ status, cachedAt: Date.now() }))
+      } catch {}
 
       // Se o trial expirou e não está na página de assinatura, redirecionar
       if (isExpired && profile.status === 'trial' && window.location.pathname !== '/assinatura-gestao') {
@@ -80,7 +102,7 @@ export function TrialGuard({ children }: TrialGuardProps) {
         status: 'expired'
       })
     } finally {
-      setCheckingTrial(false)
+      if (blockUI) setCheckingTrial(false)
       setHasCheckedOnce(true)
     }
   }
