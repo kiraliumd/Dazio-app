@@ -64,8 +64,9 @@ export async function middleware(req: NextRequest) {
     return response;
   }
 
-  // Se não há sessão, bloquear apenas rotas protegidas (não públicas e não arquivos estáticos)
+  // Se não há sessão, não interceptar a raiz para permitir o app/page.tsx decidir (evita mandar / para assinatura)
   if (!session) {
+    if (pathname === '/') return response;
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
