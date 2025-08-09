@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Lock, Mail, Loader2, AlertCircle } from "lucide-react"
-import Image from 'next/image'
+import { BrandLogo } from '@/components/brand-logo'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -112,15 +112,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Image
-            src="/logo-dazio.svg"
-            alt="Dazio Logo"
-            width={120}
-            height={48}
-            style={{ height: 'auto', width: '120px' }}
-            className="mx-auto"
-            priority
-          />
+          <BrandLogo width={120} height={48} className="mx-auto" priority />
         </div>
 
         {/* Card de Login */}

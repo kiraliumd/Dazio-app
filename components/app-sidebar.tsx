@@ -3,6 +3,7 @@
 import { BarChart3, Calendar, FileText, Home, Package, Users, Wrench, Settings, Repeat, CreditCard } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { BrandLogo } from "./brand-logo"
 
 
 import {
@@ -88,12 +89,7 @@ export function AppSidebar() {
     <Sidebar className="border-r border-light-gray">
       <SidebarHeader className="border-light-gray p-4 border-b-0">
         <div className="flex items-center justify-start">
-          <img
-            src="/logo-dazio.svg"
-            alt="Logo Dazio"
-            className="h-6 w-auto"
-            style={{ display: 'block' }}
-          />
+          <BrandLogo width={104} height={36} />
         </div>
       </SidebarHeader>
       <SidebarContent>
