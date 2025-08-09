@@ -23,7 +23,7 @@ export function PageHeader({ title, description }: PageHeaderProps) {
     const fetchCompanyName = async () => {
       if (user) {
         try {
-          const response = await fetch('/api/company/profile')
+          const response = await fetch('/api/company/profile', { cache: 'force-cache' })
           const { data } = await response.json()
           if (data?.company_name) {
             setCompanyName(data.company_name)

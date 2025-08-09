@@ -39,8 +39,8 @@ export default function Dashboard() {
       // Carregar métricas e dados da empresa em paralelo
       const [metricsData, companyResponse] = await Promise.all([
         getDashboardMetrics(),
-        fetch('/api/company/profile'),
-        new Promise(resolve => setTimeout(resolve, 300)) // Delay mínimo de 300ms
+        fetch('/api/company/profile', { cache: 'force-cache' }),
+        new Promise(resolve => setTimeout(resolve, 150)) // Delay mínimo para transição suave
       ])
       
       setMetrics(metricsData)
