@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '../../lib/auth-context'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,15 +21,6 @@ export default function LoginPage() {
   const [passwordError, setPasswordError] = useState('')
   const { signIn } = useAuth()
   const router = useRouter()
-  const searchParams = useSearchParams()
-
-  useEffect(() => {
-    const confirmed = searchParams.get('confirmed')
-    if (confirmed === '1') {
-      // mensagem sutil de sucesso de confirmação
-      setError('')
-    }
-  }, [searchParams])
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
