@@ -25,6 +25,7 @@ export function TrialGuard({ children }: TrialGuardProps) {
   const router = useRouter()
   const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null)
   const [checkingTrial, setCheckingTrial] = useState(true)
+  const [hasCheckedOnce, setHasCheckedOnce] = useState(false)
 
   useEffect(() => {
     if (user && !loading) {
@@ -36,7 +37,7 @@ export function TrialGuard({ children }: TrialGuardProps) {
     try {
       setCheckingTrial(true)
       
-      const response = await fetch('/api/company/profile')
+      const response = await fetch('/api/company/profile', { cache: 'no-store' })
       const { data: profile } = await response.json()
 
       if (!profile) {
@@ -80,11 +81,12 @@ export function TrialGuard({ children }: TrialGuardProps) {
       })
     } finally {
       setCheckingTrial(false)
+      setHasCheckedOnce(true)
     }
   }
 
   // Se ainda está carregando
-  if (loading || checkingTrial) {
+  if (loading || (checkingTrial && !hasCheckedOnce)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">

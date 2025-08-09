@@ -12,15 +12,17 @@ interface AuthGuardProps {
 export function AuthGuard({ children }: AuthGuardProps) {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const [hasCheckedOnce, setHasCheckedOnce] = React.useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
       console.log('AuthGuard: Usuário não autenticado, redirecionando para login')
       router.replace('/login')
     }
+    if (!loading) setHasCheckedOnce(true)
   }, [user, loading])
 
-  if (loading) {
+  if (loading && !hasCheckedOnce) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
