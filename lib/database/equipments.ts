@@ -168,11 +168,16 @@ export async function checkEquipmentAvailability(
   endDate: string,
   excludeRentalId?: string
 ) {
+  const companyId = await getCurrentUserCompanyId()
+  if (!companyId) {
+    return { available: false, message: "Usuário não autenticado ou empresa não encontrada" }
+  }
   // Buscar quantidade total disponível do equipamento
   const { data: equipment, error: equipmentError } = await supabase
     .from("equipments")
     .select("quantity, rented_quantity, maintenance_quantity")
     .eq("name", equipmentName)
+    .eq('company_id', companyId)
     .single()
 
   if (equipmentError || !equipment) {
@@ -186,7 +191,9 @@ export async function checkEquipmentAvailability(
     .from("rentals")
     .select("id")
     .in("status", ["Instalação Pendente", "Ativo"])
-    .or(`start_date.lte.${endDate},end_date.gte.${startDate}`)
+    .lte('start_date', endDate)
+    .gte('end_date', startDate)
+    .eq('company_id', companyId)
 
   if (rentalsError) {
     console.error("Erro ao buscar locações ativas:", rentalsError)
@@ -239,9 +246,15 @@ export async function checkEquipmentAvailability(
 
 // Buscar equipamentos com informações de disponibilidade
 export async function getEquipmentsWithAvailability() {
+  const companyId = await getCurrentUserCompanyId()
+  if (!companyId) {
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   const { data, error } = await supabase
     .from("equipments")
     .select("*")
+    .eq('company_id', companyId)
     .order("name", { ascending: true })
 
   if (error) {

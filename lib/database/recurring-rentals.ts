@@ -1,10 +1,16 @@
 import { supabase } from "../supabase"
 import type { Rental as DBRental, RecurringRentalOccurrence as DBRecurringOccurrence } from "../supabase"
 import type { Rental, RecurringRentalOccurrence } from "../utils/data-transformers"
+import { getCurrentUserCompanyId } from "./client-utils"
 
 // Buscar locações recorrentes
 export async function getRecurringRentals(limit?: number) {
   try {
+    const companyId = await getCurrentUserCompanyId()
+    if (!companyId) {
+      throw new Error('Usuário não autenticado ou empresa não encontrada')
+    }
+
     let query = supabase
       .from("rentals")
       .select(`
@@ -12,6 +18,7 @@ export async function getRecurringRentals(limit?: number) {
         rental_items (*)
       `)
       .eq("is_recurring", true)
+      .eq('company_id', companyId)
       .order("created_at", { ascending: false })
 
     if (limit) {

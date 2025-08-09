@@ -1,4 +1,5 @@
 import { supabase } from "../supabase";
+import { getCurrentUserCompanyId } from "./client-utils";
 
 // Define a interface para os dados de configuração da empresa
 export interface CompanySettings {
@@ -19,9 +20,15 @@ export interface CompanySettings {
  * @returns {Promise<CompanySettings>}
  */
 export async function getCompanySettings(): Promise<CompanySettings> {
+  const companyId = await getCurrentUserCompanyId();
+  if (!companyId) {
+    throw new Error('Usuário não autenticado ou empresa não encontrada');
+  }
+
   const { data, error } = await supabase
     .from("company_settings")
     .select("*")
+    .eq('company_id', companyId)
     .single();
 
   if (error && error.code !== "PGRST116") { // PGRST116: a consulta não retornou linhas
@@ -53,9 +60,15 @@ export async function getCompanySettings(): Promise<CompanySettings> {
 export async function updateCompanySettings(
   settings: Omit<CompanySettings, "id" | "updated_at">
 ): Promise<CompanySettings> {
+  const companyId = await getCurrentUserCompanyId();
+  if (!companyId) {
+    throw new Error('Usuário não autenticado ou empresa não encontrada');
+  }
+
   const { data, error } = await supabase
     .from("company_settings")
     .update(settings)
+    .eq('company_id', companyId)
     .select()
     .single();
 

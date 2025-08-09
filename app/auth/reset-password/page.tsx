@@ -65,7 +65,8 @@ export default function ResetPasswordPage() {
       if (response.ok) {
         setSuccess(true)
       } else {
-        setError(data.error || 'Erro ao processar solicitação')
+        setError(data.error ? `${data.error}${data.details ? `: ${data.details}` : ''}` : 'Erro ao processar solicitação')
+        console.error('Reset password API error:', data)
       }
     } catch (err) {
       setError('Erro de conexão. Tente novamente.')

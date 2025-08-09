@@ -225,10 +225,18 @@ export async function deleteBudget(id: string) {
 }
 
 export async function searchBudgets(searchTerm?: string) {
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ searchBudgets: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
+  }
+
   let query = supabase.from("budgets").select(`
       *,
       budget_items (*)
     `)
+    .eq('company_id', companyId)
 
   if (searchTerm) {
     query = query.or(`number.ilike.%${searchTerm}%,client_name.ilike.%${searchTerm}%,status.ilike.%${searchTerm}%`)
