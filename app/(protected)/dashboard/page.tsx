@@ -21,7 +21,9 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const [companyName, setCompanyName] = useState<string>('')
+  const [companyName, setCompanyName] = useState<string>(
+    typeof window !== 'undefined' ? (sessionStorage.getItem('company_name') || '') : ''
+  )
   const router = useRouter()
   const { user, signOut } = useAuth()
 
@@ -50,6 +52,7 @@ export default function Dashboard() {
         const { data } = await companyResponse.json()
         if (data?.company_name) {
           setCompanyName(data.company_name)
+          try { sessionStorage.setItem('company_name', data.company_name) } catch {}
         }
       }
       

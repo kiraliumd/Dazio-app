@@ -16,7 +16,9 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description }: PageHeaderProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const [companyName, setCompanyName] = useState<string>('')
+  const [companyName, setCompanyName] = useState<string>(
+    typeof window !== 'undefined' ? (sessionStorage.getItem('company_name') || '') : ''
+  )
   const { user, signOut } = useAuth()
 
   useEffect(() => {
@@ -27,6 +29,7 @@ export function PageHeader({ title, description }: PageHeaderProps) {
           const { data } = await response.json()
           if (data?.company_name) {
             setCompanyName(data.company_name)
+            try { sessionStorage.setItem('company_name', data.company_name) } catch {}
           }
         } catch (error) {
           console.error('Erro ao buscar nome da empresa:', error)
