@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../lib/auth-context'
-import { Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -25,9 +25,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
   if (loading && !hasCheckedOnce) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Carregando...</p>
+        <div className="w-full max-w-md space-y-4">
+          <Skeleton className="h-6 w-40 mx-auto" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-3/4 mx-auto" />
+            <Skeleton className="h-4 w-2/3 mx-auto" />
+          </div>
         </div>
       </div>
     )
@@ -36,9 +39,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Redirecionando...</p>
+        <div className="w-full max-w-md space-y-4">
+          <Skeleton className="h-6 w-40 mx-auto" />
+          <Skeleton className="h-10 w-1/2 mx-auto" />
         </div>
       </div>
     )

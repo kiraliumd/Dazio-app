@@ -63,10 +63,13 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-// Componente de loading para lazy components
+// Skeleton para lazy components
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center p-4">
-    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+    <div className="space-y-2 w-full max-w-sm">
+      <div className="h-4 w-1/2 bg-gray-200 rounded" />
+      <div className="h-3 w-2/3 bg-gray-100 rounded" />
+    </div>
   </div>
 );
 
@@ -524,7 +527,7 @@ export default function BudgetsPage() {
               disabled={isApproving === budget.id}
             >
               {isApproving === budget.id ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        <div className="h-4 w-16 bg-gray-200 rounded" />
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
@@ -546,7 +549,7 @@ export default function BudgetsPage() {
             title="Gerar PDF"
           >
             {isGenerating ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              <div className="h-4 w-16 bg-gray-200 rounded" />
             ) : (
               <Download className="h-4 w-4" />
             )}
@@ -708,7 +711,10 @@ export default function BudgetsPage() {
                         <TableRow>
                           <TableCell colSpan={7} className="text-center py-8">
                             <div className="flex items-center justify-center gap-2">
-                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                              <div className="space-y-2">
+                                <div className="h-4 w-24 bg-gray-200 rounded" />
+                                <div className="h-3 w-20 bg-gray-100 rounded" />
+                              </div>
                               <span className="text-text-secondary">Carregando orçamentos...</span>
                             </div>
                           </TableCell>

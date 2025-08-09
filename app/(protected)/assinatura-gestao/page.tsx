@@ -161,9 +161,13 @@ export default function AssinaturaGestaoPage() {
               description="Carregando dados da assinatura..."
             />
             <div className="flex-1 space-y-6 p-6">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-gray-600">Carregando dados da assinatura...</p>
+              <div className="grid gap-6 md:grid-cols-2">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="rounded-lg border bg-card p-6">
+                    <div className="h-5 w-40 bg-gray-200 rounded mb-4" />
+                    <div className="h-8 w-32 bg-gray-100 rounded" />
+                  </div>
+                ))}
               </div>
             </div>
           </SidebarInset>

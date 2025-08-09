@@ -48,7 +48,7 @@ const monthNames = [
 
 const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
 
-// Spinner de loading otimizado
+// Spinner de loading otimizado (anterior)
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center h-96">
     <div className="text-center">

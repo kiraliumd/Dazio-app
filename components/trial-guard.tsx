@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../lib/auth-context'
-import { Loader2, AlertTriangle, Lock } from 'lucide-react'
+import { AlertTriangle, Lock } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -111,9 +112,9 @@ export function TrialGuard({ children }: TrialGuardProps) {
   if (loading || (checkingTrial && !hasCheckedOnce)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Verificando acesso...</p>
+        <div className="w-full max-w-md space-y-4">
+          <Skeleton className="h-6 w-48 mx-auto" />
+          <Skeleton className="h-10 w-1/2 mx-auto" />
         </div>
       </div>
     )
@@ -182,9 +183,9 @@ export function TrialGuard({ children }: TrialGuardProps) {
     router.replace('/assinatura-gestao')
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Redirecionando...</p>
+        <div className="w-full max-w-md space-y-4">
+          <Skeleton className="h-6 w-40 mx-auto" />
+          <Skeleton className="h-10 w-1/2 mx-auto" />
         </div>
       </div>
     )

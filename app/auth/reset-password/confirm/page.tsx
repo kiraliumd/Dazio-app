@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Lock, Eye, EyeOff, Loader2, CheckCircle, ArrowLeft } from "lucide-react"
+import { Skeleton } from '@/components/ui/skeleton'
 import Image from 'next/image'
 import { supabase } from '../../../../lib/supabase'
 
@@ -142,9 +143,11 @@ function ResetPasswordConfirmContent() {
           </div>
           
           <Card className="shadow-xl border-0">
-            <CardContent className="p-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-orange-600" />
-              <p className="text-muted-foreground">Verificando link...</p>
+            <CardContent className="p-8">
+              <div className="space-y-4">
+                <Skeleton className="h-6 w-48 mx-auto" />
+                <Skeleton className="h-10 w-1/2 mx-auto" />
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -357,10 +360,7 @@ function ResetPasswordConfirmContent() {
                 disabled={loading}
               >
                 {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Atualizando...
-                  </>
+                  'Atualizando...'
                 ) : (
                   'Atualizar Senha'
                 )}
