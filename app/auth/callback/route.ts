@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       }
 
       console.log('✅ Auth Callback: Email confirmado com sucesso');
-      return NextResponse.redirect(`${origin}/cadastro/confirmacao?success=true&token=${token}&type=${type}`);
+      return NextResponse.redirect(`${origin}/login?confirmed=1`);
     } catch (error) {
       console.error('❌ Auth Callback: Erro inesperado:', error);
       return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed&message=Erro inesperado`);

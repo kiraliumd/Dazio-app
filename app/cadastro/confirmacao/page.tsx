@@ -100,9 +100,9 @@ function ConfirmacaoContent() {
           localStorage.removeItem(`pendingProfileData_${user.id}`);
         }
         
-        // Redirecionar após 2 segundos
+        // Redirecionar após 2 segundos para login com aviso de confirmação
         setTimeout(() => {
-          router.push('/');
+          router.push('/login?confirmed=1');
         }, 2000);
       }
     } catch (error) {

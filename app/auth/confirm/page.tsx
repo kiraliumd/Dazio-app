@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import Image from 'next/image';
+import { BrandLogo } from '@/components/brand-logo';
 import { toast } from 'sonner';
 
 function ConfirmContent() {
@@ -49,10 +49,10 @@ function ConfirmContent() {
         setMessage('Email confirmado com sucesso! Redirecionando...');
         toast.success('Email confirmado com sucesso!');
         
-        // Redirecionar após 3 segundos
+        // Redirecionar após 2 segundos para login com aviso de confirmação
         setTimeout(() => {
-          router.push('/create-profile');
-        }, 3000);
+          router.push('/login?confirmed=1');
+        }, 2000);
       }
     } catch (error) {
       setStatus('error');
@@ -68,14 +68,7 @@ function ConfirmContent() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Image
-            src="/logo-dazio.svg"
-            alt="Dazio Logo"
-            width={120}
-            height={48}
-            className="mx-auto"
-            priority
-          />
+          <BrandLogo width={120} height={48} className="mx-auto" priority />
         </div>
 
         {/* Card de Confirmação */}
@@ -179,14 +172,7 @@ function ConfirmLoading() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Image
-            src="/logo-dazio.svg"
-            alt="Dazio Logo"
-            width={120}
-            height={48}
-            className="mx-auto"
-            priority
-          />
+          <BrandLogo width={120} height={48} className="mx-auto" priority />
         </div>
         <Card className="shadow-xl border-0">
           <CardContent className="flex items-center justify-center p-8">
