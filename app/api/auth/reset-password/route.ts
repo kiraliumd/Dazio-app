@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resend } from '../../../../lib/resend'
 import React from 'react'
-import render from '@react-email/render'
+import { render } from '@react-email/render'
 import ResetPasswordEmail from '../../../../emails/reset-password-email'
 
 export async function POST(request: NextRequest) {
