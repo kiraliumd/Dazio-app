@@ -6,6 +6,7 @@ import type { NextRequest } from 'next/server';
 const PUBLIC_ROUTES = [
   '/login',
   '/cadastro',
+    '/cadastro/confirmacao',
   '/auth/reset-password',
   '/auth/reset-password/confirm',
   '/auth/confirm',
