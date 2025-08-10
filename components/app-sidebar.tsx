@@ -85,6 +85,21 @@ const adminMenuItems = [
 export function AppSidebar() {
   const pathname = usePathname()
 
+  // Função para verificar se um menu está ativo
+  const isMenuActive = (menuUrl: string) => {
+    return pathname === menuUrl || pathname.startsWith(menuUrl + '/')
+  }
+
+  // Função para verificar se deve mostrar submenu
+  const shouldShowSubmenu = (item: any) => {
+    if (!item.submenu) return false
+    
+    // Mostra submenu se o menu principal estiver ativo
+    // ou se estiver em uma página relacionada
+    return isMenuActive(item.url) || 
+           item.submenu.some((subItem: any) => pathname === subItem.url)
+  }
+
   return (
     <Sidebar className="border-r border-light-gray">
       <SidebarHeader className="border-light-gray p-4 border-b-0">
@@ -104,7 +119,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === item.url}
+                    isActive={isMenuActive(item.url)}
                     className="hover:bg-primary/10 hover:text-primary data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
                   >
                     <Link href={item.url} className="flex items-center gap-3 px-3 py-2">
@@ -112,7 +127,8 @@ export function AppSidebar() {
                       <span className="font-medium">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
-                  {item.submenu && item.submenu.map((subItem) => (
+                  {/* Submenu só aparece quando o menu principal estiver ativo */}
+                  {shouldShowSubmenu(item) && item.submenu && item.submenu.map((subItem) => (
                     <SidebarMenuButton
                       key={subItem.title}
                       asChild
@@ -146,7 +162,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === item.url}
+                    isActive={isMenuActive(item.url)}
                     className="hover:bg-primary/10 hover:text-primary data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
                   >
                     <Link href={item.url} className="flex items-center gap-3 px-3 py-2">
