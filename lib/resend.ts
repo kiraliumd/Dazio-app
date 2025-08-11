@@ -92,7 +92,7 @@ export async function sendConfirmationEmail(email: string, token: string) {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Dazio <noreply@dazio.com>',
+      from: 'Dazio <transacional@dazio.com.br>',
       to: [email],
       subject: 'Confirme seu email - Dazio',
       html: html,
@@ -192,7 +192,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Dazio <noreply@dazio.com>',
+      from: 'Dazio <transacional@dazio.com.br>',
       to: [email],
       subject: 'Redefinir senha - Dazio',
       html: html,

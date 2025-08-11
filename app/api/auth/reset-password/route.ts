@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       try {
         const emailHtml = await render(React.createElement(ResetPasswordEmail, { resetUrl: actionLink!, userEmail: email }))
         await resend.emails.send({
-          from: 'Dazio <noreply@dazio.com.br>',
+          from: 'Dazio <transacional@dazio.com.br>',
           to: [email],
           subject: 'Redefinir sua senha - Dazio',
           html: emailHtml,

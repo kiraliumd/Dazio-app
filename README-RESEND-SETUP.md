@@ -104,7 +104,7 @@ Os templates de email estão configurados em `lib/resend.ts` e incluem:
 3. Atualize o campo `from` nos emails para usar seu domínio
 
 ### 5.2 Para desenvolvimento:
-- Use o domínio de teste do Resend: `noreply@dazio.com`
+- Use o domínio de teste do Resend: `transacional@dazio.com.br`
 - Configure `NEXT_PUBLIC_APP_URL=http://localhost:3000`
 
 ## 6. Monitoramento

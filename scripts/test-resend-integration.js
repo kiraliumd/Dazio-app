@@ -16,7 +16,7 @@ async function testResendIntegration() {
     
     // Teste de envio de email
     const { data, error } = await resend.emails.send({
-      from: 'Dazio <noreply@dazio.com>',
+      from: 'Dazio <transacional@dazio.com.br>',
       to: ['test@example.com'], // Substitua por um email real para teste
       subject: 'Teste de Integração - Dazio',
       html: `
