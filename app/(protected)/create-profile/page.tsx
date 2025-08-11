@@ -22,7 +22,8 @@ export default function CreateProfilePage() {
     state: '',
     zip_code: '',
     phone: '',
-    website: ''
+    website: '',
+    email: ''
   });
   const router = useRouter();
 
@@ -49,6 +50,12 @@ export default function CreateProfilePage() {
       router.push('/dashboard');
       return;
     }
+
+    // Carregar email do localStorage se disponível
+    const pendingEmail = localStorage.getItem('pendingEmail');
+    if (pendingEmail) {
+      setFormData(prev => ({ ...prev, email: pendingEmail }));
+    }
   };
 
   const validateForm = () => {
@@ -59,7 +66,8 @@ export default function CreateProfilePage() {
       { field: 'city', label: 'Cidade' },
       { field: 'state', label: 'Estado' },
       { field: 'zip_code', label: 'CEP' },
-      { field: 'phone', label: 'Telefone' }
+      { field: 'phone', label: 'Telefone' },
+      { field: 'email', label: 'Email' }
     ];
 
     for (const { field, label } of requiredFields) {
@@ -101,6 +109,7 @@ export default function CreateProfilePage() {
         zip_code: formData.zip_code.trim(),
         phone: formData.phone.trim(),
         website: formData.website?.trim() || null,
+        email: formData.email.trim(), // Incluir email
         industry: null,
         employee_count: null,
         trial_start: new Date().toISOString(),
@@ -109,7 +118,7 @@ export default function CreateProfilePage() {
       };
 
       // Verificar se todos os campos obrigatórios estão preenchidos
-      const requiredFields = ['company_name', 'cnpj', 'address', 'city', 'state', 'zip_code', 'phone'];
+      const requiredFields = ['company_name', 'cnpj', 'address', 'city', 'state', 'zip_code', 'phone', 'email'];
       for (const field of requiredFields) {
         if (!profileData[field as keyof typeof profileData] || profileData[field as keyof typeof profileData] === '') {
           console.error(`❌ Create Profile: Campo obrigatório vazio: ${field}`);
@@ -270,6 +279,20 @@ Data: {contract_date}`
                 />
               </div>
 
+              <div>
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                  placeholder="seu@email.com"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="website">Website</Label>
                 <Input

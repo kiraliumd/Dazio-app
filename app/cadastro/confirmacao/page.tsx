@@ -116,27 +116,62 @@ function ConfirmacaoContent() {
 
   const createCompanyProfile = async () => {
     try {
-      // Obter dados temporários do localStorage
-      const pendingProfileData = localStorage.getItem('pendingProfileData');
-      if (!pendingProfileData) {
-        console.error('Dados do perfil não encontrados');
+      // Obter email do localStorage
+      const pendingEmail = localStorage.getItem('pendingEmail');
+      if (!pendingEmail) {
+        console.error('Email não encontrado no localStorage');
         return;
       }
 
-      const profileData = JSON.parse(pendingProfileData);
+      // Obter dados temporários do localStorage (se existirem)
+      const pendingProfileData = localStorage.getItem('pendingProfileData');
+      let profileData = {};
+      
+      if (pendingProfileData) {
+        profileData = JSON.parse(pendingProfileData);
+      }
 
-      // 1. Criar perfil da empresa
+      // Criar perfil básico da empresa com email
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('Usuário não autenticado');
+        return;
+      }
+
+      const basicProfileData = {
+        user_id: user.id,
+        email: pendingEmail, // Email da primeira etapa do cadastro
+        company_name: 'Empresa', // Nome temporário
+        cnpj: '00.000.000/0000-00', // CNPJ temporário
+        address: 'Endereço temporário',
+        city: 'Cidade temporária',
+        state: 'SP',
+        zip_code: '00000-000',
+        phone: '(00) 00000-0000',
+        website: null,
+        industry: null,
+        employee_count: null,
+        trial_start: new Date().toISOString(),
+        trial_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
+        status: 'trial'
+      };
+
+      console.log('🔍 Confirmacao: Criando perfil básico com email:', pendingEmail);
+
+      // 1. Criar perfil básico da empresa
       const { data: profileResult, error: profileError } = await supabase
         .from('company_profiles')
-        .insert(profileData)
+        .insert(basicProfileData)
         .select()
         .single();
 
       if (profileError) {
-        console.error('Erro ao criar perfil:', profileError);
+        console.error('❌ Confirmacao: Erro ao criar perfil:', profileError);
         toast.error(`Erro ao criar perfil: ${profileError.message}`);
         return;
       }
+
+      console.log('✅ Confirmacao: Perfil básico criado com sucesso:', profileResult);
 
       // 2. Atualizar template no profile
       const { error: settingsError } = await supabase
@@ -148,6 +183,7 @@ CONTRATANTE: {company_name}
 CNPJ: {cnpj}
 Endereço: {address}
 Telefone: {phone}
+Email: {email}
 
 CONTRATADO: {client_name}
 Documento: {client_document}
@@ -197,14 +233,14 @@ Data: {contract_date}`
         .single();
 
       if (settingsError) {
-        console.error('Erro ao criar configurações:', settingsError);
+        console.error('❌ Confirmacao: Erro ao criar configurações:', settingsError);
         toast.error(`Erro ao criar configurações: ${settingsError.message}`);
         return;
       }
 
-      console.log('Perfil criado e template atualizado com sucesso');
+      console.log('✅ Confirmacao: Template atualizado no profile');
     } catch (error) {
-      console.error('Erro ao criar perfil da empresa:', error);
+      console.error('❌ Confirmacao: Erro ao criar perfil da empresa:', error);
       toast.error('Erro ao criar perfil da empresa');
     }
   };

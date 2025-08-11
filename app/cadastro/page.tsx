@@ -93,6 +93,10 @@ export default function CadastroPage() {
       // Chaves genéricas para leitura sem user.id
       localStorage.setItem('pendingEmail', data.email);
       localStorage.setItem('pendingPassword', data.password);
+      // Salvar dados do perfil temporariamente (incluindo email)
+      localStorage.setItem('pendingProfileData', JSON.stringify({
+        email: data.email
+      }));
 
       // Verificar se o email foi confirmado
       if (result.user.emailConfirmed) {
