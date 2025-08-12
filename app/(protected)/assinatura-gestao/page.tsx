@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { Calendar, Clock, CreditCard, AlertTriangle, CheckCircle, ExternalLink, RefreshCw } from 'lucide-react';
+import { Clock, CreditCard, AlertTriangle, CheckCircle, ExternalLink, RefreshCw } from 'lucide-react';
 import { format, differenceInDays, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { createSubscription } from '@/lib/subscription/actions';
@@ -195,8 +195,8 @@ export default function AssinaturaGestaoPage() {
           
             <div className="flex-1 space-y-6 p-6">
               {/* Status Geral */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Status da Assinatura */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Status da Assinatura e Valor Unificados */}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -205,100 +205,66 @@ export default function AssinaturaGestaoPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center">
-                      <Badge 
-                        className={`mb-3 ${getStatusColor(subscription?.status || 'trial')}`}
-                        variant="outline"
-                      >
-                        {subscription ? getStatusText(subscription.status || '') : 'Trial'}
-                      </Badge>
-                      <p className="text-sm text-gray-600">
-                        {subscription?.plan_type === 'annual' ? 'Plano Anual' : subscription?.plan_type === 'monthly' ? 'Plano Mensal' : 'Período de Teste'}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Próximo Pagamento */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Calendar className="h-5 w-5" />
-                      Próximo Pagamento
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-gray-900">
-                        {subscription?.current_period_end 
-                          ? format(new Date(subscription.current_period_end), 'dd/MM/yyyy', { locale: ptBR })
-                          : 'N/A'
-                        }
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {subscription?.plan_type === 'annual' ? 'Renovação Anual' : subscription?.plan_type === 'monthly' ? 'Renovação Mensal' : 'Fim do Trial'}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Valor */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <CreditCard className="h-5 w-5" />
-                      Valor
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-gray-900">
-                        R$ {subscription?.plan_type === 'annual' ? '979,00' : subscription?.plan_type === 'monthly' ? '97,90' : '0,00'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {subscription?.plan_type === 'annual' ? '/ano' : subscription?.plan_type === 'monthly' ? '/mês' : 'Gratuito'}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Trial Status */}
-              {companyProfile?.status === 'trial' && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clock className="h-5 w-5" />
-                      Período de Teste
-                    </CardTitle>
-                    <CardDescription>
-                      {isTrialExpired 
-                        ? 'Seu período de teste expirou. Faça upgrade para continuar.'
-                        : `Restam ${trialDaysLeft} dias no seu período de teste`
-                      }
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
                     <div className="space-y-4">
-                      <div className="flex justify-between text-sm">
-                        <span>Início: {format(new Date(companyProfile.trial_start), 'dd/MM/yyyy', { locale: ptBR })}</span>
-                        <span>Fim: {format(new Date(companyProfile.trial_end), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                      {/* Status */}
+                      <div className="text-center">
+                        <Badge 
+                          className={`mb-3 ${getStatusColor(subscription?.status || 'trial')}`}
+                          variant="outline"
+                        >
+                          {subscription ? getStatusText(subscription.status || '') : 'Trial'}
+                        </Badge>
+                        <p className="text-sm text-gray-600">
+                          {subscription?.plan_type === 'annual' ? 'Plano Anual' : subscription?.plan_type === 'monthly' ? 'Plano Mensal' : 'Período de Teste'}
+                        </p>
                       </div>
                       
-                      <Progress value={trialProgress} className="h-2" />
+                      <Separator />
                       
-                      {isTrialExpired && (
-                        <Alert>
-                          <AlertTriangle className="h-4 w-4" />
-                          <AlertDescription>
-                            Seu período de teste expirou. Faça upgrade para continuar usando o sistema.
-                          </AlertDescription>
-                        </Alert>
-                      )}
+                      {/* Valor */}
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-gray-900">
+                          R$ {subscription?.plan_type === 'annual' ? '979,00' : subscription?.plan_type === 'monthly' ? '97,90' : '0,00'}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {subscription?.plan_type === 'annual' ? '/ano' : subscription?.plan_type === 'monthly' ? '/mês' : 'Gratuito'}
+                        </p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
-              )}
+
+                {/* Período de Teste */}
+                {companyProfile?.status === 'trial' && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Clock className="h-5 w-5" />
+                        Período de Teste
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-gray-900">
+                            {trialDaysLeft} dias
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {isTrialExpired ? 'Expirado' : 'Restantes'}
+                          </p>
+                        </div>
+                        
+                        <Progress value={trialProgress} className="h-2" />
+                        
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>Início: {format(new Date(companyProfile.trial_start), 'dd/MM', { locale: ptBR })}</span>
+                          <span>Fim: {format(new Date(companyProfile.trial_end), 'dd/MM', { locale: ptBR })}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
 
               {/* Planos de Assinatura */}
               {(!subscription || subscription.status === 'canceled' || subscription.status === 'unpaid') && (
