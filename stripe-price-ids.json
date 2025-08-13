@@ -1,5 +1,17 @@
 {
-  "monthlyProductId": "prod_Sn2YftzoHzE93p",
-  "monthlyPriceId": "price_1RrSTcGhdKZwP7W0Yn1n3FRB",
-  "note": "Produto anual será criado automaticamente quando necessário"
+  "note": "Produtos e preços são criados automaticamente pelo sistema",
+  "monthly": {
+    "name": "Dazio Admin - Plano Mensal (Recorrente)",
+    "description": "Acesso completo ao sistema de gestão de locações Dazio Admin - Assinatura Mensal",
+    "unit_amount": 9790,
+    "currency": "brl",
+    "recurring_interval": "month"
+  },
+  "annual": {
+    "name": "Dazio Admin - Plano Anual (Recorrente)",
+    "description": "Acesso completo ao sistema de gestão de locações Dazio Admin - Assinatura Anual (2 meses grátis)",
+    "unit_amount": 97900,
+    "currency": "brl",
+    "recurring_interval": "year"
+  }
 }

@@ -69,15 +69,43 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
       console.log('✅ createSubscription: Customer criado', { customerId });
     }
 
-    // Criar checkout session usando os IDs corretos dos produtos existentes
-    let priceId = planType === 'monthly'
-      ? 'price_1RrSTcGhdKZwP7W0Yn1n3FRB'  // Preço mensal existente
-      : null; // Preço anual será criado automaticamente
-
-    console.log('🔍 createSubscription: Verificando priceId...', { priceId, planType });
-
-    // Se for plano anual, criar produto e preço automaticamente
-    if (planType === 'annual') {
+    // Criar produtos e preços automaticamente para ambos os planos
+    let priceId: string;
+    
+    if (planType === 'monthly') {
+      console.log('🔄 createSubscription: Criando produto e preço mensal automaticamente...');
+      
+      try {
+        // Criar produto mensal
+        const monthlyProduct = await stripe.products.create({
+          name: 'Dazio Admin - Plano Mensal (Recorrente)',
+          description: 'Acesso completo ao sistema de gestão de locações Dazio Admin - Assinatura Mensal',
+        });
+        
+        console.log('✅ createSubscription: Produto mensal criado:', monthlyProduct.id);
+        
+        // Criar preço mensal recorrente
+        const monthlyPrice = await stripe.prices.create({
+          product: monthlyProduct.id,
+          unit_amount: 9790, // R$ 97,90 em centavos
+          currency: 'brl',
+          recurring: {
+            interval: 'month',
+          },
+        });
+        
+        console.log('✅ createSubscription: Preço mensal criado:', monthlyPrice.id);
+        priceId = monthlyPrice.id;
+        
+      } catch (createError) {
+        console.error('❌ createSubscription: Erro ao criar produto/preço mensal:', createError);
+        return {
+          success: false,
+          error: `Erro ao criar produto mensal: ${createError instanceof Error ? createError.message : 'Erro desconhecido'}`,
+        };
+      }
+    } else {
+      // Plano anual
       console.log('🔄 createSubscription: Criando produto e preço anual automaticamente...');
       
       try {
@@ -114,27 +142,6 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
     if (!priceId) {
       console.error('❌ createSubscription: ID do preço não configurado');
       return { success: false, error: 'ID do preço não configurado' };
-    }
-
-    // Verificar se o preço mensal existe e é válido (apenas para debug)
-    if (planType === 'monthly') {
-      try {
-        const price = await stripe.prices.retrieve(priceId);
-        console.log('✅ createSubscription: Preço mensal verificado:', {
-          id: price.id,
-          type: price.type,
-          recurring: price.recurring,
-          unit_amount: price.unit_amount,
-          currency: price.currency,
-          product: price.product
-        });
-      } catch (priceError) {
-        console.error('❌ createSubscription: Erro ao verificar preço mensal:', priceError);
-        return {
-          success: false,
-          error: `Erro com preço mensal: ${priceError instanceof Error ? priceError.message : 'Erro desconhecido'}`,
-        };
-      }
     }
 
     console.log('🔄 createSubscription: Criando checkout session...');
