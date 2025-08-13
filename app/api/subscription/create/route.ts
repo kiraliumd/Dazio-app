@@ -82,8 +82,8 @@ export async function POST(req: NextRequest) {
 
     // Criar checkout session usando os IDs corretos
     const priceId = planType === 'monthly' 
-      ? 'price_1RrShwGhdKZwP7W0UWeDLuGz'  // Preço mensal correto
-      : 'price_1RrSiHGhdKZwP7W0DOlZu37g'; // Preço anual correto
+      ? 'price_1RrShwGhdKZwP7W0UWeDLuGz'  // Preço mensal existente
+      : 'price_1RrSiHGhdKZwP7W0DOlZu37g'; // Preço anual existente
 
     console.log('🔍 API: Verificando priceId...', { priceId, planType });
 
@@ -92,6 +92,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ 
         success: false, 
         error: 'ID do preço não configurado' 
+      }, { status: 500 });
+    }
+
+    // Verificar se o preço existe no Stripe
+    try {
+      const price = await stripe.prices.retrieve(priceId);
+      console.log('✅ API: Preço verificado no Stripe:', {
+        id: price.id,
+        type: price.type,
+        recurring: price.recurring,
+        unit_amount: price.unit_amount,
+        currency: price.currency
+      });
+    } catch (priceError) {
+      console.error('❌ API: Erro ao verificar preço no Stripe:', priceError);
+      return NextResponse.json({ 
+        success: false, 
+        error: `Preço não encontrado no Stripe: ${priceError.message}` 
       }, { status: 500 });
     }
 
