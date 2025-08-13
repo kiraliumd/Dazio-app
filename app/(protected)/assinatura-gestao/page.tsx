@@ -17,6 +17,7 @@ import { format, differenceInDays, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { AuthGuard } from '@/components/auth-guard';
+import { createSubscription } from '@/lib/subscription/actions';
 
 interface CompanyProfile {
   id: string;
@@ -84,26 +85,18 @@ export default function AssinaturaGestaoPage() {
   };
 
   const handleSubscribe = async (planType: 'monthly' | 'annual') => {
+    if (!subscription) {
+      toast.error('Erro: Dados da assinatura não encontrados');
+      return;
+    }
+
     try {
       setCheckoutLoading(true);
       console.log('🔄 Iniciando assinatura para:', planType);
-      
-      const response = await fetch('/api/subscription/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ planType }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro na requisição');
-      }
-      
-      const result = await response.json();
-      console.log('✅ Resposta da API:', result);
-      
+
+      const result = await createSubscription(planType);
+      console.log('✅ Resposta do server action:', result);
+
       if (result.success && result.checkoutUrl) {
         console.log('🚀 Redirecionando para checkout:', result.checkoutUrl);
         window.location.href = result.checkoutUrl;

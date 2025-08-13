@@ -64,16 +64,16 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
       console.log('✅ createSubscription: Customer criado', { customerId });
     }
 
-    // Criar checkout session usando os IDs corretos
-    const priceId = planType === 'monthly' 
-      ? 'price_1RrShwGhdKZwP7W0UWeDLuGz'  // Preço mensal correto
-      : 'price_1RrSiHGhdKZwP7W0DOlZu37g'; // Preço anual correto
+    // Criar checkout session usando os IDs corretos dos produtos existentes
+    const priceId = planType === 'monthly'
+      ? 'price_1RrSTcGhdKZwP7W0Yn1n3FRB'  // Preço mensal recorrente existente
+      : 'price_1Rnl4pGhdKZwP7W0CuZaIVJs'; // Preço anual recorrente existente
 
     console.log('🔍 createSubscription: Verificando priceId...', { priceId, planType });
 
     if (!priceId) {
       console.error('❌ createSubscription: ID do preço não configurado');
-      throw new Error('ID do preço não configurado');
+      return { success: false, error: 'ID do preço não configurado' };
     }
 
     console.log('🔄 createSubscription: Criando checkout session...');
