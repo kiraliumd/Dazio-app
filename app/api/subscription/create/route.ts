@@ -80,10 +80,10 @@ export async function POST(req: NextRequest) {
       console.log('✅ API: Customer criado', { customerId });
     }
 
-    // Criar checkout session usando os IDs corretos
-    let priceId = planType === 'monthly' 
-      ? 'price_1RrShwGhdKZwP7W0UWeDLuGz'  // Preço mensal existente
-      : 'price_1RrSiHGhdKZwP7W0DOlZu37g'; // Preço anual existente
+    // Criar checkout session usando os IDs corretos dos produtos existentes
+    const priceId = planType === 'monthly' 
+      ? 'price_1RrSTcGhdKZwP7W0Yn1n3FRB'  // Preço mensal recorrente existente
+      : 'price_1Rnl4pGhdKZwP7W0CuZaIVJs'; // Preço anual recorrente existente
 
     console.log('🔍 API: Verificando priceId...', { priceId, planType });
 
@@ -103,28 +103,23 @@ export async function POST(req: NextRequest) {
         type: price.type,
         recurring: price.recurring,
         unit_amount: price.unit_amount,
-        currency: price.currency
+        currency: price.currency,
+        product: price.product
       });
       
-      // Se o preço não for recorrente, tentar criar um novo preço recorrente
+      // Verificar se o preço é recorrente
       if (!price.recurring) {
-        console.log('⚠️ API: Preço não é recorrente, criando novo preço recorrente...');
-        
-        const newPrice = await stripe.prices.create({
-          product: price.product,
-          unit_amount: price.unit_amount,
-          currency: price.currency,
-          recurring: {
-            interval: planType === 'monthly' ? 'month' : 'year',
-          },
-        });
-        
-        console.log('✅ API: Novo preço recorrente criado:', newPrice.id);
-        // Usar o novo preço
-        priceId = newPrice.id;
+        console.error('❌ API: Preço não é recorrente, não pode ser usado para assinatura');
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Preço não é recorrente' 
+        }, { status: 500 });
       }
+      
+      console.log('✅ API: Preço é recorrente e válido para assinatura');
+      
     } catch (priceError) {
-      console.error('❌ API: Erro ao verificar/criar preço no Stripe:', priceError);
+      console.error('❌ API: Erro ao verificar preço no Stripe:', priceError);
       return NextResponse.json({ 
         success: false, 
         error: `Erro com preço no Stripe: ${priceError.message}` 
