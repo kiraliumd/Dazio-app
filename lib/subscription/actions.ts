@@ -34,18 +34,23 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
     }
 
     // Verificar se já existe assinatura ativa
-    const { data: existingSubscription } = await supabase
+    const { data: existingSubscription, error: subscriptionError } = await supabase
       .from('subscriptions')
       .select('*')
       .eq('company_id', companyProfile.id)
       .in('status', ['active', 'trialing'])
       .single();
 
-    console.log('🔍 createSubscription: Verificando assinatura existente...', { existingSubscription });
+    console.log('🔍 createSubscription: Verificando assinatura existente...', { 
+      existingSubscription, 
+      subscriptionError,
+      companyId: companyProfile.id 
+    });
 
-    if (existingSubscription) {
-      console.error('❌ createSubscription: Usuário já possui assinatura ativa');
-      throw new Error('Usuário já possui uma assinatura ativa');
+    // Se já existe assinatura ativa, permitir upgrade/downgrade
+    if (existingSubscription && !subscriptionError) {
+      console.log('⚠️ createSubscription: Assinatura existente encontrada, permitindo upgrade/downgrade');
+      // Não bloquear, permitir continuar para upgrade/downgrade
     }
 
     // Buscar ou criar customer no Stripe

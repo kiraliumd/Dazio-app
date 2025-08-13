@@ -85,9 +85,10 @@ export default function AssinaturaGestaoPage() {
   };
 
   const handleSubscribe = async (planType: 'monthly' | 'annual') => {
+    console.log('🔄 handleSubscribe: Iniciando...', { planType, subscription });
+    
     if (!subscription) {
-      toast.error('Erro: Dados da assinatura não encontrados');
-      return;
+      console.log('⚠️ handleSubscribe: subscription é null, continuando mesmo assim...');
     }
 
     try {
@@ -101,6 +102,7 @@ export default function AssinaturaGestaoPage() {
         console.log('🚀 Redirecionando para checkout:', result.checkoutUrl);
         window.location.href = result.checkoutUrl;
       } else {
+        console.error('❌ Erro na resposta:', result);
         toast.error(result.error || 'Erro ao criar sessão de checkout');
       }
     } catch (error) {
@@ -362,7 +364,10 @@ export default function AssinaturaGestaoPage() {
                       </ul>
                       
                       <Button 
-                        onClick={() => handleSubscribe('monthly')}
+                        onClick={() => {
+                          console.log('🖱️ Botão Assinar Mensal clicado!');
+                          handleSubscribe('monthly');
+                        }}
                         disabled={checkoutLoading}
                         className="w-full"
                       >
@@ -409,7 +414,10 @@ export default function AssinaturaGestaoPage() {
                       </ul>
                       
                       <Button 
-                        onClick={() => handleSubscribe('annual')}
+                        onClick={() => {
+                          console.log('🖱️ Botão Assinar Anual clicado!');
+                          handleSubscribe('annual');
+                        }}
                         disabled={checkoutLoading}
                         className="w-full"
                         variant="default"
