@@ -1,69 +1,65 @@
+require('dotenv').config({ path: '../.env.local' });
 const Stripe = require('stripe');
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Configurar Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2025-07-30.basil',
+});
 
 async function setupStripePrices() {
   try {
-    console.log('🔄 Criando produtos e preços no Stripe...');
+    console.log('🔄 Configurando preços do Stripe para assinaturas...');
+    console.log('🔑 Stripe Key configurada:', process.env.STRIPE_SECRET_KEY ? 'Sim' : 'Não');
 
-    // Criar produto principal
-    const product = await stripe.products.create({
-      name: 'Dazio Admin',
-      description: 'Sistema de gestão para locação de equipamentos',
-    });
-
-    console.log('✅ Produto criado:', product.id);
+    // Produtos já criados
+    const monthlyProductId = 'prod_SrUYOa3o1QVx5R';
+    const annualProductId = 'prod_SrUYErZLFjQj1e';
 
     // Criar preço mensal recorrente
+    console.log('📅 Criando preço mensal recorrente...');
     const monthlyPrice = await stripe.prices.create({
-      product: product.id,
+      product: monthlyProductId,
       unit_amount: 9790, // R$ 97,90 em centavos
       currency: 'brl',
       recurring: {
         interval: 'month',
       },
     });
-
     console.log('✅ Preço mensal criado:', monthlyPrice.id);
 
     // Criar preço anual recorrente
+    console.log('📅 Criando preço anual recorrente...');
     const annualPrice = await stripe.prices.create({
-      product: product.id,
+      product: annualProductId,
       unit_amount: 97900, // R$ 979,00 em centavos
       currency: 'brl',
       recurring: {
         interval: 'year',
       },
     });
-
     console.log('✅ Preço anual criado:', annualPrice.id);
 
-    console.log('\n📋 Resumo dos preços criados:');
-    console.log('Produto:', product.id);
-    console.log('Mensal (R$ 97,90/mês):', monthlyPrice.id);
-    console.log('Anual (R$ 979,00/ano):', annualPrice.id);
-
-    // Salvar os IDs em um arquivo para uso posterior
-    const fs = require('fs');
-    const priceIds = {
-      productId: product.id,
+    // Atualizar arquivo de configuração
+    const config = {
+      monthlyProductId: monthlyProductId,
+      annualProductId: annualProductId,
       monthlyPriceId: monthlyPrice.id,
-      annualPriceId: annualPrice.id,
+      annualPriceId: annualPrice.id
     };
 
-    fs.writeFileSync(
-      'stripe-price-ids.json',
-      JSON.stringify(priceIds, null, 2)
-    );
+    console.log('\n🎯 Configuração atualizada:');
+    console.log('Produto Mensal:', monthlyProductId);
+    console.log('Produto Anual:', annualProductId);
+    console.log('Preço Mensal:', monthlyPrice.id);
+    console.log('Preço Anual:', annualPrice.id);
 
-    console.log('\n💾 IDs salvos em stripe-price-ids.json');
-    console.log('\n🔧 Configure estas variáveis na Vercel:');
-    console.log(`STRIPE_MONTHLY_PRICE_ID=${monthlyPrice.id}`);
-    console.log(`STRIPE_ANNUAL_PRICE_ID=${annualPrice.id}`);
+    console.log('\n📝 Atualize o arquivo stripe-price-ids.json com:');
+    console.log(JSON.stringify(config, null, 2));
 
-    return priceIds;
+    return config;
+
   } catch (error) {
-    console.error('❌ Erro ao criar preços:', error);
+    console.error('❌ Erro ao configurar preços:', error);
     throw error;
   }
 }
@@ -72,11 +68,11 @@ async function setupStripePrices() {
 if (require.main === module) {
   setupStripePrices()
     .then(() => {
-      console.log('\n🎉 Setup concluído com sucesso!');
+      console.log('\n✅ Script executado com sucesso!');
       process.exit(0);
     })
     .catch((error) => {
-      console.error('\n💥 Erro no setup:', error);
+      console.error('\n❌ Script falhou:', error);
       process.exit(1);
     });
 }

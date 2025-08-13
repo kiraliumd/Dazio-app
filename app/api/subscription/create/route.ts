@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Criar checkout session usando os IDs corretos
-    const priceId = planType === 'monthly' 
+    let priceId = planType === 'monthly' 
       ? 'price_1RrShwGhdKZwP7W0UWeDLuGz'  // Preço mensal existente
       : 'price_1RrSiHGhdKZwP7W0DOlZu37g'; // Preço anual existente
 
@@ -105,11 +105,29 @@ export async function POST(req: NextRequest) {
         unit_amount: price.unit_amount,
         currency: price.currency
       });
+      
+      // Se o preço não for recorrente, tentar criar um novo preço recorrente
+      if (!price.recurring) {
+        console.log('⚠️ API: Preço não é recorrente, criando novo preço recorrente...');
+        
+        const newPrice = await stripe.prices.create({
+          product: price.product,
+          unit_amount: price.unit_amount,
+          currency: price.currency,
+          recurring: {
+            interval: planType === 'monthly' ? 'month' : 'year',
+          },
+        });
+        
+        console.log('✅ API: Novo preço recorrente criado:', newPrice.id);
+        // Usar o novo preço
+        priceId = newPrice.id;
+      }
     } catch (priceError) {
-      console.error('❌ API: Erro ao verificar preço no Stripe:', priceError);
+      console.error('❌ API: Erro ao verificar/criar preço no Stripe:', priceError);
       return NextResponse.json({ 
         success: false, 
-        error: `Preço não encontrado no Stripe: ${priceError.message}` 
+        error: `Erro com preço no Stripe: ${priceError.message}` 
       }, { status: 500 });
     }
 
