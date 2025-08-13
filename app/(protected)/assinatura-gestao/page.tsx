@@ -79,6 +79,11 @@ export default function AssinaturaGestaoPage() {
     }
   };
 
+  const refreshData = async () => {
+    await loadSubscriptionData();
+    toast.success('Dados atualizados com sucesso!');
+  };
+
   const handleSubscribe = async (planType: 'monthly' | 'annual') => {
     try {
       setCheckoutLoading(true);
@@ -191,7 +196,17 @@ export default function AssinaturaGestaoPage() {
           <PageHeader 
             title="Gestão da Assinatura" 
             description="Gerencie sua assinatura e veja o status do seu período de teste"
-          />
+          >
+            <Button
+              onClick={refreshData}
+              disabled={loading}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+          </PageHeader>
           
             <div className="flex-1 space-y-6 p-6">
               {/* Card Principal - Status da Assinatura e Período de Teste */}
@@ -282,13 +297,6 @@ export default function AssinaturaGestaoPage() {
                           <Progress 
                             value={trialProgress} 
                             className="h-2" 
-                            indicatorClassName={
-                              trialDaysLeft > 3 
-                                ? 'bg-green-500'
-                                : trialDaysLeft > 1
-                                ? 'bg-yellow-500'
-                                : 'bg-red-500'
-                            }
                           />
                           <div className="flex justify-between text-xs text-gray-500">
                             <span>Início: {format(new Date(companyProfile.trial_start), 'dd/MM', { locale: ptBR })}</span>

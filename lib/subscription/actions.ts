@@ -57,16 +57,17 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
         email: user.email,
         metadata: {
           user_id: user.id,
+          company_id: companyProfile.id,
         },
       });
       customerId = customer.id;
       console.log('✅ createSubscription: Customer criado', { customerId });
     }
 
-    // Criar checkout session
+    // Criar checkout session usando os IDs corretos
     const priceId = planType === 'monthly' 
-      ? process.env.STRIPE_MONTHLY_PRICE_ID 
-      : process.env.STRIPE_ANNUAL_PRICE_ID;
+      ? 'price_1RrShwGhdKZwP7W0UWeDLuGz'  // Preço mensal correto
+      : 'price_1RrSiHGhdKZwP7W0DOlZu37g'; // Preço anual correto
 
     console.log('🔍 createSubscription: Verificando priceId...', { priceId, planType });
 
@@ -84,6 +85,7 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
       metadata: {
         user_id: user.id,
         company_id: companyProfile.id,
+        plan_type: planType,
       },
     });
 

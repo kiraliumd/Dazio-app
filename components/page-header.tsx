@@ -13,9 +13,10 @@ import { useCompanyName } from '@/hooks/useCompanyName'
 interface PageHeaderProps {
   title: string
   description: string
+  children?: React.ReactNode
 }
 
-export function PageHeader({ title, description }: PageHeaderProps) {
+export function PageHeader({ title, description, children }: PageHeaderProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { companyName, setCompanyName, refreshCompanyName } = useCompanyName()
   const { user, signOut } = useAuth()
@@ -45,6 +46,7 @@ export function PageHeader({ title, description }: PageHeaderProps) {
             <p className="text-sm text-text-secondary">{description}</p>
           </div>
           <div className="flex items-center gap-2">
+            {children}
             <NotificationBell />
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Olá, {companyName || user?.email}</span>

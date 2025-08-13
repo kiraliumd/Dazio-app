@@ -46,11 +46,13 @@ export async function createCheckoutSession({
   customerId,
   successUrl,
   cancelUrl,
+  metadata,
 }: {
   priceId: string;
   customerId?: string;
   successUrl: string;
   cancelUrl: string;
+  metadata?: Record<string, string>;
 }) {
   return await stripe.checkout.sessions.create({
     customer: customerId,
@@ -65,6 +67,7 @@ export async function createCheckoutSession({
     success_url: successUrl,
     cancel_url: cancelUrl,
     allow_promotion_codes: true,
+    metadata: metadata || {},
   });
 }
 
