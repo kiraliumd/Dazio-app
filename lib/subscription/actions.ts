@@ -71,54 +71,70 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
 
     // Criar checkout session usando os IDs corretos dos produtos existentes
     let priceId = planType === 'monthly'
-      ? 'price_1RrShwGhdKZwP7W0UWeDLuGz'  // Preço mensal existente
-      : 'price_1RrSiHGhdKZwP7W0DOlZu37g'; // Preço anual existente
+      ? 'price_1RrSTcGhdKZwP7W0Yn1n3FRB'  // Preço mensal existente
+      : null; // Preço anual será criado automaticamente
 
     console.log('🔍 createSubscription: Verificando priceId...', { priceId, planType });
+
+    // Se for plano anual, criar produto e preço automaticamente
+    if (planType === 'annual') {
+      console.log('🔄 createSubscription: Criando produto e preço anual automaticamente...');
+      
+      try {
+        // Criar produto anual
+        const annualProduct = await stripe.products.create({
+          name: 'Dazio Admin - Plano Anual (Recorrente)',
+          description: 'Acesso completo ao sistema de gestão de locações Dazio Admin - Assinatura Anual (2 meses grátis)',
+        });
+        
+        console.log('✅ createSubscription: Produto anual criado:', annualProduct.id);
+        
+        // Criar preço anual recorrente
+        const annualPrice = await stripe.prices.create({
+          product: annualProduct.id,
+          unit_amount: 97900, // R$ 979,00 em centavos
+          currency: 'brl',
+          recurring: {
+            interval: 'year',
+          },
+        });
+        
+        console.log('✅ createSubscription: Preço anual criado:', annualPrice.id);
+        priceId = annualPrice.id;
+        
+      } catch (createError) {
+        console.error('❌ createSubscription: Erro ao criar produto/preço anual:', createError);
+        return {
+          success: false,
+          error: `Erro ao criar produto anual: ${createError instanceof Error ? createError.message : 'Erro desconhecido'}`,
+        };
+      }
+    }
 
     if (!priceId) {
       console.error('❌ createSubscription: ID do preço não configurado');
       return { success: false, error: 'ID do preço não configurado' };
     }
 
-    // Verificar se o preço existe no Stripe e se é recorrente
-    try {
-      const price = await stripe.prices.retrieve(priceId);
-      console.log('✅ createSubscription: Preço verificado no Stripe:', {
-        id: price.id,
-        type: price.type,
-        recurring: price.recurring,
-        unit_amount: price.unit_amount,
-        currency: price.currency,
-        product: price.product
-      });
-
-      // Se o preço não for recorrente, criar um novo preço recorrente
-      if (!price.recurring) {
-        console.log('⚠️ createSubscription: Preço não é recorrente, criando novo preço recorrente...');
-        
-        const newPrice = await stripe.prices.create({
-          product: price.product as string,
-          unit_amount: price.unit_amount || 0,
+    // Verificar se o preço mensal existe e é válido (apenas para debug)
+    if (planType === 'monthly') {
+      try {
+        const price = await stripe.prices.retrieve(priceId);
+        console.log('✅ createSubscription: Preço mensal verificado:', {
+          id: price.id,
+          type: price.type,
+          recurring: price.recurring,
+          unit_amount: price.unit_amount,
           currency: price.currency,
-          recurring: {
-            interval: planType === 'monthly' ? 'month' : 'year',
-          },
+          product: price.product
         });
-        
-        console.log('✅ createSubscription: Novo preço recorrente criado:', newPrice.id);
-        // Usar o novo preço
-        priceId = newPrice.id;
-      } else {
-        console.log('✅ createSubscription: Preço é recorrente e válido para assinatura');
+      } catch (priceError) {
+        console.error('❌ createSubscription: Erro ao verificar preço mensal:', priceError);
+        return {
+          success: false,
+          error: `Erro com preço mensal: ${priceError instanceof Error ? priceError.message : 'Erro desconhecido'}`,
+        };
       }
-      
-    } catch (priceError) {
-      console.error('❌ createSubscription: Erro ao verificar/criar preço no Stripe:', priceError);
-      return {
-        success: false,
-        error: `Erro com preço no Stripe: ${priceError instanceof Error ? priceError.message : 'Erro desconhecido'}`,
-      };
     }
 
     console.log('🔄 createSubscription: Criando checkout session...');
