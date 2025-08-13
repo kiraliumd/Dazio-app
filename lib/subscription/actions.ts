@@ -70,15 +70,55 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
     }
 
     // Criar checkout session usando os IDs corretos dos produtos existentes
-    const priceId = planType === 'monthly'
-      ? 'price_1RrSTcGhdKZwP7W0Yn1n3FRB'  // Preço mensal recorrente existente
-      : 'price_1Rnl4pGhdKZwP7W0CuZaIVJs'; // Preço anual recorrente existente
+    let priceId = planType === 'monthly'
+      ? 'price_1RrShwGhdKZwP7W0UWeDLuGz'  // Preço mensal existente
+      : 'price_1RrSiHGhdKZwP7W0DOlZu37g'; // Preço anual existente
 
     console.log('🔍 createSubscription: Verificando priceId...', { priceId, planType });
 
     if (!priceId) {
       console.error('❌ createSubscription: ID do preço não configurado');
       return { success: false, error: 'ID do preço não configurado' };
+    }
+
+    // Verificar se o preço existe no Stripe e se é recorrente
+    try {
+      const price = await stripe.prices.retrieve(priceId);
+      console.log('✅ createSubscription: Preço verificado no Stripe:', {
+        id: price.id,
+        type: price.type,
+        recurring: price.recurring,
+        unit_amount: price.unit_amount,
+        currency: price.currency,
+        product: price.product
+      });
+
+      // Se o preço não for recorrente, criar um novo preço recorrente
+      if (!price.recurring) {
+        console.log('⚠️ createSubscription: Preço não é recorrente, criando novo preço recorrente...');
+        
+        const newPrice = await stripe.prices.create({
+          product: price.product as string,
+          unit_amount: price.unit_amount || 0,
+          currency: price.currency,
+          recurring: {
+            interval: planType === 'monthly' ? 'month' : 'year',
+          },
+        });
+        
+        console.log('✅ createSubscription: Novo preço recorrente criado:', newPrice.id);
+        // Usar o novo preço
+        priceId = newPrice.id;
+      } else {
+        console.log('✅ createSubscription: Preço é recorrente e válido para assinatura');
+      }
+      
+    } catch (priceError) {
+      console.error('❌ createSubscription: Erro ao verificar/criar preço no Stripe:', priceError);
+      return {
+        success: false,
+        error: `Erro com preço no Stripe: ${priceError instanceof Error ? priceError.message : 'Erro desconhecido'}`,
+      };
     }
 
     console.log('🔄 createSubscription: Criando checkout session...');
