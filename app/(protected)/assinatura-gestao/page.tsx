@@ -87,6 +87,8 @@ export default function AssinaturaGestaoPage() {
 
   const handleSubscribe = async (planType: 'monthly' | 'annual') => {
     console.log('🔄 handleSubscribe: Iniciando...', { planType, subscription });
+    console.log('🔄 handleSubscribe: Usuário logado:', !!user);
+    console.log('🔄 handleSubscribe: Company profile:', companyProfile);
     
     if (!subscription) {
       console.log('⚠️ handleSubscribe: subscription é null, continuando mesmo assim...');
@@ -96,31 +98,41 @@ export default function AssinaturaGestaoPage() {
       // Definir loading específico para o plano
       if (planType === 'monthly') {
         setMonthlyLoading(true);
+        console.log('🔄 handleSubscribe: Loading mensal ativado');
       } else {
         setAnnualLoading(true);
+        console.log('🔄 handleSubscribe: Loading anual ativado');
       }
       
       console.log('🔄 Iniciando assinatura para:', planType);
+      console.log('🔄 Chamando createSubscription...');
 
       const result = await createSubscription(planType);
       console.log('✅ Resposta do server action:', result);
+      console.log('✅ Result.success:', result.success);
+      console.log('✅ Result.checkoutUrl:', result.checkoutUrl);
 
       if (result.success && result.checkoutUrl) {
         console.log('🚀 Redirecionando para checkout:', result.checkoutUrl);
         window.location.href = result.checkoutUrl;
       } else {
         console.error('❌ Erro na resposta:', result);
+        console.error('❌ Result.error:', result.error);
         toast.error(result.error || 'Erro ao criar sessão de checkout');
       }
     } catch (error) {
       console.error('❌ Erro ao iniciar assinatura:', error);
+      console.error('❌ Tipo do erro:', typeof error);
+      console.error('❌ Stack trace:', error instanceof Error ? error.stack : 'N/A');
       toast.error(error instanceof Error ? error.message : 'Erro ao iniciar assinatura');
     } finally {
       // Limpar loading específico para o plano
       if (planType === 'monthly') {
         setMonthlyLoading(false);
+        console.log('🔄 handleSubscribe: Loading mensal desativado');
       } else {
         setAnnualLoading(false);
+        console.log('🔄 handleSubscribe: Loading anual desativado');
       }
     }
   };
