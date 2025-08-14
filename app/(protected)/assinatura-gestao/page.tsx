@@ -43,7 +43,8 @@ export default function AssinaturaGestaoPage() {
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [monthlyLoading, setMonthlyLoading] = useState(false);
+  const [annualLoading, setAnnualLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
@@ -92,7 +93,13 @@ export default function AssinaturaGestaoPage() {
     }
 
     try {
-      setCheckoutLoading(true);
+      // Definir loading específico para o plano
+      if (planType === 'monthly') {
+        setMonthlyLoading(true);
+      } else {
+        setAnnualLoading(true);
+      }
+      
       console.log('🔄 Iniciando assinatura para:', planType);
 
       const result = await createSubscription(planType);
@@ -109,7 +116,12 @@ export default function AssinaturaGestaoPage() {
       console.error('❌ Erro ao iniciar assinatura:', error);
       toast.error(error instanceof Error ? error.message : 'Erro ao iniciar assinatura');
     } finally {
-      setCheckoutLoading(false);
+      // Limpar loading específico para o plano
+      if (planType === 'monthly') {
+        setMonthlyLoading(false);
+      } else {
+        setAnnualLoading(false);
+      }
     }
   };
 
@@ -368,10 +380,10 @@ export default function AssinaturaGestaoPage() {
                           console.log('🖱️ Botão Assinar Mensal clicado!');
                           handleSubscribe('monthly');
                         }}
-                        disabled={checkoutLoading}
+                        disabled={monthlyLoading}
                         className="w-full"
                       >
-                        {checkoutLoading ? 'Carregando...' : 'Assinar Mensal'}
+                        {monthlyLoading ? 'Carregando...' : 'Assinar Mensal'}
                       </Button>
                     </CardContent>
                   </Card>
@@ -418,11 +430,11 @@ export default function AssinaturaGestaoPage() {
                           console.log('🖱️ Botão Assinar Anual clicado!');
                           handleSubscribe('annual');
                         }}
-                        disabled={checkoutLoading}
+                        disabled={annualLoading}
                         className="w-full"
                         variant="default"
                       >
-                        {checkoutLoading ? 'Carregando...' : 'Assinar Anual'}
+                        {annualLoading ? 'Carregando...' : 'Assinar Anual'}
                       </Button>
                     </CardContent>
                   </Card>
