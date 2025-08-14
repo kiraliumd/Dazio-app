@@ -77,7 +77,7 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
     let priceId: string;
     
     if (planType === 'monthly') {
-      priceId = 'price_1RsR6vtyRCyQmy'; // Preço mensal fixo
+      priceId = 'price_1RsR6sKDs9V3MH8vtyRCyQmy'; // Preço mensal fixo
       console.log('✅ createSubscription: Usando preço mensal existente:', priceId);
     } else {
       priceId = 'price_1RsR6sKDs9V3MH8v8HfmE83N'; // Preço anual fixo
