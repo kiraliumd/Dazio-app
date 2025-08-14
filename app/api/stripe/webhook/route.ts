@@ -125,7 +125,8 @@ async function handleCheckoutCompleted(session: any) {
   
   try {
     console.log('✅ handleCheckoutCompleted: Buscando dados da sessão no Stripe...');
-    // Buscar dados da sessão
+    
+    // Buscar dados da sessão com expansão
     const checkoutSession = await stripe.checkout.sessions.retrieve(session.id, {
       expand: ['subscription', 'customer']
     });
@@ -145,8 +146,25 @@ async function handleCheckoutCompleted(session: any) {
       return;
     }
     
-    const subscription = checkoutSession.subscription as any;
-    const customer = checkoutSession.customer as any;
+    // Extrair subscription e customer
+    let subscription: any;
+    let customer: any;
+    
+    if (checkoutSession.subscription && typeof checkoutSession.subscription === 'object') {
+      subscription = checkoutSession.subscription;
+    } else if (checkoutSession.subscription && typeof checkoutSession.subscription === 'string') {
+      // Se subscription é string, buscar os dados completos
+      console.log('✅ handleCheckoutCompleted: Buscando dados da assinatura...');
+      subscription = await stripe.subscriptions.retrieve(checkoutSession.subscription);
+    }
+    
+    if (checkoutSession.customer && typeof checkoutSession.customer === 'object') {
+      customer = checkoutSession.customer;
+    } else if (checkoutSession.customer && typeof checkoutSession.customer === 'string') {
+      // Se customer é string, buscar os dados completos
+      console.log('✅ handleCheckoutCompleted: Buscando dados do customer...');
+      customer = await stripe.customers.retrieve(checkoutSession.customer);
+    }
     
     console.log('✅ handleCheckoutCompleted: Dados extraídos:', {
       subscriptionId: subscription?.id,
@@ -269,10 +287,46 @@ async function handleCheckoutCompleted(session: any) {
 
 async function handleSubscriptionChange(subscription: any) {
   console.log('🔄 handleSubscriptionChange: Mudança na assinatura:', subscription.id);
+  console.log('🔄 handleSubscriptionChange: Subscription completa:', JSON.stringify(subscription, null, 2));
   
   const supabase = await createClient();
   
   try {
+    // Se é uma nova assinatura (customer.subscription.created), buscar metadados da sessão
+    let user_id: string | undefined;
+    let company_id: string | undefined;
+    
+    if (subscription.status === 'active' && !subscription.metadata?.user_id) {
+      console.log('🔄 handleSubscriptionChange: Nova assinatura detectada, buscando metadados da sessão...');
+      
+      try {
+        // Buscar a sessão de checkout mais recente para este customer
+        const sessions = await stripe.checkout.sessions.list({
+          customer: subscription.customer,
+          limit: 1,
+          status: 'complete'
+        });
+        
+        if (sessions.data.length > 0) {
+          const latestSession = sessions.data[0];
+          console.log('🔄 handleSubscriptionChange: Sessão encontrada:', {
+            sessionId: latestSession.id,
+            metadata: latestSession.metadata
+          });
+          
+          user_id = latestSession.metadata?.user_id;
+          company_id = latestSession.metadata?.company_id;
+          
+          console.log('🔄 handleSubscriptionChange: Metadados extraídos:', { user_id, company_id });
+        }
+      } catch (sessionError) {
+        console.error('❌ handleSubscriptionChange: Erro ao buscar sessão:', sessionError);
+      }
+    } else {
+      user_id = subscription.metadata?.user_id;
+      company_id = subscription.metadata?.company_id;
+    }
+    
     const subscriptionData = {
       stripe_subscription_id: subscription.id,
       stripe_customer_id: subscription.customer,
@@ -282,40 +336,86 @@ async function handleSubscriptionChange(subscription: any) {
       current_period_end: new Date(subscription.current_period_end * 1000),
       trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
       cancel_at_period_end: subscription.cancel_at_period_end,
+      user_id: user_id,
+      company_id: company_id,
       updated_at: new Date().toISOString(),
     };
 
+    console.log('🔄 handleSubscriptionChange: Dados da assinatura preparados:', subscriptionData);
+
     // Buscar assinatura existente
-    const { data: existingSubscription } = await supabase
+    const { data: existingSubscription, error: selectError } = await supabase
       .from('subscriptions')
       .select('id, company_id')
       .eq('stripe_subscription_id', subscription.id)
       .single();
 
+    console.log('🔄 handleSubscriptionChange: Resultado da busca:', {
+      existingSubscription,
+      selectError
+    });
+
     if (existingSubscription) {
       // Atualizar assinatura existente
-      await supabase
+      console.log('🔄 handleSubscriptionChange: Atualizando assinatura existente...');
+      const { error: updateError } = await supabase
         .from('subscriptions')
         .update(subscriptionData)
         .eq('id', existingSubscription.id);
 
-      console.log('✅ handleSubscriptionChange: Assinatura atualizada:', existingSubscription.id);
-
-      // Atualizar status da empresa se a assinatura estiver ativa
-      if (subscription.status === 'active' && existingSubscription.company_id) {
-        await supabase
-          .from('company_profiles')
-          .update({
-            status: 'active',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingSubscription.company_id);
-
-        console.log('✅ handleSubscriptionChange: Status da empresa atualizado para active');
+      if (updateError) {
+        console.error('❌ handleSubscriptionChange: Erro ao atualizar assinatura:', updateError);
+        return;
       }
+
+      console.log('✅ handleSubscriptionChange: Assinatura atualizada:', existingSubscription.id);
+    } else {
+      // Criar nova assinatura
+      console.log('🔄 handleSubscriptionChange: Criando nova assinatura...');
+      const { data: newSubscription, error: insertError } = await supabase
+        .from('subscriptions')
+        .insert(subscriptionData)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('❌ handleSubscriptionChange: Erro ao criar assinatura:', insertError);
+        console.error('❌ handleSubscriptionChange: Dados tentados:', subscriptionData);
+        return;
+      }
+
+      console.log('✅ handleSubscriptionChange: Nova assinatura criada:', newSubscription.id);
     }
+
+    // Atualizar status da empresa se a assinatura estiver ativa
+    if (subscription.status === 'active' && company_id) {
+      console.log('🔄 handleSubscriptionChange: Atualizando status da empresa...');
+      const { error: companyUpdateError } = await supabase
+        .from('company_profiles')
+        .update({
+          status: 'active',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', company_id);
+
+      if (companyUpdateError) {
+        console.error('❌ handleSubscriptionChange: Erro ao atualizar empresa:', companyUpdateError);
+        return;
+      }
+
+      console.log('✅ handleSubscriptionChange: Status da empresa atualizado para active');
+    } else {
+      console.log('⚠️ handleSubscriptionChange: Não foi possível atualizar empresa:', {
+        status: subscription.status,
+        company_id: company_id
+      });
+    }
+    
+    console.log('✅ handleSubscriptionChange: Processamento concluído com sucesso');
+    
   } catch (error) {
     console.error('❌ handleSubscriptionChange: Erro ao processar mudança na assinatura:', error);
+    console.error('❌ handleSubscriptionChange: Stack trace:', error instanceof Error ? error.stack : 'N/A');
   }
 }
 
