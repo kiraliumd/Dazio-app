@@ -1,6 +1,11 @@
 {
-  "note": "Produtos e preços são criados automaticamente pelo sistema",
+  "note": "IDs dos produtos e preços existentes no Stripe",
+  "product": {
+    "id": "prod_So3DxBQhP9gOh3",
+    "name": "Dazio Admin - Assinatura Geral"
+  },
   "monthly": {
+    "price_id": "price_1RsR6vtyRCyQmy",
     "name": "Dazio Admin - Plano Mensal (Recorrente)",
     "description": "Acesso completo ao sistema de gestão de locações Dazio Admin - Assinatura Mensal",
     "unit_amount": 9790,
@@ -8,6 +13,7 @@
     "recurring_interval": "month"
   },
   "annual": {
+    "price_id": "price_1RsR6sKDs9V3MH8v8HfmE83N",
     "name": "Dazio Admin - Plano Anual (Recorrente)",
     "description": "Acesso completo ao sistema de gestão de locações Dazio Admin - Assinatura Anual (2 meses grátis)",
     "unit_amount": 97900,

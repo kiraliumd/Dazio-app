@@ -7,30 +7,34 @@ import { CreateSubscriptionRequest, CreateSubscriptionResponse } from './types';
 
 export async function createSubscription(planType: 'monthly' | 'annual'): Promise<CreateSubscriptionResponse> {
   console.log('🔄 createSubscription: Iniciando...', { planType });
-  
+
   try {
     const supabase = await createClient();
     console.log('✅ createSubscription: Cliente Supabase criado');
-    
+
     // Verificar usuário autenticado
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    console.log('🔍 createSubscription: Verificando usuário...', { user: user?.email, authError });
-    
-    if (authError || !user) {
-      console.error('❌ createSubscription: Usuário não autenticado', { authError });
-      throw new Error('Usuário não autenticado');
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error('❌ createSubscription: Erro ao obter usuário:', userError);
+      return {
+        success: false,
+        error: 'Usuário não autenticado',
+      };
     }
 
-    // Buscar company_id do usuário
-    const { data: companyProfile } = await supabase
+    // Verificar perfil da empresa
+    const { data: companyProfile, error: companyError } = await supabase
       .from('company_profiles')
-      .select('id')
+      .select('*')
       .eq('user_id', user.id)
       .single();
 
-    if (!companyProfile) {
-      console.error('❌ createSubscription: Perfil da empresa não encontrado');
-      throw new Error('Perfil da empresa não encontrado');
+    if (companyError || !companyProfile) {
+      console.error('❌ createSubscription: Erro ao obter perfil da empresa:', companyError);
+      return {
+        success: false,
+        error: 'Perfil da empresa não encontrado',
+      };
     }
 
     // Verificar se já existe assinatura ativa
@@ -41,10 +45,10 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
       .in('status', ['active', 'trialing'])
       .single();
 
-    console.log('🔍 createSubscription: Verificando assinatura existente...', { 
-      existingSubscription, 
+    console.log('🔍 createSubscription: Verificando assinatura existente...', {
+      existingSubscription,
       subscriptionError,
-      companyId: companyProfile.id 
+      companyId: companyProfile.id
     });
 
     // Se já existe assinatura ativa, permitir upgrade/downgrade
@@ -55,7 +59,7 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
 
     // Buscar ou criar customer no Stripe
     let customerId = existingSubscription?.stripe_customer_id;
-    
+
     if (!customerId) {
       console.log('🔄 createSubscription: Criando customer no Stripe...');
       const customer = await stripe.customers.create({
@@ -69,74 +73,15 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
       console.log('✅ createSubscription: Customer criado', { customerId });
     }
 
-    // Criar produtos e preços automaticamente para ambos os planos
+    // Usar IDs fixos dos produtos e preços existentes
     let priceId: string;
     
     if (planType === 'monthly') {
-      console.log('🔄 createSubscription: Criando produto e preço mensal automaticamente...');
-      
-      try {
-        // Criar produto mensal
-        const monthlyProduct = await stripe.products.create({
-          name: 'Dazio Admin - Plano Mensal (Recorrente)',
-          description: 'Acesso completo ao sistema de gestão de locações Dazio Admin - Assinatura Mensal',
-        });
-        
-        console.log('✅ createSubscription: Produto mensal criado:', monthlyProduct.id);
-        
-        // Criar preço mensal recorrente
-        const monthlyPrice = await stripe.prices.create({
-          product: monthlyProduct.id,
-          unit_amount: 9790, // R$ 97,90 em centavos
-          currency: 'brl',
-          recurring: {
-            interval: 'month',
-          },
-        });
-        
-        console.log('✅ createSubscription: Preço mensal criado:', monthlyPrice.id);
-        priceId = monthlyPrice.id;
-        
-      } catch (createError) {
-        console.error('❌ createSubscription: Erro ao criar produto/preço mensal:', createError);
-        return {
-          success: false,
-          error: `Erro ao criar produto mensal: ${createError instanceof Error ? createError.message : 'Erro desconhecido'}`,
-        };
-      }
+      priceId = 'price_1RsR6vtyRCyQmy'; // Preço mensal fixo
+      console.log('✅ createSubscription: Usando preço mensal existente:', priceId);
     } else {
-      // Plano anual
-      console.log('🔄 createSubscription: Criando produto e preço anual automaticamente...');
-      
-      try {
-        // Criar produto anual
-        const annualProduct = await stripe.products.create({
-          name: 'Dazio Admin - Plano Anual (Recorrente)',
-          description: 'Acesso completo ao sistema de gestão de locações Dazio Admin - Assinatura Anual (2 meses grátis)',
-        });
-        
-        console.log('✅ createSubscription: Produto anual criado:', annualProduct.id);
-        
-        // Criar preço anual recorrente
-        const annualPrice = await stripe.prices.create({
-          product: annualProduct.id,
-          unit_amount: 97900, // R$ 979,00 em centavos
-          currency: 'brl',
-          recurring: {
-            interval: 'year',
-          },
-        });
-        
-        console.log('✅ createSubscription: Preço anual criado:', annualPrice.id);
-        priceId = annualPrice.id;
-        
-      } catch (createError) {
-        console.error('❌ createSubscription: Erro ao criar produto/preço anual:', createError);
-        return {
-          success: false,
-          error: `Erro ao criar produto anual: ${createError instanceof Error ? createError.message : 'Erro desconhecido'}`,
-        };
-      }
+      priceId = 'price_1RsR6sKDs9V3MH8v8HfmE83N'; // Preço anual fixo
+      console.log('✅ createSubscription: Usando preço anual existente:', priceId);
     }
 
     if (!priceId) {
