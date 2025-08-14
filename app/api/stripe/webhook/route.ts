@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function POST(req: Request) {
   console.log('🔔 Webhook: Requisição recebida');
+  console.log('🔔 Webhook: URL:', req.url);
+  console.log('🔔 Webhook: Método:', req.method);
   
   const body = await req.text();
   const headersList = await headers();
@@ -12,13 +14,19 @@ export async function POST(req: Request) {
   console.log('🔔 Webhook: Headers recebidos:', {
     'stripe-signature': signature ? 'Presente' : 'Ausente',
     'content-type': headersList.get('content-type'),
-    'user-agent': headersList.get('user-agent')
+    'user-agent': headersList.get('user-agent'),
+    'host': headersList.get('host'),
+    'origin': headersList.get('origin')
   });
+  
+  console.log('🔔 Webhook: Body recebido (primeiros 500 chars):', body.substring(0, 500));
   
   let event;
   
   try {
     console.log('🔔 Webhook: Verificando assinatura...');
+    console.log('🔔 Webhook: STRIPE_WEBHOOK_SECRET configurado:', !!process.env.STRIPE_WEBHOOK_SECRET);
+    
     event = stripe.webhooks.constructEvent(
       body,
       signature,
@@ -27,6 +35,7 @@ export async function POST(req: Request) {
     console.log('🔔 Webhook: Assinatura verificada com sucesso');
   } catch (err) {
     console.error('❌ Webhook: Falha na verificação da assinatura:', err);
+    console.error('❌ Webhook: Erro completo:', JSON.stringify(err, null, 2));
     return new Response(`Webhook Error: ${err instanceof Error ? err.message : 'Erro desconhecido'}`, { status: 400 });
   }
 
@@ -36,8 +45,13 @@ export async function POST(req: Request) {
     console.log('🔔 Webhook: Processando evento:', {
       type: event.type,
       id: event.id,
-      created: new Date(event.created * 1000).toISOString()
+      created: new Date(event.created * 1000).toISOString(),
+      object: event.object,
+      data: event.data ? 'Presente' : 'Ausente'
     });
+    
+    // Log detalhado do evento
+    console.log('🔔 Webhook: Dados do evento:', JSON.stringify(event.data, null, 2));
     
     switch (event.type) {
       case 'checkout.session.completed':
@@ -77,12 +91,26 @@ export async function POST(req: Request) {
         
       default:
         console.log('🔔 Webhook: Evento não tratado:', event.type);
+        console.log('🔔 Webhook: Eventos disponíveis:', [
+          'checkout.session.completed',
+          'customer.subscription.created',
+          'customer.subscription.updated',
+          'customer.subscription.deleted',
+          'invoice.payment_succeeded',
+          'invoice.payment_failed',
+          'customer.subscription.trial_will_end'
+        ]);
     }
 
     console.log('🔔 Webhook: Evento processado com sucesso');
-    return new Response(JSON.stringify({ received: true }), { status: 200 });
+    return new Response(JSON.stringify({ 
+      received: true, 
+      event_type: event.type,
+      event_id: event.id 
+    }), { status: 200 });
   } catch (error) {
     console.error('❌ Webhook: Erro ao processar evento:', error);
+    console.error('❌ Webhook: Stack trace:', error instanceof Error ? error.stack : 'N/A');
     return new Response('Webhook handler failed', { status: 500 });
   }
 }
@@ -91,6 +119,7 @@ async function handleCheckoutCompleted(session: any) {
   console.log('✅ handleCheckoutCompleted: Iniciando processamento');
   console.log('✅ handleCheckoutCompleted: Session ID:', session.id);
   console.log('✅ handleCheckoutCompleted: Session metadata:', session.metadata);
+  console.log('✅ handleCheckoutCompleted: Session completa:', JSON.stringify(session, null, 2));
   
   const supabase = await createClient();
   
@@ -106,7 +135,9 @@ async function handleCheckoutCompleted(session: any) {
       hasSubscription: !!checkoutSession?.subscription,
       hasCustomer: !!checkoutSession?.customer,
       mode: checkoutSession?.mode,
-      paymentStatus: checkoutSession?.payment_status
+      paymentStatus: checkoutSession?.payment_status,
+      subscriptionId: checkoutSession?.subscription ? (checkoutSession.subscription as any).id : 'N/A',
+      customerId: checkoutSession?.customer ? (checkoutSession.customer as any).id : 'N/A'
     });
     
     if (!checkoutSession) {
@@ -121,11 +152,15 @@ async function handleCheckoutCompleted(session: any) {
       subscriptionId: subscription?.id,
       customerId: customer?.id,
       subscriptionStatus: subscription?.status,
-      planType: session.metadata?.plan_type
+      planType: session.metadata?.plan_type,
+      subscriptionObject: subscription ? 'Presente' : 'Ausente',
+      customerObject: customer ? 'Presente' : 'Ausente'
     });
     
     if (!subscription || !customer) {
       console.error('❌ handleCheckoutCompleted: Dados da assinatura ou customer não encontrados');
+      console.error('❌ handleCheckoutCompleted: Subscription:', subscription);
+      console.error('❌ handleCheckoutCompleted: Customer:', customer);
       return;
     }
     
@@ -133,7 +168,10 @@ async function handleCheckoutCompleted(session: any) {
       subscriptionId: subscription.id,
       customerId: customer.id,
       status: subscription.status,
-      planType: session.metadata?.plan_type
+      planType: session.metadata?.plan_type,
+      currentPeriodStart: subscription.current_period_start,
+      currentPeriodEnd: subscription.current_period_end,
+      trialEnd: subscription.trial_end
     });
     
     // Criar ou atualizar assinatura no banco
@@ -190,6 +228,7 @@ async function handleCheckoutCompleted(session: any) {
         
       if (insertError) {
         console.error('❌ handleCheckoutCompleted: Erro ao criar assinatura:', insertError);
+        console.error('❌ handleCheckoutCompleted: Dados tentados:', subscriptionData);
         return;
       }
       
@@ -199,6 +238,8 @@ async function handleCheckoutCompleted(session: any) {
     // Atualizar status da empresa para 'active'
     if (session.metadata?.company_id) {
       console.log('✅ handleCheckoutCompleted: Atualizando status da empresa...');
+      console.log('✅ handleCheckoutCompleted: Company ID:', session.metadata.company_id);
+      
       const { error: companyUpdateError } = await supabase
         .from('company_profiles')
         .update({ 
@@ -215,12 +256,14 @@ async function handleCheckoutCompleted(session: any) {
       console.log('✅ handleCheckoutCompleted: Status da empresa atualizado para active');
     } else {
       console.log('⚠️ handleCheckoutCompleted: company_id não encontrado no metadata');
+      console.log('⚠️ handleCheckoutCompleted: Metadata completo:', session.metadata);
     }
     
     console.log('✅ handleCheckoutCompleted: Processamento concluído com sucesso');
     
   } catch (error) {
     console.error('❌ handleCheckoutCompleted: Erro ao processar checkout completado:', error);
+    console.error('❌ handleCheckoutCompleted: Stack trace:', error instanceof Error ? error.stack : 'N/A');
   }
 }
 
