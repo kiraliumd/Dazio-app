@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation";
 import { Calendar, DollarSign, FileText, TrendingUp, Users, Package, BarChart3, Clock, Wrench, LogOut } from "lucide-react"
 
@@ -18,6 +18,13 @@ import { LogoutConfirmationModal } from "../../../components/logout-confirmation
 import { TrialWrapper } from "@/components/trial-wrapper"
 import { useCompanyName } from "@/hooks/useCompanyName"
 
+// Cache com TTL para evitar refetches desnecessários
+const dashboardCache = {
+  metrics: null as DashboardMetrics | null,
+  lastFetch: 0,
+  ttl: 5 * 60 * 1000, // 5 minutos
+};
+
 export default function Dashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [loading, setLoading] = useState(true)
@@ -26,13 +33,20 @@ export default function Dashboard() {
   const router = useRouter()
   const { user, signOut } = useAuth()
 
-  useEffect(() => {
-    if (user) {
-      loadDashboardData()
-    }
-  }, [user])
+  // Verificar se os dados em cache ainda são válidos
+  const isCacheValid = useMemo(() => {
+    return Date.now() - dashboardCache.lastFetch < dashboardCache.ttl;
+  }, []);
 
-  const loadDashboardData = async () => {
+  // Carregar dados apenas se necessário
+  const loadDashboardData = useCallback(async (forceRefresh = false) => {
+    // Se não for refresh forçado e o cache for válido, usar dados em cache
+    if (!forceRefresh && isCacheValid && dashboardCache.metrics) {
+      setMetrics(dashboardCache.metrics);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true)
       console.log('Dashboard: Carregando dados...')
@@ -41,12 +55,14 @@ export default function Dashboard() {
       const [metricsData] = await Promise.all([
         getDashboardMetrics(),
         new Promise(resolve => setTimeout(resolve, 150)),
-        refreshCompanyName(),
+        forceRefresh ? refreshCompanyName() : Promise.resolve(), // Só refresh se forçado
       ])
       
       setMetrics(metricsData)
       
-      // Nome atualizado pelo refreshCompanyName()
+      // Atualizar cache
+      dashboardCache.metrics = metricsData;
+      dashboardCache.lastFetch = Date.now();
       
       console.log('Dashboard: Dados carregados com sucesso')
     } catch (error) {
@@ -54,7 +70,14 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [isCacheValid, refreshCompanyName])
+
+  // Carregar dados apenas uma vez quando o usuário estiver disponível
+  useEffect(() => {
+    if (user && !metrics) {
+      loadDashboardData();
+    }
+  }, [user, metrics, loadDashboardData])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {

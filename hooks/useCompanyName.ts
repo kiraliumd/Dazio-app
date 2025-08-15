@@ -1,7 +1,14 @@
 "use client"
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useAuth } from '@/lib/auth-context'
+
+// Cache com TTL para evitar refetches desnecessários
+const companyNameCache = {
+  name: '',
+  lastFetch: 0,
+  ttl: 10 * 60 * 1000, // 10 minutos
+};
 
 export function useCompanyName() {
   const { user } = useAuth()
@@ -9,23 +16,41 @@ export function useCompanyName() {
     typeof window !== 'undefined' ? (sessionStorage.getItem('company_name') || '') : ''
   )
 
+  // Verificar se o cache ainda é válido
+  const isCacheValid = useMemo(() => {
+    return Date.now() - companyNameCache.lastFetch < companyNameCache.ttl;
+  }, []);
+
   const updateLocal = useCallback((name: string) => {
     setCompanyName(name)
-    try { sessionStorage.setItem('company_name', name) } catch {}
+    try { 
+      sessionStorage.setItem('company_name', name) 
+      companyNameCache.name = name;
+      companyNameCache.lastFetch = Date.now();
+    } catch {}
   }, [])
 
-  const refreshCompanyName = useCallback(async () => {
+  const refreshCompanyName = useCallback(async (forceRefresh = false) => {
     try {
       if (!user) return
+      
+      // Se não for refresh forçado e o cache for válido, usar dados em cache
+      if (!forceRefresh && isCacheValid && companyNameCache.name) {
+        updateLocal(companyNameCache.name);
+        return;
+      }
+
       // endpoint leve com nome unificado (settings -> profile -> email)
-      const res = await fetch('/api/company/name', { cache: 'no-store' })
+      const res = await fetch('/api/company/name', { 
+        cache: forceRefresh ? 'no-store' : 'default' 
+      })
       const json = await res.json()
       const name = json?.name
       if (name && typeof name === 'string') {
         updateLocal(name)
       }
     } catch {}
-  }, [user, updateLocal])
+  }, [user, updateLocal, isCacheValid])
 
   useEffect(() => {
     if (!companyName && user) {

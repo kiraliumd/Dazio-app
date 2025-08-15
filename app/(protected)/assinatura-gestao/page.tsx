@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -37,6 +37,14 @@ interface Subscription {
   stripe_customer_id: string;
 }
 
+// Cache com TTL para evitar refetches desnecessários
+const dataCache = {
+  companyProfile: null as CompanyProfile | null,
+  subscription: null as Subscription | null,
+  lastFetch: 0,
+  ttl: 5 * 60 * 1000, // 5 minutos
+};
+
 export default function AssinaturaGestaoPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -47,13 +55,21 @@ export default function AssinaturaGestaoPage() {
   const [annualLoading, setAnnualLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadSubscriptionData();
-    }
-  }, [user]);
+  // Verificar se os dados em cache ainda são válidos
+  const isCacheValid = useMemo(() => {
+    return Date.now() - dataCache.lastFetch < dataCache.ttl;
+  }, []);
 
-  const loadSubscriptionData = async () => {
+  // Carregar dados apenas se necessário
+  const loadSubscriptionData = useCallback(async (forceRefresh = false) => {
+    // Se não for refresh forçado e o cache for válido, usar dados em cache
+    if (!forceRefresh && isCacheValid && dataCache.companyProfile && dataCache.subscription) {
+      setCompanyProfile(dataCache.companyProfile);
+      setSubscription(dataCache.subscription);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       
@@ -62,15 +78,25 @@ export default function AssinaturaGestaoPage() {
         fetch('/api/subscription')
       ]);
       
+      let newCompanyProfile = null;
+      let newSubscription = null;
+
       if (profileResponse.ok) {
         const profileResult = await profileResponse.json();
-        setCompanyProfile(profileResult.data);
+        newCompanyProfile = profileResult.data;
+        setCompanyProfile(newCompanyProfile);
       }
 
       if (subscriptionResponse.ok) {
         const subscriptionResult = await subscriptionResponse.json();
-        setSubscription(subscriptionResult.data);
+        newSubscription = subscriptionResult.data;
+        setSubscription(newSubscription);
       }
+
+      // Atualizar cache
+      dataCache.companyProfile = newCompanyProfile;
+      dataCache.subscription = newSubscription;
+      dataCache.lastFetch = Date.now();
 
     } catch (error) {
       console.error('Erro ao carregar dados da assinatura:', error);
@@ -78,10 +104,17 @@ export default function AssinaturaGestaoPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isCacheValid]);
+
+  // Carregar dados apenas uma vez quando o usuário estiver disponível
+  useEffect(() => {
+    if (user && !companyProfile && !subscription) {
+      loadSubscriptionData();
+    }
+  }, [user, companyProfile, subscription, loadSubscriptionData]);
 
   const refreshData = async () => {
-    await loadSubscriptionData();
+    await loadSubscriptionData(true); // Forçar refresh
     toast.success('Dados atualizados com sucesso!');
   };
 
