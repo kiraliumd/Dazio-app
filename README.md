@@ -1,8 +1,27 @@
-# Dazio - Sistema de Gestão de Locações
+# 🚀 Dazio - Sistema de Gestão de Locações
 
-## 🚀 Visão Geral do Projeto
+## 📋 Índice
 
-Sistema completo de gestão de locações de equipamentos, desenvolvido com Next.js, Supabase e TypeScript. Permite gerenciar orçamentos, locações, clientes, equipamentos, agenda de eventos de logística e locações recorrentes.
+1. [Visão Geral](#visão-geral)
+2. [Funcionalidades Principais](#funcionalidades-principais)
+3. [Stack Tecnológica](#stack-tecnológica)
+4. [Arquitetura do Projeto](#arquitetura-do-projeto)
+5. [Fluxo Principal do Sistema](#fluxo-principal-do-sistema)
+6. [Sistema de Recorrência](#sistema-de-recorrência)
+7. [Sistema de Assinaturas](#sistema-de-assinaturas)
+8. [Integração com Resend](#integração-com-resend)
+9. [Estrutura do Banco de Dados](#estrutura-do-banco-de-dados)
+10. [Configuração e Instalação](#configuração-e-instalação)
+11. [Otimizações de Performance](#otimizações-de-performance)
+12. [Melhorias de UX](#melhorias-de-ux)
+13. [Changelog](#changelog)
+14. [Próximas Funcionalidades](#próximas-funcionalidades)
+
+---
+
+## 🎯 Visão Geral
+
+Sistema completo de gestão de locações de equipamentos, desenvolvido com Next.js, Supabase e TypeScript. Permite gerenciar orçamentos, locações, clientes, equipamentos, agenda de eventos de logística, locações recorrentes e sistema de assinaturas.
 
 ### ✨ Principais Funcionalidades
 
@@ -14,10 +33,12 @@ Sistema completo de gestão de locações de equipamentos, desenvolvido com Next
 - **Relatórios Dinâmicos**: Análises e métricas de negócio
 - **Gestão de Clientes**: Base de dados completa de clientes
 - **Gestão de Equipamentos**: Catálogo com categorias e controle de estoque
-
+- **Sistema de Assinaturas**: Integração completa com Stripe
 - **Geração de Contratos**: PDF automático com dados da empresa
 - **Sistema de Notificações**: Alertas para recorrências no dia
 - **Configurações**: Personalização do sistema e dados da empresa
+
+---
 
 ## 🛠️ Stack Tecnológica
 
@@ -34,15 +55,22 @@ Sistema completo de gestão de locações de equipamentos, desenvolvido com Next
 - **PostgreSQL** para armazenamento
 - **Server Actions** para lógica de negócio no backend
 
+### Integrações
+- **Stripe** para sistema de assinaturas
+- **Resend** para envio de emails transacionais
+- **Vercel** para deploy e hosting
+
 ### Ferramentas
 - **pnpm** como gerenciador de pacotes
 - **ESLint** para qualidade de código
 - **TypeScript** para verificação de tipos
 
+---
+
 ## 📁 Arquitetura do Projeto
 
 ```
-precisa-admim-1.0-main/
+dazio-admim-1.0-main/
 ├── app/                    # Páginas e rotas (App Router)
 │   ├── dashboard.tsx      # Dashboard principal
 │   ├── orcamentos/        # Gestão de orçamentos
@@ -50,10 +78,10 @@ precisa-admim-1.0-main/
 │   ├── locacoes-recorrentes/ # Gestão de locações recorrentes
 │   ├── clientes/          # Gestão de clientes
 │   ├── equipamentos/      # Catálogo de equipamentos
-
 │   ├── agenda/            # Agenda de eventos
 │   ├── relatorios/        # Relatórios e análises
-│   └── configuracoes/     # Configurações do sistema
+│   ├── configuracoes/     # Configurações do sistema
+│   └── assinatura-gestao/ # Gestão de assinaturas
 ├── components/            # Componentes React reutilizáveis
 │   ├── ui/               # Componentes base (shadcn/ui)
 │   ├── budget-form-v2.tsx # Formulário avançado de orçamentos
@@ -61,23 +89,23 @@ precisa-admim-1.0-main/
 │   ├── rental-form.tsx    # Formulário de locações
 │   ├── contract-pdf.tsx   # Componente para geração de PDF
 │   ├── notification-bell.tsx # Sistema de notificações
+│   ├── recurrence-config.tsx # Configuração de recorrência
 │   └── app-sidebar.tsx    # Sidebar principal
-├── src/                   # Estrutura organizada
-│   ├── assets/           # Assets do projeto
-│   │   └── images/       # Imagens e logos
-│   ├── components/       # Componentes organizados
-│   │   └── ui/          # Componentes de UI
-│   ├── hooks/           # Custom hooks
-│   ├── lib/             # Utilitários
-│   └── types/           # Definições de tipos
 ├── lib/                   # Utilitários e configurações
-│   ├── database/         # Camada de acesso aos dados
-│   ├── utils/            # Funções utilitárias
-│   ├── supabase.ts       # Configuração do Supabase
-│   └── validation.ts     # Schemas de validação com Zod
-├── scripts/              # Scripts SQL para migrações
-└── public/               # Arquivos públicos (favicon, logos)
+│   ├── database/          # Camada de acesso aos dados
+│   ├── utils/             # Funções utilitárias
+│   ├── supabase.ts        # Configuração do Supabase
+│   ├── stripe.ts          # Configuração do Stripe
+│   ├── resend.ts          # Configuração do Resend
+│   ├── subscription/      # Lógica de assinaturas
+│   └── validation.ts      # Schemas de validação com Zod
+├── hooks/                 # Custom hooks
+│   └── useCompanyName.ts  # Hook para nome da empresa
+├── scripts/               # Scripts SQL para migrações
+└── public/                # Arquivos públicos (favicon, logos)
 ```
+
+---
 
 ## 🔄 Fluxo Principal do Sistema
 
@@ -120,34 +148,341 @@ precisa-admim-1.0-main/
 - **Aprovação**: Workflow de aprovação de recebíveis
 - **Relatórios**: Análises financeiras e métricas de performance
 
-## 🆕 Funcionalidades Recentes
+---
 
+## 🔁 Sistema de Recorrência
 
+### Funcionalidades Implementadas
 
-### Sistema de Recorrência
-- **Tipos de recorrência**: Semanal, mensal, anual
-- **Intervalo configurável**: 1, 2, 3... períodos
-- **Data de término**: Controle de quando parar
+#### **Tipos de Recorrência**
+- **Diária**: A cada X dias
+- **Semanal**: A cada X semanas
+- **Mensal**: A cada X meses
+- **Anual**: A cada X anos
+
+#### **Configuração Avançada**
+- **Intervalo personalizável**: 1, 2, 3... períodos
+- **Data de término opcional**: Controle de quando parar
 - **Cálculo automático**: Próximas ocorrências calculadas automaticamente
 - **Status de recorrência**: Ativo, pausado, cancelado, concluído
 
-### Geração de Contratos
-- **PDF automático** com dados da empresa
-- **Template personalizável** nas configurações
-- **Dados completos**: Cliente, empresa, equipamentos, valores
-- **Download automático** com nome personalizado
+#### **Gestão Automática**
+- **Geração automática** de ocorrências futuras
+- **Controle de status** (ativa, pausada, cancelada)
+- **Próxima ocorrência** sempre visível
+- **Histórico completo** de ocorrências
 
-### Sistema de Notificações
-- **Notificações em tempo real** para recorrências
-- **Badge de contagem** no header
-- **Popover com lista** de notificações
-- **Marcação como lida**
+### Implementação Técnica
 
-### Interface Aprimorada
-- **Logo da empresa** no sidebar
-- **Favicon personalizado**
-- **Toasts elegantes** em vez de alerts
-- **Feedback visual** melhorado
+#### **Banco de Dados**
+```sql
+-- Tabela rentals (atualizada)
+ALTER TABLE rentals 
+ADD COLUMN is_recurring BOOLEAN DEFAULT FALSE,
+ADD COLUMN recurrence_type recurrence_type DEFAULT 'none',
+ADD COLUMN recurrence_interval INTEGER DEFAULT 1,
+ADD COLUMN recurrence_end_date TIMESTAMP WITH TIME ZONE,
+ADD COLUMN recurrence_status recurrence_status DEFAULT 'active',
+ADD COLUMN parent_rental_id UUID REFERENCES rentals(id),
+ADD COLUMN next_occurrence_date TIMESTAMP WITH TIME ZONE;
+
+-- Nova tabela recurring_rental_occurrences
+CREATE TABLE recurring_rental_occurrences (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  parent_rental_id UUID NOT NULL REFERENCES rentals(id),
+  occurrence_number INTEGER NOT NULL,
+  start_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  end_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  installation_date TIMESTAMP WITH TIME ZONE,
+  removal_date TIMESTAMP WITH TIME ZONE,
+  status rental_status DEFAULT 'Instalação Pendente',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+#### **Funções SQL**
+- **`calculate_next_occurrence`**: Calcula próxima data baseada no tipo
+- **`generate_future_occurrences`**: Gera ocorrências futuras automaticamente
+- **Triggers**: Atualização automática de timestamps
+
+#### **Frontend**
+- **Componente `RecurrenceConfig`**: Interface para configuração
+- **Step dedicado** no formulário de orçamento
+- **Página de gestão** para locações recorrentes
+- **Preview visual** das próximas ocorrências
+
+---
+
+## 💳 Sistema de Assinaturas
+
+### Integração com Stripe
+
+#### **Funcionalidades**
+- **Planos mensais e anuais** com preços fixos
+- **Checkout integrado** do Stripe
+- **Webhooks** para sincronização automática
+- **Portal do cliente** para gestão
+- **Status automático** (trial → active)
+
+#### **Configuração**
+```env
+# Stripe Configuration
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_MONTHLY_PRICE_ID=price_1RsR6sKDs9V3MH8vtyRCyQmy
+STRIPE_ANNUAL_PRICE_ID=price_1RsR6sKDs9V3MH8v8HfmE83N
+```
+
+#### **Fluxo de Assinatura**
+1. **Usuário seleciona plano** (mensal/anual)
+2. **Sistema cria customer** no Stripe
+3. **Checkout session** é gerada
+4. **Usuário completa pagamento** no Stripe
+5. **Webhook processa** evento de sucesso
+6. **Assinatura criada** no banco local
+7. **Status da empresa** atualizado para "active"
+
+#### **Webhooks Implementados**
+- **`checkout.session.completed`**: Processa checkout bem-sucedido
+- **`customer.subscription.created`**: Cria nova assinatura
+- **`customer.subscription.updated`**: Atualiza assinatura existente
+- **`customer.subscription.deleted`**: Cancela assinatura
+- **`invoice.payment_succeeded`**: Confirma pagamento
+
+#### **Estrutura do Banco**
+```sql
+-- Tabela subscriptions
+CREATE TABLE subscriptions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  company_id UUID NOT NULL REFERENCES company_profiles(id),
+  stripe_subscription_id TEXT UNIQUE,
+  stripe_customer_id TEXT,
+  plan_type TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  current_period_start TIMESTAMP WITH TIME ZONE,
+  current_period_end TIMESTAMP WITH TIME ZONE,
+  trial_end TIMESTAMP WITH TIME ZONE,
+  cancel_at_period_end BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+---
+
+## 📧 Integração com Resend
+
+### Funcionalidades Implementadas
+
+#### **Cadastro Automático**
+- Todo novo usuário é automaticamente adicionado à audiência do Resend
+- Dados incluídos: email, nome da empresa (se disponível)
+- Status: inscrito por padrão
+
+#### **Atualização Automática**
+- Quando o perfil da empresa é atualizado, os dados na audiência são sincronizados
+- Mantém informações sempre atualizadas
+
+#### **Desinscrição**
+- Link de desinscrição em todos os emails
+- Página dedicada para gerenciar inscrição
+- Possibilidade de re-inscrição
+
+#### **Verificação de Status**
+- API para verificar se um email está na audiência
+- Controle de status de inscrição
+
+### Configuração
+
+#### **1. Criar Audiência no Resend**
+1. Acesse o [painel do Resend](https://resend.com/audiences)
+2. Clique em "Create Audience"
+3. Dê um nome (ex: "Dazio Users")
+4. Copie o **Audience ID** gerado
+
+#### **2. Configurar Variável de Ambiente**
+```env
+RESEND_AUDIENCE_ID=f07a036f-bccf-4959-a940-a025ab7fdce5
+```
+
+#### **3. Verificar Configuração**
+```bash
+curl -X POST https://app.dazio.com.br/api/check-audience \
+  -H "Content-Type: application/json" \
+  -d '{"email":"teste@exemplo.com"}'
+```
+
+### APIs Disponíveis
+
+#### **Adicionar Contato**
+```typescript
+POST /api/auth/signup
+{
+  "email": "usuario@exemplo.com",
+  "password": "senha123"
+}
+```
+
+#### **Verificar Contato**
+```typescript
+POST /api/check-audience
+{
+  "email": "usuario@exemplo.com"
+}
+```
+
+#### **Desinscrever**
+```typescript
+POST /api/unsubscribe
+{
+  "email": "usuario@exemplo.com"
+}
+```
+
+#### **Re-inscrever**
+```typescript
+POST /api/resubscribe
+{
+  "email": "usuario@exemplo.com"
+}
+```
+
+### Estrutura de Tokens
+```sql
+-- Tabela email_confirmation_tokens
+CREATE TABLE email_confirmation_tokens (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id),
+  email TEXT,
+  token TEXT UNIQUE,
+  expires_at TIMESTAMP WITH TIME ZONE,
+  used BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+---
+
+## 📊 Estrutura do Banco de Dados
+
+### Tabelas Principais
+
+#### **Gestão de Negócio**
+- **`clients`**: Dados dos clientes
+- **`equipments`**: Catálogo de equipamentos
+- **`equipment_categories`**: Categorias de equipamentos
+- **`budgets`**: Orçamentos gerados
+- **`budget_items`**: Itens dos orçamentos
+- **`rentals`**: Locações/contratos
+- **`rental_items`**: Itens das locações
+- **`rental_logistics_events`**: Eventos de logística
+
+#### **Configuração e Assinaturas**
+- **`company_profiles`**: Perfil da empresa
+- **`company_settings`**: Configurações do sistema
+- **`subscriptions`**: Assinaturas Stripe
+- **`email_confirmation_tokens`**: Tokens de confirmação
+
+#### **Campos de Recorrência**
+- **`is_recurring`**: Boolean - Se é recorrente
+- **`recurrence_type`**: weekly/monthly/yearly - Tipo de recorrência
+- **`recurrence_interval`**: Integer - Intervalo da recorrência
+- **`recurrence_end_date`**: Date - Data de término
+- **`recurrence_status`**: active/paused/cancelled/completed - Status
+- **`parent_rental_id`**: UUID - ID da locação pai (para ocorrências)
+- **`next_occurrence_date`**: Date - Próxima ocorrência
+
+#### **Relacionamentos**
+- Cliente → Orçamentos → Locações
+- Orçamentos → Itens de Orçamento
+- Locações → Itens de Locação
+- Locações → Eventos de Logística
+- Locações → Locações Recorrentes (self-referencing)
+- Usuário → Assinatura → Empresa
+
+---
+
+## ⚙️ Configuração e Instalação
+
+### Pré-requisitos
+- Node.js 18+
+- pnpm instalado
+- Conta no Supabase
+- Conta no Stripe
+- Conta no Resend
+- Conta no Vercel
+
+### Instalação
+
+#### **1. Clonar o Repositório**
+```bash
+git clone [url-do-repositorio]
+cd dazio-admim-1.0-main
+```
+
+#### **2. Instalar Dependências**
+```bash
+pnpm install
+```
+
+#### **3. Configurar Variáveis de Ambiente**
+
+**No Vercel (Recomendado):**
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=sua_url_do_supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima
+SUPABASE_SERVICE_ROLE_KEY=sua_chave_de_servico
+
+# Stripe
+STRIPE_SECRET_KEY=sua_chave_secreta_stripe
+STRIPE_PUBLISHABLE_KEY=sua_chave_publica_stripe
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+
+# Resend
+RESEND_API_KEY=re_xxx
+RESEND_AUDIENCE_ID=xxx
+
+# App
+NEXT_PUBLIC_APP_URL=https://app.dazio.com.br
+```
+
+**Local (.env.local):**
+```env
+# Copiar .env.example para .env.local
+cp .env.example .env.local
+# Editar com suas credenciais
+```
+
+#### **4. Executar Scripts SQL**
+Execute os scripts em `scripts/` na ordem numérica:
+```bash
+# No SQL Editor do Supabase
+# 1. Estrutura base
+# 2. Dados iniciais
+# 3. Recorrência
+# 4. Assinaturas
+# 5. Resend
+```
+
+#### **5. Iniciar Desenvolvimento**
+```bash
+pnpm dev
+```
+
+### Scripts Disponíveis
+```bash
+pnpm dev          # Servidor de desenvolvimento
+pnpm build        # Build de produção
+pnpm start        # Servidor de produção
+pnpm lint         # Verificação de código
+```
+
+---
 
 ## ⚡ Otimizações de Performance Implementadas
 
@@ -156,6 +491,12 @@ precisa-admim-1.0-main/
 - **Sistema de Cache**: Cache de 5 minutos para métricas
 - **Loading Progressivo**: Animações suaves e feedback visual
 - **Delay Mínimo**: 300ms para evitar flash de loading
+
+### Sistema de Cache Inteligente
+- **TTL Configurável**: 5-10 minutos para diferentes tipos de dados
+- **Cache por Página**: Cada página mantém seus dados em cache
+- **Refresh Inteligente**: Só atualiza quando necessário
+- **Prevenção de Refetches**: Evita chamadas desnecessárias à API
 
 ### Limitação de Dados
 - **Carregamento Inteligente**: Máximo 50 registros por página inicial
@@ -166,6 +507,8 @@ precisa-admim-1.0-main/
 - **Supabase Otimizado**: Configuração para performance máxima
 - **Componentes de Loading**: Spinners e skeletons reutilizáveis
 - **Sistema de Retry**: Preparado para melhorar confiabilidade
+
+---
 
 ## 🎨 Melhorias de UX Implementadas
 
@@ -203,174 +546,120 @@ precisa-admim-1.0-main/
 - **Validação em Tempo Real**: Verificação de dados
 - **Template de Contrato**: Personalização do PDF
 
-
-
-## 📊 Estrutura do Banco de Dados
-
-### Tabelas Principais
-- **clients**: Dados dos clientes
-- **equipments**: Catálogo de equipamentos
-- **equipment_categories**: Categorias de equipamentos
-- **budgets**: Orçamentos gerados
-- **budget_items**: Itens dos orçamentos
-- **rentals**: Locações/contratos
-- **rental_items**: Itens das locações
-- **rental_logistics_events**: Eventos de logística
-- **company_settings**: Configurações da empresa
-
-
-
-### Campos de Recorrência (Novos)
-- **is_recurring**: Boolean - Se é recorrente
-- **recurrence_type**: weekly/monthly/yearly - Tipo de recorrência
-- **recurrence_interval**: Integer - Intervalo da recorrência
-- **recurrence_end_date**: Date - Data de término
-- **recurrence_status**: active/paused/cancelled/completed - Status
-- **parent_rental_id**: UUID - ID da locação pai (para ocorrências)
-- **next_occurrence_date**: Date - Próxima ocorrência
-
-### Relacionamentos
-- Cliente → Orçamentos → Locações
-- Orçamentos → Itens de Orçamento
-- Locações → Itens de Locação
-- Locações → Eventos de Logística
-- Locações → Locações Recorrentes (self-referencing)
-
-
-## 🚀 Como Executar o Projeto
-
-### Pré-requisitos
-- Node.js 18+ 
-- pnpm instalado
-- Conta no Supabase
-
-### Instalação
-```bash
-# Clonar o repositório
-git clone [url-do-repositorio]
-
-# Instalar dependências
-pnpm install
-
-# Configurar variáveis de ambiente
-cp .env.example .env.local
-# Editar .env.local com suas credenciais do Supabase
-
-# Executar scripts SQL de migração
-# Execute os scripts em scripts/ na ordem numérica
-
-# Iniciar o servidor de desenvolvimento
-pnpm dev
-```
-
-### Scripts Disponíveis
-```bash
-pnpm dev          # Servidor de desenvolvimento
-pnpm build        # Build de produção
-pnpm start        # Servidor de produção
-pnpm lint         # Verificação de código
-```
-
-## 📈 Métricas de Performance
-
-### Antes das Otimizações
-- Dashboard: 3-5 segundos de carregamento
-- Páginas de listagem: 2-4 segundos
-- Flash de loading muito rápido
-- Consultas sequenciais
-
-### Após as Otimizações
-- Dashboard: 0.5-1 segundo de carregamento (60-80% mais rápido)
-- Páginas de listagem: 0.3-0.8 segundos (70-90% mais rápido)
-- Loading suave e progressivo
-- Consultas em paralelo com cache
-
-## 🔧 Configurações Avançadas
-
-### Variáveis de Ambiente
-
-#### **Configuração no Vercel (Recomendado)**
-
-1. **Acesse o Dashboard do Vercel**
-2. **Vá para seu projeto** `dazio-admin`
-3. **Clique em "Settings"** (Configurações)
-4. **Vá para a aba "Environment Variables"**
-5. **Adicione as seguintes variáveis:**
-
-```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=sua_url_do_supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima
-SUPABASE_SERVICE_ROLE_KEY=sua_chave_de_servico
-
-# Stripe
-STRIPE_SECRET_KEY=sua_chave_secreta_stripe
-STRIPE_PUBLISHABLE_KEY=sua_chave_publica_stripe
-STRIPE_MONTHLY_PRICE_ID=price_xxx
-STRIPE_ANNUAL_PRICE_ID=price_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-```
-
-#### **Configuração da Conexão Direta Vercel-Supabase**
-
-Para melhorar a performance e resolver problemas de autenticação:
-
-1. **No Dashboard do Vercel, vá para "Settings" > "Storage"**
-2. **Clique em "Connect Database"**
-3. **Selecione "Supabase"**
-4. **Configure:**
-   - **Database URL**: `postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres`
-   - **Use as**: `Environment Variable`
-   - **Nome da variável**: `DATABASE_URL`
-
-#### **Configuração Local (.env.local)**
-
-### Configurações do Supabase
-- Autenticação desabilitada para performance
-- Schema público configurado
-- Headers personalizados para identificação
+---
 
 ## 📝 Changelog
 
 ### Versão Atual (v1.0)
 
-- ✅ Sistema de recorrência completo
-- ✅ Geração de contratos em PDF
-- ✅ Sistema de notificações
-- ✅ Interface aprimorada com logo
-- ✅ Toasts elegantes
-- ✅ SEO otimizado
-- ✅ Performance melhorada
-- ✅ Estrutura de pastas organizada
+#### **✅ Sistema de Recorrência**
+- Tipos de recorrência: Semanal, mensal, anual
+- Intervalo configurável: 1, 2, 3... períodos
+- Data de término: Controle de quando parar
+- Cálculo automático: Próximas ocorrências calculadas automaticamente
+- Status de recorrência: Ativo, pausado, cancelado, concluído
+
+#### **✅ Sistema de Assinaturas**
+- Integração completa com Stripe
+- Planos mensais e anuais
+- Webhooks para sincronização automática
+- Portal do cliente para gestão
+- Status automático (trial → active)
+
+#### **✅ Integração com Resend**
+- Cadastro automático na audiência
+- Emails transacionais
+- Sistema de confirmação de email
+- Gestão de inscrições
+
+#### **✅ Geração de Contratos**
+- PDF automático com dados da empresa
+- Template personalizável nas configurações
+- Dados completos: Cliente, empresa, equipamentos, valores
+- Download automático com nome personalizado
+
+#### **✅ Sistema de Notificações**
+- Notificações em tempo real para recorrências
+- Badge de contagem no header
+- Popover com lista de notificações
+- Marcação como lida
+
+#### **✅ Interface Aprimorada**
+- Logo da empresa no sidebar
+- Favicon personalizado
+- Toasts elegantes em vez de alerts
+- Feedback visual melhorado
+
+#### **✅ Performance e Cache**
+- Sistema de cache inteligente com TTL
+- Prevenção de recarregamentos desnecessários
+- Otimização de useEffect e dependências
+- Cache por página para melhor experiência
 
 ### Funcionalidades Principais
 - ✅ Dashboard com métricas em tempo real
 - ✅ Gestão completa de orçamentos
 - ✅ Controle de locações com recorrência
-
 - ✅ Agenda de eventos de logística
 - ✅ Relatórios dinâmicos
 - ✅ Gestão de clientes e equipamentos
 - ✅ Configurações da empresa
 - ✅ Geração automática de contratos
+- ✅ Sistema de assinaturas completo
+- ✅ Integração com email transacional
+
+---
 
 ## 🎯 Próximas Funcionalidades
 
-- [ ] Sistema de autenticação
-- [ ] Múltiplos usuários
+### **Em Desenvolvimento**
+- [ ] Sistema de autenticação avançado
+- [ ] Múltiplos usuários e permissões
+- [ ] Backup automático do banco
+- [ ] Logs de auditoria completos
 
-- [ ] Integração com gateways de pagamento
-- [ ] App mobile
-- [ ] Backup automático
-- [ ] Logs de auditoria
+### **Planejadas**
+- [ ] Integração com gateways de pagamento brasileiros
+- [ ] App mobile nativo
 - [ ] Fluxo de caixa projetado
-- [ ] Conciliação bancária
+- [ ] Conciliação bancária automática
+- [ ] Sistema de relatórios avançados
+- [ ] API REST para integrações externas
+- [ ] Sistema de backup em nuvem
+- [ ] Monitoramento de performance em tempo real
+
+### **Melhorias de UX**
+- [ ] Modo escuro/claro
+- [ ] Personalização de temas
+- [ ] Atalhos de teclado
+- [ ] Tour interativo para novos usuários
+- [ ] Sistema de ajuda contextual
+
+---
 
 ## 📞 Suporte
 
-Para suporte técnico ou dúvidas sobre o sistema, entre em contato com a equipe de desenvolvimento.
+### **Documentação Técnica**
+- Este README contém todas as informações necessárias
+- Scripts SQL estão organizados por funcionalidade
+- Componentes React seguem padrões estabelecidos
+
+### **Para Desenvolvedores**
+- Código comentado e organizado
+- Tipos TypeScript bem definidos
+- Padrões de nomenclatura consistentes
+- Estrutura de pastas lógica
+
+### **Para Usuários**
+- Interface intuitiva e responsiva
+- Feedback visual claro para todas as ações
+- Sistema de ajuda integrado
+- Suporte técnico disponível
 
 ---
 
 **Dazio - Sistema de Gestão de Locações**  
 *Versão 1.0 - 2024*
+
+**Status**: ✅ Implementado e Funcionando  
+**Última atualização**: Dezembro 2024
