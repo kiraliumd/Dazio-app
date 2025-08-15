@@ -1,47 +1,45 @@
-import { headers } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   console.log('🔔 Webhook: Requisição recebida');
-  console.log('🔔 Webhook: URL:', req.url);
-  console.log('🔔 Webhook: Método:', req.method);
+  console.log('🔔 Webhook: URL:', request.url);
+  console.log('🔔 Webhook: Método:', request.method);
   
-  const body = await req.text();
-  const headersList = await headers();
-  const signature = headersList.get('stripe-signature')!;
-  
+  const headers = Object.fromEntries(request.headers.entries());
   console.log('🔔 Webhook: Headers recebidos:', {
-    'stripe-signature': signature ? 'Presente' : 'Ausente',
-    'content-type': headersList.get('content-type'),
-    'user-agent': headersList.get('user-agent'),
-    'host': headersList.get('host'),
-    'origin': headersList.get('origin')
+    'stripe-signature': headers['stripe-signature'] ? 'Presente' : 'Ausente',
+    'content-type': headers['content-type'],
+    'user-agent': headers['user-agent'],
+    host: headers.host,
+    origin: headers.origin
   });
-  
+
+  const body = await request.text();
   console.log('🔔 Webhook: Body recebido (primeiros 500 chars):', body.substring(0, 500));
-  
-  let event;
-  
+
   try {
     console.log('🔔 Webhook: Verificando assinatura...');
-    console.log('🔔 Webhook: STRIPE_WEBHOOK_SECRET configurado:', !!process.env.STRIPE_WEBHOOK_SECRET);
     
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error('❌ Webhook: STRIPE_WEBHOOK_SECRET não configurado');
+      return NextResponse.json({ error: 'Webhook secret não configurado' }, { status: 400 });
+    }
+    
+    console.log('🔔 Webhook: STRIPE_WEBHOOK_SECRET configurado:', !!webhookSecret);
+
+    const signature = headers['stripe-signature'];
+    if (!signature) {
+      console.error('❌ Webhook: Assinatura Stripe não encontrada');
+      return NextResponse.json({ error: 'Assinatura não encontrada' }, { status: 400 });
+    }
+
+    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     console.log('🔔 Webhook: Assinatura verificada com sucesso');
-  } catch (err) {
-    console.error('❌ Webhook: Falha na verificação da assinatura:', err);
-    console.error('❌ Webhook: Erro completo:', JSON.stringify(err, null, 2));
-    return new Response(`Webhook Error: ${err instanceof Error ? err.message : 'Erro desconhecido'}`, { status: 400 });
-  }
 
-  const supabase = await createClient();
-
-  try {
     console.log('🔔 Webhook: Processando evento:', {
       type: event.type,
       id: event.id,
@@ -49,43 +47,43 @@ export async function POST(req: Request) {
       object: event.object,
       data: event.data ? 'Presente' : 'Ausente'
     });
-    
-    // Log detalhado do evento
+
     console.log('🔔 Webhook: Dados do evento:', JSON.stringify(event.data, null, 2));
-    
+
+    // Processar evento baseado no tipo
     switch (event.type) {
       case 'checkout.session.completed':
-        console.log('🔔 Webhook: Evento checkout.session.completed detectado');
+        console.log('✅ handleCheckoutCompleted: Iniciando processamento');
         await handleCheckoutCompleted(event.data.object);
         break;
         
       case 'customer.subscription.created':
-        console.log('🔔 Webhook: Evento customer.subscription.created detectado');
+        console.log('🔄 handleSubscriptionChange: Evento customer.subscription.created detectado');
         await handleSubscriptionChange(event.data.object);
         break;
         
       case 'customer.subscription.updated':
-        console.log('🔔 Webhook: Evento customer.subscription.updated detectado');
+        console.log('🔄 handleSubscriptionChange: Evento customer.subscription.updated detectado');
         await handleSubscriptionChange(event.data.object);
         break;
         
       case 'customer.subscription.deleted':
-        console.log('🔔 Webhook: Evento customer.subscription.deleted detectado');
+        console.log('❌ handleSubscriptionCancellation: Evento customer.subscription.deleted detectado');
         await handleSubscriptionCancellation(event.data.object);
         break;
         
       case 'invoice.payment_succeeded':
-        console.log('🔔 Webhook: Evento invoice.payment_succeeded detectado');
+        console.log('💰 handlePaymentSuccess: Evento invoice.payment_succeeded detectado');
         await handlePaymentSuccess(event.data.object);
         break;
         
       case 'invoice.payment_failed':
-        console.log('🔔 Webhook: Evento invoice.payment_failed detectado');
+        console.log('❌ handlePaymentFailure: Evento invoice.payment_failed detectado');
         await handlePaymentFailure(event.data.object);
         break;
         
       case 'customer.subscription.trial_will_end':
-        console.log('🔔 Webhook: Evento customer.subscription.trial_will_end detectado');
+        console.log('⏰ handleTrialEnding: Evento customer.subscription.trial_will_end detectado');
         await handleTrialEnding(event.data.object);
         break;
         
@@ -103,15 +101,14 @@ export async function POST(req: Request) {
     }
 
     console.log('🔔 Webhook: Evento processado com sucesso');
-    return new Response(JSON.stringify({ 
-      received: true, 
-      event_type: event.type,
-      event_id: event.id 
-    }), { status: 200 });
+    return NextResponse.json({ received: true });
+
   } catch (error) {
-    console.error('❌ Webhook: Erro ao processar evento:', error);
-    console.error('❌ Webhook: Stack trace:', error instanceof Error ? error.stack : 'N/A');
-    return new Response('Webhook handler failed', { status: 500 });
+    console.error('❌ Webhook: Erro ao processar webhook:', error);
+    return NextResponse.json(
+      { error: 'Erro ao processar webhook' },
+      { status: 400 }
+    );
   }
 }
 
@@ -119,89 +116,69 @@ async function handleCheckoutCompleted(session: any) {
   console.log('✅ handleCheckoutCompleted: Iniciando processamento');
   console.log('✅ handleCheckoutCompleted: Session ID:', session.id);
   console.log('✅ handleCheckoutCompleted: Session metadata:', session.metadata);
-  console.log('✅ handleCheckoutCompleted: Session completa:', JSON.stringify(session, null, 2));
-  
-  const supabase = await createClient();
   
   try {
-    console.log('✅ handleCheckoutCompleted: Buscando dados da sessão no Stripe...');
+    // Usar cliente admin para bypassar RLS
+    const supabase = await createAdminClient();
     
-    // Buscar dados da sessão com expansão
-    const checkoutSession = await stripe.checkout.sessions.retrieve(session.id, {
+    console.log('✅ handleCheckoutCompleted: Cliente admin criado');
+    
+    // Buscar dados da sessão no Stripe para obter informações completas
+    console.log('✅ handleCheckoutCompleted: Buscando dados da sessão no Stripe...');
+    const stripeSession = await stripe.checkout.sessions.retrieve(session.id, {
       expand: ['subscription', 'customer']
     });
     
     console.log('✅ handleCheckoutCompleted: Dados da sessão recuperados:', {
-      id: checkoutSession?.id,
-      hasSubscription: !!checkoutSession?.subscription,
-      hasCustomer: !!checkoutSession?.customer,
-      mode: checkoutSession?.mode,
-      paymentStatus: checkoutSession?.payment_status,
-      subscriptionId: checkoutSession?.subscription ? (checkoutSession.subscription as any).id : 'N/A',
-      customerId: checkoutSession?.customer ? (checkoutSession.customer as any).id : 'N/A'
+      id: stripeSession.id,
+      hasSubscription: !!stripeSession.subscription,
+      hasCustomer: !!stripeSession.customer,
+      mode: stripeSession.mode,
+      paymentStatus: stripeSession.payment_status,
+      subscriptionId: stripeSession.subscription?.id,
+      customerId: stripeSession.customer?.id
     });
+
+    // Extrair dados da assinatura
+    const subscription = stripeSession.subscription as any;
+    const customer = stripeSession.customer as any;
     
-    if (!checkoutSession) {
-      console.error('❌ handleCheckoutCompleted: Sessão de checkout não encontrada');
+    if (!subscription || !customer) {
+      console.error('❌ handleCheckoutCompleted: Subscription ou Customer não encontrados');
       return;
     }
-    
-    // Extrair subscription e customer
-    let subscription: any;
-    let customer: any;
-    
-    if (checkoutSession.subscription && typeof checkoutSession.subscription === 'object') {
-      subscription = checkoutSession.subscription;
-    } else if (checkoutSession.subscription && typeof checkoutSession.subscription === 'string') {
-      // Se subscription é string, buscar os dados completos
-      console.log('✅ handleCheckoutCompleted: Buscando dados da assinatura...');
-      subscription = await stripe.subscriptions.retrieve(checkoutSession.subscription);
-    }
-    
-    if (checkoutSession.customer && typeof checkoutSession.customer === 'object') {
-      customer = checkoutSession.customer;
-    } else if (checkoutSession.customer && typeof checkoutSession.customer === 'string') {
-      // Se customer é string, buscar os dados completos
-      console.log('✅ handleCheckoutCompleted: Buscando dados do customer...');
-      customer = await stripe.customers.retrieve(checkoutSession.customer);
-    }
-    
+
     console.log('✅ handleCheckoutCompleted: Dados extraídos:', {
-      subscriptionId: subscription?.id,
-      customerId: customer?.id,
-      subscriptionStatus: subscription?.status,
-      planType: session.metadata?.plan_type,
+      subscriptionId: (subscription as any).id,
+      customerId: (customer as any).id,
+      subscriptionStatus: (subscription as any).status,
+      planType: (subscription as any).items?.data?.[0]?.price?.recurring?.interval === 'year' ? 'annual' : 'monthly',
       subscriptionObject: subscription ? 'Presente' : 'Ausente',
       customerObject: customer ? 'Presente' : 'Ausente'
     });
-    
-    if (!subscription || !customer) {
-      console.error('❌ handleCheckoutCompleted: Dados da assinatura ou customer não encontrados');
-      console.error('❌ handleCheckoutCompleted: Subscription:', subscription);
-      console.error('❌ handleCheckoutCompleted: Customer:', customer);
-      return;
-    }
-    
+
+    // Extrair dados específicos da assinatura
+    const subscriptionItem = (subscription as any).items?.data?.[0];
     console.log('🔍 handleCheckoutCompleted: Dados da assinatura:', {
-      subscriptionId: subscription.id,
-      customerId: customer.id,
-      status: subscription.status,
-      planType: session.metadata?.plan_type,
-      currentPeriodStart: subscription.current_period_start,
-      currentPeriodEnd: subscription.current_period_end,
-      trialEnd: subscription.trial_end
+      subscriptionId: (subscription as any).id,
+      customerId: (customer as any).id,
+      status: (subscription as any).status,
+      planType: subscriptionItem?.price?.recurring?.interval === 'year' ? 'annual' : 'monthly',
+      currentPeriodStart: subscriptionItem?.current_period_start,
+      currentPeriodEnd: subscriptionItem?.current_period_end,
+      trialEnd: (subscription as any).trial_end
     });
-    
-    // Criar ou atualizar assinatura no banco
+
+    // Preparar dados para inserção
     const subscriptionData = {
-      stripe_subscription_id: subscription.id,
-      stripe_customer_id: customer.id,
-      plan_type: session.metadata?.plan_type || 'monthly',
-      status: subscription.status,
-      current_period_start: new Date(subscription.current_period_start * 1000),
-      current_period_end: new Date(subscription.current_period_end * 1000),
-      trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
-      cancel_at_period_end: subscription.cancel_at_period_end,
+      stripe_subscription_id: (subscription as any).id,
+      stripe_customer_id: (customer as any).id,
+      plan_type: subscriptionItem?.price?.recurring?.interval === 'year' ? 'annual' : 'monthly',
+      status: (subscription as any).status,
+      current_period_start: subscriptionItem?.current_period_start ? new Date(subscriptionItem.current_period_start * 1000) : null,
+      current_period_end: subscriptionItem?.current_period_end ? new Date(subscriptionItem.current_period_end * 1000) : null,
+      trial_end: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000) : null,
+      cancel_at_period_end: (subscription as any).cancel_at_period_end,
       user_id: session.metadata?.user_id,
       company_id: session.metadata?.company_id,
     };
@@ -289,7 +266,8 @@ async function handleSubscriptionChange(subscription: any) {
   console.log('🔄 handleSubscriptionChange: Mudança na assinatura:', subscription.id);
   console.log('🔄 handleSubscriptionChange: Subscription completa:', JSON.stringify(subscription, null, 2));
   
-  const supabase = await createClient();
+  // Usar cliente admin para bypassar RLS
+  const supabase = await createAdminClient();
   
   try {
     // Se é uma nova assinatura (customer.subscription.created), buscar metadados da sessão
