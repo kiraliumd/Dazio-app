@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { Clock, CreditCard, AlertTriangle, CheckCircle, ExternalLink, RefreshCw } from 'lucide-react';
+import { Clock, CreditCard, AlertTriangle, CheckCircle, ExternalLink } from 'lucide-react';
 import { format, differenceInDays, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -264,15 +264,6 @@ export default function AssinaturaGestaoPage() {
             title="Gestão da Assinatura" 
             description="Gerencie sua assinatura e veja o status do seu período de teste"
           >
-            <Button
-              onClick={refreshData}
-              disabled={loading}
-              variant="outline"
-              size="sm"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
           </PageHeader>
           
             <div className="flex-1 space-y-6 p-6">
@@ -504,7 +495,7 @@ export default function AssinaturaGestaoPage() {
                     >
                       {portalLoading ? (
                         <>
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          <ExternalLink className="mr-2 h-4 w-4 animate-spin" />
                           Carregando...
                         </>
                       ) : (
