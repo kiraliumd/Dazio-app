@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET() {
   return NextResponse.json({
@@ -11,17 +11,37 @@ export async function GET() {
   });
 }
 
-export async function POST(req: Request) {
-  const body = await req.text();
-  
-  console.log('🧪 Test Webhook: Requisição POST recebida');
-  console.log('🧪 Test Webhook: Headers:', Object.fromEntries(req.headers.entries()));
-  console.log('🧪 Test Webhook: Body:', body);
-  
-  return NextResponse.json({
-    message: 'Test webhook POST received',
-    timestamp: new Date().toISOString(),
-    headers: Object.fromEntries(req.headers.entries()),
-    body: body
-  });
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.text();
+    const headers = Object.fromEntries(request.headers.entries());
+    
+    console.log('🔍 Test Webhook - POST recebido:');
+    console.log('📅 Timestamp:', new Date().toISOString());
+    console.log('🌐 URL:', request.url);
+    console.log('📋 Method:', request.method);
+    console.log('📊 Headers:', JSON.stringify(headers, null, 2));
+    console.log('📝 Body (primeiros 500 chars):', body.substring(0, 500));
+    console.log('📏 Body length:', body.length);
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Webhook test POST recebido e logado',
+      timestamp: new Date().toISOString(),
+      received: {
+        method: request.method,
+        url: request.url,
+        headersCount: Object.keys(headers).length,
+        bodyLength: body.length,
+        hasStripeSignature: !!headers['stripe-signature']
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro no test webhook:', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
+  }
 }
