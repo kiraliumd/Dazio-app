@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createCustomerPortalSession } from '@/lib/stripe';
 import { NextResponse } from 'next/server';
 
@@ -6,7 +7,7 @@ export async function GET() {
   try {
     console.log('🔍 GET /api/subscription/portal: Debug endpoint');
     
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     
     // Verificar estrutura da tabela subscriptions
     const { data: subscriptions, error: subError } = await supabase
@@ -49,6 +50,7 @@ export async function POST() {
   try {
     console.log('🚀 POST /api/subscription/portal: Iniciando...');
     
+    // Usar createClient para autenticação
     const supabase = await createClient();
     console.log('✅ Supabase client criado');
     
@@ -60,11 +62,15 @@ export async function POST() {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
+    // Usar createAdminClient para busca de dados (bypass RLS)
+    const adminSupabase = await createAdminClient();
+    console.log('✅ Admin client criado para busca de dados');
+
     // Buscar assinatura do usuário - tentar múltiplas abordagens
     console.log('🔍 Buscando assinatura para usuário:', user.id);
     
     // Primeiro, tentar buscar por user_id
-    let { data: subscription, error: subError } = await supabase
+    let { data: subscription, error: subError } = await adminSupabase
       .from('subscriptions')
       .select('stripe_customer_id, stripe_subscription_id, status')
       .eq('user_id', user.id)
@@ -79,7 +85,7 @@ export async function POST() {
       console.log('⚠️ Não encontrou por user_id, tentando por company_id...');
       
       // Buscar company_id do usuário
-      const { data: userProfile, error: profileError } = await supabase
+      const { data: userProfile, error: profileError } = await adminSupabase
         .from('users')
         .select('company_id')
         .eq('id', user.id)
@@ -89,7 +95,7 @@ export async function POST() {
 
       if (userProfile?.company_id) {
         // Buscar assinatura por company_id
-        const { data: companySubscription, error: companySubError } = await supabase
+        const { data: companySubscription, error: companySubError } = await adminSupabase
           .from('subscriptions')
           .select('stripe_customer_id, stripe_subscription_id, status')
           .eq('company_id', userProfile.company_id)
@@ -110,7 +116,7 @@ export async function POST() {
       console.error('❌ Assinatura não encontrada:', { subError, subscription });
       
       // Log adicional para debug
-      const { data: allSubscriptions, error: allSubError } = await supabase
+      const { data: allSubscriptions, error: allSubError } = await adminSupabase
         .from('subscriptions')
         .select('*')
         .limit(5);
