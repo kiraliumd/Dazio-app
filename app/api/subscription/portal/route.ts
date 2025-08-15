@@ -25,10 +25,10 @@ export async function POST() {
     }
 
     // Criar sessão do portal do cliente
-    const session = await createCustomerPortalSession({
-      customerId: subscription.stripe_customer_id,
-      returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/assinatura`,
-    });
+    const session = await createCustomerPortalSession(
+      subscription.stripe_customer_id,
+      `${process.env.NEXT_PUBLIC_APP_URL}/assinatura-gestao`
+    );
 
     return NextResponse.json({ 
       success: true, 
