@@ -429,45 +429,6 @@ cd dazio-admim-1.0-main
 pnpm install
 ```
 
-#### **3. Configurar Variáveis de Ambiente**
-
-**No Vercel (Recomendado):**
-```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=sua_url_do_supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima
-SUPABASE_SERVICE_ROLE_KEY=sua_chave_de_servico
-
-# Stripe
-STRIPE_SECRET_KEY=sua_chave_secreta_stripe
-STRIPE_PUBLISHABLE_KEY=sua_chave_publica_stripe
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-
-# Resend
-RESEND_API_KEY=re_xxx
-RESEND_AUDIENCE_ID=xxx
-
-# App
-NEXT_PUBLIC_APP_URL=https://app.dazio.com.br
-```
-
-**Local (.env.local):**
-```env
-# Copiar .env.example para .env.local
-cp .env.example .env.local
-# Editar com suas credenciais
-```
-
-#### **4. Executar Scripts SQL**
-Execute os scripts em `scripts/` na ordem numérica:
-```bash
-# No SQL Editor do Supabase
-# 1. Estrutura base
-# 2. Dados iniciais
-# 3. Recorrência
-# 4. Assinaturas
-# 5. Resend
-```
 
 #### **5. Iniciar Desenvolvimento**
 ```bash
