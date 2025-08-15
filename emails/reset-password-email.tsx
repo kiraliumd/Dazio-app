@@ -1,184 +1,205 @@
-import {
-  Html,
-  Head,
-  Body,
-  Container,
-  Text,
-  Link,
-  Preview,
-  Section,
-  Button,
-  Hr,
-  Img,
-} from '@react-email/components'
+import * as React from 'react';
+import { Html, Head, Body, Container, Section, Text, Button, Hr, Img } from '@react-email/components';
 
 interface ResetPasswordEmailProps {
-  resetUrl: string
-  userEmail: string
+  resetUrl: string;
+  userEmail: string;
 }
 
-export const ResetPasswordEmail = ({
+export const ResetPasswordEmail: React.FC<ResetPasswordEmailProps> = ({
   resetUrl,
   userEmail,
-}: ResetPasswordEmailProps) => {
+}) => {
   return (
     <Html>
-      <Head />
-      <Preview>Redefinir sua senha - Dazio</Preview>
-      <Body style={main}>
-        <Container style={container}>
-          <Section style={header}>
+      <Head>
+        <title>Redefinir sua senha - Dazio</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </Head>
+      <Body style={{ 
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        margin: 0,
+        padding: 0,
+        backgroundColor: '#F8F8F8',
+        color: '#1A1A1A'
+      }}>
+        <Container style={{ 
+          maxWidth: '600px',
+          margin: '0 auto',
+          backgroundColor: '#FFFFFF',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+        }}>
+          {/* Header com logo sem fundo */}
+          <Section
+            style={{
+              backgroundColor: '#FFFFFF',
+              padding: '24px',
+              textAlign: 'center',
+            }}
+         >
             <Img
               src={`${process.env.NEXT_PUBLIC_APP_URL}/logo-dazio.svg`}
-              width="120"
-              height="48"
+              width={120}
+              height={48}
               alt="Dazio"
-              style={logo}
+              style={{ margin: '0 auto', display: 'block' }}
             />
-            <Text style={headerTitle}>Redefinir Senha</Text>
           </Section>
 
-          <Section style={content}>
-            <Text style={title}>Olá!</Text>
-            <Text style={text}>
-              Recebemos uma solicitação para redefinir a senha da sua conta no Dazio.
+          {/* Conteúdo principal */}
+          <Section style={{ padding: '48px 32px' }}>
+            <Text style={{
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#1A1A1A',
+              margin: '0 0 16px 0',
+              textAlign: 'center',
+              letterSpacing: '-0.025em'
+            }}>
+              Redefinir sua senha 🔐
             </Text>
-            
-            <Text style={text}>
-              Clique no botão abaixo para criar uma nova senha:
+
+            <Text style={{
+              fontSize: '16px',
+              color: '#707070',
+              margin: '0 0 32px 0',
+              textAlign: 'center',
+              lineHeight: '1.6'
+            }}>
+              Recebemos uma solicitação para redefinir a senha da sua conta no Dazio. 
+              Clique no botão abaixo para criar uma nova senha segura.
             </Text>
-            
-            <Section style={buttonContainer}>
-              <Button style={button} href={resetUrl}>
+
+            {/* Botão de redefinir senha */}
+            <div style={{ textAlign: 'center', margin: '32px 0' }}>
+              <Button
+                href={resetUrl}
+                style={{
+                  backgroundColor: '#FF7A00',
+                  color: '#FFFFFF',
+                  padding: '16px 32px',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  display: 'inline-block',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 6px -1px rgba(255, 122, 0, 0.3)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
                 Redefinir Senha
               </Button>
-            </Section>
-            
-            <Section style={warning}>
-              <Text style={warningText}>
-                <strong>Importante:</strong> Este link é válido por 1 hora. Se você não solicitou esta redefinição, ignore este email.
+            </div>
+
+            {/* Aviso de segurança */}
+            <div style={{
+              backgroundColor: '#FFF3CD',
+              border: '1px solid #FFEAA7',
+              borderRadius: '8px',
+              padding: '16px',
+              margin: '24px 0',
+              textAlign: 'center'
+            }}>
+              <Text style={{
+                fontSize: '14px',
+                color: '#856404',
+                margin: '0',
+                fontWeight: '600'
+              }}>
+                ⚠️ Este link é válido por 1 hora
               </Text>
-            </Section>
-            
-            <Text style={text}>
+              <Text style={{
+                fontSize: '13px',
+                color: '#856404',
+                margin: '8px 0 0 0',
+                lineHeight: '1.4'
+              }}>
+                Se você não solicitou esta redefinição, ignore este email.
+              </Text>
+            </div>
+
+            <Text style={{
+              fontSize: '14px',
+              color: '#707070',
+              margin: '24px 0 0 0',
+              textAlign: 'center',
+              lineHeight: '1.5'
+            }}>
               Se o botão não funcionar, copie e cole este link no seu navegador:
             </Text>
-            <Link href={resetUrl} style={link}>
+
+            <Text style={{
+              fontSize: '14px',
+              color: '#FF7A00',
+              margin: '8px 0 0 0',
+              textAlign: 'center',
+              wordBreak: 'break-all',
+              fontFamily: 'monospace'
+            }}>
               {resetUrl}
-            </Link>
+            </Text>
           </Section>
 
-          <Hr style={hr} />
-          
-          <Section style={footer}>
-            <Text style={footerText}>&copy; 2025 Dazio. Todos os direitos reservados.</Text>
-            <Text style={footerText}>Este email foi enviado para {userEmail}</Text>
+          <Hr style={{ 
+            border: 'none',
+            borderTop: '1px solid #E0E0E0',
+            margin: '0'
+          }} />
+
+          {/* Footer */}
+          <Section style={{ 
+            padding: '24px 32px',
+            backgroundColor: '#F8F8F8'
+          }}>
+            <Text style={{
+              fontSize: '14px',
+              color: '#707070',
+              margin: '0 0 16px 0',
+              textAlign: 'center'
+            }}>
+              <strong>Email da conta:</strong> {userEmail}
+            </Text>
+
+            <Text style={{
+              fontSize: '12px',
+              color: '#707070',
+              margin: '0 0 16px 0',
+              textAlign: 'center',
+              lineHeight: '1.5'
+            }}>
+              Este link de redefinição expira em 1 hora por segurança. 
+              Se você não solicitou esta redefinição, pode ignorar este email.
+            </Text>
+
+            <Text style={{
+              fontSize: '12px',
+              color: '#707070',
+              margin: '0 0 8px 0',
+              textAlign: 'center'
+            }}>
+              © 2024 Dazio. Todos os direitos reservados.
+            </Text>
+
+            <Text style={{
+              fontSize: '11px',
+              color: '#707070',
+              margin: '0',
+              textAlign: 'center'
+            }}>
+              <a href={`${process.env.NEXT_PUBLIC_APP_URL}/unsubscribe?email=${userEmail}`} 
+                 style={{ color: '#707070', textDecoration: 'underline' }}>
+                Desinscrever-se
+              </a>
+            </Text>
           </Section>
         </Container>
       </Body>
     </Html>
-  )
-}
+  );
+};
 
-const main = {
-  backgroundColor: '#f8f8f8',
-  fontFamily: 'Inter, Arial, sans-serif',
-}
-
-const container = {
-  margin: '0 auto',
-  backgroundColor: '#ffffff',
-  borderRadius: '12px',
-  overflow: 'hidden',
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-  maxWidth: '600px',
-}
-
-const header = {
-  background: 'linear-gradient(135deg, #FF7A00 0%, #FFBF7F 100%)',
-  padding: '40px 30px',
-  textAlign: 'center' as const,
-}
-
-const logo = {
-  marginBottom: '20px',
-}
-
-const headerTitle = {
-  color: '#ffffff',
-  fontSize: '24px',
-  fontWeight: '600',
-  margin: '0',
-}
-
-const content = {
-  padding: '40px 30px',
-}
-
-const title = {
-  fontSize: '20px',
-  fontWeight: '600',
-  color: '#1a1a1a',
-  marginBottom: '16px',
-}
-
-const text = {
-  fontSize: '16px',
-  color: '#707070',
-  marginBottom: '24px',
-  lineHeight: '1.6',
-}
-
-const buttonContainer = {
-  textAlign: 'center' as const,
-  margin: '16px 0',
-}
-
-const button = {
-  backgroundColor: '#FF7A00',
-  color: '#ffffff',
-  textDecoration: 'none',
-  padding: '16px 32px',
-  borderRadius: '8px',
-  fontWeight: '600',
-  fontSize: '16px',
-  display: 'inline-block',
-}
-
-const warning = {
-  backgroundColor: '#fff3cd',
-  border: '1px solid #ffeaa7',
-  borderRadius: '8px',
-  padding: '16px',
-  margin: '24px 0',
-}
-
-const warningText = {
-  fontSize: '14px',
-  color: '#856404',
-  margin: '0',
-}
-
-const link = {
-  color: '#FF7A00',
-  textDecoration: 'none',
-}
-
-const hr = {
-  borderColor: '#e0e0e0',
-  margin: '0',
-}
-
-const footer = {
-  backgroundColor: '#f8f8f8',
-  padding: '24px 30px',
-  textAlign: 'center' as const,
-}
-
-const footerText = {
-  fontSize: '14px',
-  color: '#707070',
-  margin: '0',
-}
-
-export default ResetPasswordEmail
+export default ResetPasswordEmail;
