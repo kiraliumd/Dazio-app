@@ -326,7 +326,13 @@ async function handleSubscriptionChange(subscription: any) {
       user_id = subscription.metadata?.user_id;
       company_id = subscription.metadata?.company_id;
     }
-    
+
+    // Validar se temos os dados necessários
+    if (!user_id || !company_id) {
+      console.error('❌ handleSubscriptionChange: user_id ou company_id não encontrados:', { user_id, company_id });
+      return;
+    }
+
     const subscriptionData = {
       stripe_subscription_id: subscription.id,
       stripe_customer_id: subscription.customer,
@@ -365,6 +371,7 @@ async function handleSubscriptionChange(subscription: any) {
 
       if (updateError) {
         console.error('❌ handleSubscriptionChange: Erro ao atualizar assinatura:', updateError);
+        console.error('❌ handleSubscriptionChange: Dados tentados:', subscriptionData);
         return;
       }
 
@@ -372,19 +379,26 @@ async function handleSubscriptionChange(subscription: any) {
     } else {
       // Criar nova assinatura
       console.log('🔄 handleSubscriptionChange: Criando nova assinatura...');
-      const { data: newSubscription, error: insertError } = await supabase
-        .from('subscriptions')
-        .insert(subscriptionData)
-        .select()
-        .single();
+      
+      try {
+        const { data: newSubscription, error: insertError } = await supabase
+          .from('subscriptions')
+          .insert(subscriptionData)
+          .select()
+          .single();
 
-      if (insertError) {
-        console.error('❌ handleSubscriptionChange: Erro ao criar assinatura:', insertError);
+        if (insertError) {
+          console.error('❌ handleSubscriptionChange: Erro ao criar assinatura:', insertError);
+          console.error('❌ handleSubscriptionChange: Dados tentados:', subscriptionData);
+          return;
+        }
+
+        console.log('✅ handleSubscriptionChange: Nova assinatura criada:', newSubscription.id);
+      } catch (insertException) {
+        console.error('❌ handleSubscriptionChange: Exceção ao inserir assinatura:', insertException);
         console.error('❌ handleSubscriptionChange: Dados tentados:', subscriptionData);
         return;
       }
-
-      console.log('✅ handleSubscriptionChange: Nova assinatura criada:', newSubscription.id);
     }
 
     // Atualizar status da empresa se a assinatura estiver ativa
