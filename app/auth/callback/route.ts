@@ -15,6 +15,35 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get('next') ?? '/dashboard';
 
   console.log('🔍 Auth Callback: Parâmetros recebidos:', { code, token, type, next });
+  console.log('🔍 Auth Callback: URL completa:', request.url);
+
+  // Se há um token de recovery (reset de senha) - PRIORIDADE ALTA
+  if (token && type === 'recovery') {
+    console.log('🔍 Auth Callback: Processando token de recovery (reset de senha)');
+    
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'recovery'
+      });
+
+      if (error) {
+        console.error('❌ Auth Callback: Erro na verificação de recovery:', error);
+        return NextResponse.redirect(`${origin}/auth/reset-password/confirm?error=auth_failed&message=${encodeURIComponent(error.message)}`);
+      }
+
+      console.log('✅ Auth Callback: Token de recovery verificado com sucesso');
+      
+      // Usar o parâmetro next se disponível, senão ir para reset-password/confirm
+      const redirectUrl = next && next !== '/dashboard' ? next : '/auth/reset-password/confirm';
+      console.log('🔍 Auth Callback: Redirecionando para:', redirectUrl);
+      
+      return NextResponse.redirect(`${origin}${redirectUrl}?token=${token}&type=${type}`);
+    } catch (error) {
+      console.error('❌ Auth Callback: Erro inesperado no recovery:', error);
+      return NextResponse.redirect(`${origin}/auth/reset-password/confirm?error=auth_failed&message=Erro inesperado`);
+    }
+  }
 
   // Se há um token de confirmação de email
   if (token && type === 'signup') {
@@ -36,29 +65,6 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       console.error('❌ Auth Callback: Erro inesperado:', error);
       return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed&message=Erro inesperado`);
-    }
-  }
-
-  // Se há um token de recovery (reset de senha)
-  if (token && type === 'recovery') {
-    console.log('🔍 Auth Callback: Processando token de recovery (reset de senha)');
-    
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: 'recovery'
-      });
-
-      if (error) {
-        console.error('❌ Auth Callback: Erro na verificação de recovery:', error);
-        return NextResponse.redirect(`${origin}/auth/reset-password/confirm?error=auth_failed&message=${encodeURIComponent(error.message)}`);
-      }
-
-      console.log('✅ Auth Callback: Token de recovery verificado com sucesso');
-      return NextResponse.redirect(`${origin}/auth/reset-password/confirm?token=${token}&type=${type}`);
-    } catch (error) {
-      console.error('❌ Auth Callback: Erro inesperado no recovery:', error);
-      return NextResponse.redirect(`${origin}/auth/reset-password/confirm?error=auth_failed&message=Erro inesperado`);
     }
   }
 
