@@ -30,6 +30,18 @@ function ResetPasswordConfirmContent() {
   useEffect(() => {
     const checkToken = async () => {
       try {
+        // Verificar se há parâmetros de erro na URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const errorParam = urlParams.get('error');
+        const messageParam = urlParams.get('message');
+        
+        if (errorParam === 'auth_failed') {
+          setError(messageParam || 'Link inválido ou expirado. Solicite um novo link de redefinição.');
+          setIsValidToken(false);
+          setIsCheckingToken(false);
+          return;
+        }
+
         // Verificar se há uma sessão válida (token de reset)
         const { data: { session }, error } = await supabase.auth.getSession()
         

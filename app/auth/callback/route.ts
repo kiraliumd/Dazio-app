@@ -39,6 +39,29 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Se há um token de recovery (reset de senha)
+  if (token && type === 'recovery') {
+    console.log('🔍 Auth Callback: Processando token de recovery (reset de senha)');
+    
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'recovery'
+      });
+
+      if (error) {
+        console.error('❌ Auth Callback: Erro na verificação de recovery:', error);
+        return NextResponse.redirect(`${origin}/auth/reset-password/confirm?error=auth_failed&message=${encodeURIComponent(error.message)}`);
+      }
+
+      console.log('✅ Auth Callback: Token de recovery verificado com sucesso');
+      return NextResponse.redirect(`${origin}/auth/reset-password/confirm?token=${token}&type=${type}`);
+    } catch (error) {
+      console.error('❌ Auth Callback: Erro inesperado no recovery:', error);
+      return NextResponse.redirect(`${origin}/auth/reset-password/confirm?error=auth_failed&message=Erro inesperado`);
+    }
+  }
+
   // Se há um código de autorização (fluxo OAuth)
   if (code) {
     console.log('🔍 Auth Callback: Processando código de autorização');
