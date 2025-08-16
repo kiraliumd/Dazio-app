@@ -81,7 +81,7 @@ export default function ResetPasswordPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
-            <BrandLogo width={120} height={48} priority />
+            <BrandLogo width={120} height={48} className="mx-auto" priority />
           </div>
 
           {/* Card de Sucesso */}
@@ -143,7 +143,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <BrandLogo width={120} height={48} priority />
+          <BrandLogo width={120} height={48} className="mx-auto" priority />
         </div>
 
         {/* Card de Reset de Senha */}
