@@ -55,18 +55,31 @@ export async function POST(request: NextRequest) {
     console.log('✅ Signup API: Usuário criado com sucesso:', authData.user.id);
 
     // Adicionar contato à audiência do Resend
-    const audienceResult = await addContactToAudience({
-      email: email,
-      firstName: '', // Pode ser expandido para incluir nome se disponível
-      lastName: '',
-      unsubscribed: false
-    });
+    try {
+      const audienceResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/resend/contacts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          firstName: '', // Pode ser expandido para incluir nome se disponível
+          lastName: '',
+          unsubscribed: false
+        })
+      });
 
-    if (!audienceResult.success) {
-      console.warn('⚠️ Signup API: Erro ao adicionar à audiência:', audienceResult.error);
-      // Não falha o cadastro se não conseguir adicionar à audiência
-    } else {
-      console.log('✅ Signup API: Contato adicionado à audiência:', audienceResult.contactId);
+      const audienceResult = await audienceResponse.json();
+      
+      if (!audienceResult.success) {
+        console.warn('⚠️ Signup API: Erro ao adicionar à audiência:', audienceResult.error);
+        // Não falha o cadastro se não conseguir adicionar à audiência
+      } else {
+        console.log('✅ Signup API: Contato adicionado à audiência:', audienceResult.contactId);
+      }
+    } catch (audienceError) {
+      console.warn('⚠️ Signup API: Erro ao conectar com API de contatos:', audienceError);
+      // Não falha o cadastro se não conseguir conectar com a API de contatos
     }
 
     // Gerar token de confirmação personalizado
