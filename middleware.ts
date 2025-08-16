@@ -132,9 +132,10 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     // Ignorar:
-    // - qualquer arquivo com extensão (ex.: .png, .svg, .jpg, .css, .js, .map, .ico, etc)
+    // - arquivos estáticos (imagens, CSS, JS, etc.)
     // - rotas internas do Next (_next)
     // - rotas de API (api)
-    '/((?!.+\.[\w]+$|_next|api).*)',
+    // - favicon e outros arquivos de sistema
+    '/((?!_next|api|.*\\.(?:svg|png|jpg|jpeg|gif|ico|css|js|map|woff|woff2|ttf|eot)$).*)',
   ],
 }; 
