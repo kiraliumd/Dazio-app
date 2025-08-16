@@ -21,8 +21,16 @@ export async function POST(request: NextRequest) {
     const requestOrigin = request.headers.get('origin') || ''
     const envOrigin = process.env.NEXT_PUBLIC_APP_URL || ''
     const baseUrl = (envOrigin || requestOrigin || 'https://app.dazio.com.br').replace(/\/$/, '')
-    // Redireciona via callback para garantir exchangeCodeForSession e cookies, depois vai para a tela de confirmação
-    const redirectTo = `${baseUrl}/auth/callback?next=/auth/reset-password/confirm`
+    
+    // Redirecionamento direto para a página de reset de senha
+    const redirectTo = `${baseUrl}/auth/reset-password/confirm`
+
+    console.log('🔍 Reset Password API: Configuração:', {
+      email,
+      baseUrl,
+      redirectTo,
+      hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    });
 
     let actionLink: string | null = null
 
@@ -39,26 +47,30 @@ export async function POST(request: NextRequest) {
           throw error
         }
         actionLink = data?.properties?.action_link || data?.action_link || null
+        console.log('✅ Reset Password API: Link gerado via admin:', actionLink ? 'Sucesso' : 'Falhou');
       }
     } catch (adminErr) {
-      console.error('Erro ao gerar link (admin.generateLink):', adminErr)
+      console.error('❌ Reset Password API: Erro ao gerar link (admin.generateLink):', adminErr)
       actionLink = null
     }
 
     // 2) Fallback: usar cliente anon para solicitar reset (Supabase envia email padrão com link válido)
     if (!actionLink) {
+      console.log('🔄 Reset Password API: Usando fallback do Supabase');
       const supabase = await createClient()
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
       if (error) {
-        console.error('Erro ao gerar link de reset:', error)
+        console.error('❌ Reset Password API: Erro ao gerar link de reset:', error)
         return NextResponse.json(
           { error: 'Erro ao processar solicitação', details: error.message },
           { status: 500 }
         )
       }
+      console.log('✅ Reset Password API: Reset solicitado via Supabase (email padrão)');
       // Deixar o Supabase enviar o email padrão (não enviar customizado sem actionLink)
     } else {
       // Enviar email customizado somente quando há actionLink válido
+      console.log('📧 Reset Password API: Enviando email customizado');
       try {
         const emailHtml = await render(React.createElement(ResetPasswordEmail, { resetUrl: actionLink!, userEmail: email }))
         await resend.emails.send({
@@ -67,8 +79,9 @@ export async function POST(request: NextRequest) {
           subject: 'Redefinir sua senha - Dazio',
           html: emailHtml,
         })
+        console.log('✅ Reset Password API: Email customizado enviado com sucesso');
       } catch (emailError) {
-        console.error('Erro ao enviar email (Resend):', emailError)
+        console.error('❌ Reset Password API: Erro ao enviar email (Resend):', emailError)
         // Segue com 200 mesmo que o email customizado falhe; o fallback do Supabase já foi acionado acima quando não há actionLink
       }
     }
@@ -79,7 +92,7 @@ export async function POST(request: NextRequest) {
     )
 
   } catch (error) {
-    console.error('Erro na API de reset de senha:', error)
+    console.error('❌ Reset Password API: Erro interno:', error)
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

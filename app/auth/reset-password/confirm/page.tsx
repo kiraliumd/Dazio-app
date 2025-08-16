@@ -35,6 +35,28 @@ function ResetPasswordConfirmContent() {
         const errorParam = urlParams.get('error');
         const messageParam = urlParams.get('message');
         
+        // Verificar se há erros no hash da URL (erros do Supabase)
+        const hash = window.location.hash;
+        if (hash) {
+          const hashParams = new URLSearchParams(hash.substring(1));
+          const hashError = hashParams.get('error');
+          const errorCode = hashParams.get('error_code');
+          const errorDescription = hashParams.get('error_description');
+          
+          console.log('🔍 Reset Password: Hash params:', { hashError, errorCode, errorDescription });
+          
+          if (hashError === 'access_denied') {
+            if (errorCode === 'otp_expired') {
+              setError('Link de redefinição expirado. Solicite um novo link.');
+            } else {
+              setError(errorDescription || 'Link de redefinição inválido. Solicite um novo link.');
+            }
+            setIsValidToken(false);
+            setIsCheckingToken(false);
+            return;
+          }
+        }
+        
         if (errorParam === 'auth_failed') {
           setError(messageParam || 'Link inválido ou expirado. Solicite um novo link de redefinição.');
           setIsValidToken(false);
