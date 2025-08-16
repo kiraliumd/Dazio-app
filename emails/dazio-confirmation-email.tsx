@@ -39,13 +39,22 @@ export const DazioConfirmationEmail: React.FC<DazioConfirmationEmailProps> = ({
               textAlign: 'center',
             }}
          >
-            <Img
-              src={`${process.env.NEXT_PUBLIC_APP_URL}/logo-dazio.svg`}
-              width={120}
-              height={48}
-              alt="Dazio"
-              style={{ margin: '0 auto', display: 'block' }}
-            />
+            <div style={{ 
+              width: '120px', 
+              height: '48px', 
+              margin: '0 auto',
+              backgroundColor: '#FF7A00',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFFFFF',
+              fontSize: '24px',
+              fontWeight: 'bold',
+              fontFamily: 'Inter, Arial, sans-serif'
+            }}>
+              Dazio
+            </div>
           </Section>
 
           {/* Conteúdo principal */}
