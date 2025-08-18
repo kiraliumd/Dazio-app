@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -18,13 +18,11 @@ import {
   FileText,
   Search,
   MapPin,
-  Repeat,
 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { getClients } from "../lib/database/clients"
 import { getEquipments } from "../lib/database/equipments"
 import { transformClientFromDB, transformEquipmentFromDB } from "../lib/utils/data-transformers"
-import { RecurrenceConfig } from "./recurrence-config"
 import type { RecurrenceType } from "../lib/utils/data-transformers"
 
 export interface BudgetItem {
@@ -490,39 +488,58 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
   }
 
   const renderStepIndicator = () => (
-    <div className="flex items-center justify-center mb-6">
-      {steps.map((step, index) => (
-        <div key={step.id} className="flex items-center">
-          <div
-            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-              currentStep >= step.id
-                ? "bg-primary border-primary text-primary-foreground"
-                : "border-gray-300 text-gray-400"
-            }`}
-          >
-            <step.icon className="h-5 w-5" />
+    <div className="w-full mb-8">
+      <div className="flex items-center justify-between w-full overflow-x-auto pb-4">
+        {steps.map((step, index) => (
+          <div key={step.id} className="flex items-center flex-shrink-0">
+            <div
+              className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-200 ${
+                currentStep >= step.id
+                  ? "bg-primary border-primary text-primary-foreground shadow-md"
+                  : "border-gray-300 text-gray-400 bg-white"
+              }`}
+            >
+              <step.icon className="h-5 w-5" />
+            </div>
+            <div className="ml-3 mr-6 min-w-0">
+              <p className={`text-sm font-semibold truncate ${currentStep >= step.id ? "text-primary" : "text-gray-500"}`}>
+                {step.title}
+              </p>
+              <p className="text-xs text-gray-500 truncate max-w-[120px]">{step.description}</p>
+            </div>
+            {index < steps.length - 1 && (
+              <div className={`w-16 h-0.5 transition-all duration-200 ${
+                currentStep > step.id ? "bg-primary" : "bg-gray-200"
+              } mr-6`} />
+            )}
           </div>
-          <div className="ml-3 mr-6">
-            <p className={`text-sm font-medium ${currentStep >= step.id ? "text-primary" : "text-gray-400"}`}>
-              {step.title}
-            </p>
-            <p className="text-xs text-gray-500">{step.description}</p>
-          </div>
-          {index < steps.length - 1 && (
-            <div className={`w-12 h-0.5 ${currentStep > step.id ? "bg-primary" : "bg-gray-300"} mr-6`} />
-          )}
-        </div>
-      ))}
+        ))}
+      </div>
+      
+      {/* Indicador de progresso */}
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div 
+          className="bg-primary h-2 rounded-full transition-all duration-300 ease-in-out"
+          style={{ width: `${(currentStep / steps.length) * 100}%` }}
+        />
+      </div>
+      
+      {/* Indicador de etapa atual */}
+      <div className="text-center mt-3">
+        <span className="text-sm font-medium text-primary">
+          Etapa {currentStep} de {steps.length}
+        </span>
+      </div>
     </div>
   )
 
   const renderStep1 = () => (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle className="text-lg">Informações do Cliente</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           <div className="grid gap-2">
             <Label htmlFor="client">Cliente *</Label>
             <Select value={formData.clientId} onValueChange={handleClientChange} disabled={loadingData || isApprovedBudget}>
@@ -558,10 +575,10 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle className="text-lg">Configuração de Recorrência</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           <div className="flex items-center">
             <input
               type="checkbox"
@@ -576,9 +593,9 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
             </Label>
           </div>
 
-                    {formData.isRecurring && (
+          {formData.isRecurring && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-6">
                 <div className="grid gap-2">
                   <Label htmlFor="recurrenceType">Tipo de Recorrência *</Label>
                   <Select
@@ -631,7 +648,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-6">
                 <div className="grid gap-2">
                   <Label htmlFor="startDate">Data de Início *</Label>
                   <Input
@@ -656,7 +673,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
               </div>
 
               {formData.startDate && formData.recurrenceType && formData.recurrenceInterval > 0 && (
-                <div className="bg-blue-50 text-blue-700 p-3 rounded-lg text-center">
+                <div className="bg-blue-50 text-blue-700 p-4 rounded-lg border border-blue-200">
                   <strong>Resumo da Locação Recorrente:</strong>
                   <br />
                   <span className="text-sm">
@@ -687,11 +704,11 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
 
       {!formData.isRecurring && (
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-4">
             <CardTitle className="text-lg">Período da Locação</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="startDate">Data de Início *</Label>
                 <Input
@@ -703,19 +720,19 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="endDate">Data de Término *</Label>
-                                  <Input
-                    id="endDate"
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    min={formData.startDate}
-                    disabled={isApprovedBudget}
-                  />
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  min={formData.startDate}
+                  disabled={isApprovedBudget}
+                />
               </div>
             </div>
 
             {formData.startDate && formData.endDate && (
-              <div className="bg-primary/10 text-primary p-3 rounded-lg text-center">
+              <div className="bg-primary/10 text-primary p-4 rounded-lg border border-primary/20">
                 <strong>{calculateRealDays()} dia(s)</strong> de locação
                 {calculateRealDays() > 30 && (
                   <div className="text-xs text-gray-600 mt-1">
@@ -727,15 +744,13 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
           </CardContent>
         </Card>
       )}
-
-
     </div>
   )
 
   const renderStep2 = () => (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle className="text-lg">Adicionar Equipamentos</CardTitle>
           {calculateRealDays() > 30 && (
             <p className="text-sm text-gray-600">
@@ -743,7 +758,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
             </p>
           )}
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label>Buscar Equipamento</Label>
@@ -759,7 +774,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-6">
               <div className="col-span-2 grid gap-2">
                 <Label>Equipamento</Label>
                 <Select value={selectedEquipment} onValueChange={setSelectedEquipment} disabled={loadingData || isApprovedBudget}>
@@ -804,7 +819,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
 
           {selectedEquipment && selectedEquipment !== "no-results" && (
             <div className="space-y-3">
-              <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <div className="flex justify-between items-center">
                   <span>Total do item:</span>
                   <span className="font-semibold">
@@ -824,7 +839,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
               {(() => {
                 const equipment = equipments.find((e) => e.name === selectedEquipment)
                 return equipment ? (
-                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-2 text-blue-800">
                       <Package className="h-4 w-4" />
                       <span className="font-medium">{equipment.name}</span>
@@ -854,15 +869,15 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
 
       {formData.items.length > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-4">
             <CardTitle className="text-lg">Equipamentos Selecionados ({formData.items.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-60 overflow-y-auto">
               {formData.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-medium">{item.equipmentName}</p>
+                <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50/50">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{item.equipmentName}</p>
                     <p className="text-sm text-gray-600">
                       R$ {item.dailyRate.toFixed(2)}/dia • {item.days} dia(s)
                       {calculateRealDays() > 30 && (
@@ -872,7 +887,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                       )}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 ml-4">
                     <div className="flex items-center gap-2">
                       <Label className="text-sm">Qtd:</Label>
                       <Input
@@ -880,7 +895,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                         min="1"
                         value={item.quantity}
                         onChange={(e) => updateItemQuantity(item.id, Number.parseInt(e.target.value) || 1)}
-                        className="w-16 h-8"
+                        className="w-20 h-8"
                       />
                     </div>
                     <div className="text-right min-w-0">
@@ -891,7 +906,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                       variant="ghost"
                       size="sm"
                       onClick={() => removeItem(item.id)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -906,91 +921,92 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
   )
 
   const renderStep4 = () => (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle className="text-lg">Resumo do Orçamento</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-3">
-            <div className="flex justify-between items-start">
-              <span className="font-medium">Cliente:</span>
-              <span className="text-right">{formData.clientName}</span>
-            </div>
-
-            {formData.installationLocation && (
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-3">
               <div className="flex justify-between items-start">
-                <span className="font-medium">Local:</span>
-                <span className="text-right max-w-xs text-sm">{formData.installationLocation}</span>
+                <span className="font-medium">Cliente:</span>
+                <span className="text-right max-w-xs text-sm font-medium">{formData.clientName}</span>
               </div>
-            )}
 
-            {formData.isRecurring && (
-              <div className="flex justify-between items-start">
-                <span className="font-medium">Recorrência:</span>
-                <span className="text-right text-sm">
-                  {formData.recurrenceType === "weekly" ? "Semanal" : 
-                   formData.recurrenceType === "monthly" ? "Mensal" : 
-                   formData.recurrenceType === "yearly" ? "Anual" : "Nenhum"} 
-                  - Duração: {formData.recurrenceInterval} 
-                  {formData.recurrenceType === "weekly" ? " semana(s)" : 
-                   formData.recurrenceType === "monthly" ? " mês(es)" : 
-                   formData.recurrenceType === "yearly" ? " ano(s)" : ""}
-                  <br />
-                  Renovação automática: {formData.recurrenceEndDate ? formatDate(formData.recurrenceEndDate) : "Calculando..."}
-                </span>
-              </div>
-            )}
-
-            <div className="flex justify-between items-start">
-              <span className="font-medium">Período:</span>
-              <span className="text-right">
-                {formData.startDate && formData.endDate
-                  ? `${formatDate(formData.startDate)} - ${formatDate(formData.endDate)}`
-                  : "Datas não definidas"}
-              </span>
-            </div>
-
-
-
-            <div className="flex justify-between">
-              <span className="font-medium">Duração:</span>
-              <span>{calculateRealDays()} dia(s)</span>
-              {calculateRealDays() > 30 && (
-                <span className="text-xs text-gray-600 ml-2">
-                  (Faturamento: {calculateDays()} dias)
-                </span>
+              {formData.installationLocation && (
+                <div className="flex justify-between items-start">
+                  <span className="font-medium">Local:</span>
+                  <span className="text-right max-w-xs text-sm">{formData.installationLocation}</span>
+                </div>
               )}
-            </div>
 
-            {formData.isRecurring && formData.recurrenceEndDate && (
               <div className="flex justify-between items-start">
-                <span className="font-medium">Próxima Renovação:</span>
-                <span className="text-right text-sm">
-                  {formatDate(formData.recurrenceEndDate)}
+                <span className="font-medium">Período:</span>
+                <span className="text-right max-w-xs text-sm">
+                  {formData.startDate && formData.endDate
+                    ? `${formatDate(formData.startDate)} - ${formatDate(formData.endDate)}`
+                    : "Datas não definidas"}
                 </span>
               </div>
-            )}
 
-            <div className="flex justify-between">
-              <span className="font-medium">Equipamentos:</span>
-              <span>{formData.items.length} item(s)</span>
+              <div className="flex justify-between">
+                <span className="font-medium">Duração:</span>
+                <span className="font-medium">{calculateRealDays()} dia(s)</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {formData.isRecurring && (
+                <div className="flex justify-between items-start">
+                  <span className="font-medium">Recorrência:</span>
+                  <span className="text-right text-sm max-w-xs">
+                    {formData.recurrenceType === "weekly" ? "Semanal" : 
+                     formData.recurrenceType === "monthly" ? "Mensal" : 
+                     formData.recurrenceType === "yearly" ? "Anual" : "Nenhum"} 
+                    - Duração: {formData.recurrenceInterval} 
+                    {formData.recurrenceType === "weekly" ? " semana(s)" : 
+                     formData.recurrenceType === "monthly" ? " mês(es)" : 
+                     formData.recurrenceType === "yearly" ? " ano(s)" : ""}
+                  </span>
+                </div>
+              )}
+
+              {formData.isRecurring && formData.recurrenceEndDate && (
+                <div className="flex justify-between items-start">
+                  <span className="font-medium">Próxima Renovação:</span>
+                  <span className="text-right text-sm font-medium">
+                    {formatDate(formData.recurrenceEndDate)}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex justify-between">
+                <span className="font-medium">Equipamentos:</span>
+                <span className="font-medium">{formData.items.length} item(s)</span>
+              </div>
+
+              {calculateRealDays() > 30 && (
+                <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-200">
+                  ⚠️ Faturamento limitado a {calculateDays()} dias (máximo 30)
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle className="text-lg">Itens do Orçamento</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
+          <div className="space-y-2 max-h-48 overflow-y-auto">
             {formData.items.map((item) => (
-              <div key={item.id} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
-                <div>
-                  <p className="font-medium">{item.equipmentName}</p>
-                  <p className="text-gray-600">
+              <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{item.equipmentName}</p>
+                  <p className="text-gray-600 text-sm">
                     {item.quantity}x • {item.days} dia(s)
                     {calculateRealDays() > 30 && (
                       <span className="text-xs text-gray-500 ml-1">
@@ -999,7 +1015,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                     )}
                   </p>
                 </div>
-                <span className="font-medium">R$ {item.total.toFixed(2)}</span>
+                <span className="font-medium ml-4">R$ {item.total.toFixed(2)}</span>
               </div>
             ))}
           </div>
@@ -1007,14 +1023,14 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle className="text-lg">Valores</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           <div className="space-y-3">
-            <div className="flex justify-between">
-              <span>Subtotal:</span>
-              <span>R$ {formData.items.reduce((sum, item) => sum + item.total, 0).toFixed(2)}</span>
+            <div className="flex justify-between items-center py-2">
+              <span className="text-lg">Subtotal:</span>
+              <span className="text-lg font-medium">R$ {formData.items.reduce((sum, item) => sum + item.total, 0).toFixed(2)}</span>
             </div>
 
             <div className="grid gap-2">
@@ -1029,19 +1045,20 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                 onChange={(e) => setFormData({ ...formData, discount: Number.parseFloat(e.target.value) || 0 })}
                 placeholder="0,00"
                 disabled={isApprovedBudget}
+                className="max-w-[200px]"
               />
             </div>
 
             <Separator />
 
-            <div className="flex justify-between font-semibold text-xl">
-              <span>Total Final:</span>
-              <span className="text-primary">R$ {(formData.items.reduce((sum, item) => sum + item.total, 0) - formData.discount).toFixed(2)}</span>
+            <div className="flex justify-between items-center py-3 bg-primary/5 rounded-lg px-4">
+              <span className="text-xl font-bold">Total Final:</span>
+              <span className="text-2xl font-bold text-primary">R$ {(formData.items.reduce((sum, item) => sum + item.total, 0) - formData.discount).toFixed(2)}</span>
             </div>
 
             {formData.discount > 0 && (
-              <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
-                Economia: R$ {formData.discount.toFixed(2)}
+              <div className="text-sm text-green-600 bg-green-50 p-3 rounded-lg border border-green-200">
+                💰 Economia: R$ {formData.discount.toFixed(2)}
               </div>
             )}
           </div>
@@ -1049,7 +1066,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle className="text-lg">Observações</CardTitle>
         </CardHeader>
         <CardContent>
@@ -1067,17 +1084,20 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
   )
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-foreground flex items-center gap-2">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent 
+        side="right" 
+        className="!w-[1000px] !min-w-[1000px] !max-w-[1000px] w-[1000px] min-w-[1000px] max-w-[1000px] overflow-y-auto"
+      >
+        <SheetHeader className="pb-6 pr-12">
+          <SheetTitle className="text-foreground flex items-center gap-2">
             <Calculator className="h-5 w-5" />
             {budget ? "Editar Orçamento" : "Novo Orçamento"}
-          </DialogTitle>
-          <DialogDescription>
+          </SheetTitle>
+          <SheetDescription>
             {budget ? "Faça as alterações necessárias no orçamento." : "Crie um novo orçamento seguindo as etapas."}
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         {isApprovedBudget && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
@@ -1093,7 +1113,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
           </div>
         )}
 
-        <div className="space-y-8">
+        <div className="space-y-6 pr-2">
           {renderStepIndicator()}
 
           <div className="min-h-[400px]">
@@ -1102,7 +1122,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
             {currentStep === 3 && renderStep4()}
           </div>
 
-          <div className="flex justify-between pt-6 border-t">
+          <div className="flex justify-between pt-6 border-t pb-4">
             <div className="flex gap-3">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 {isApprovedBudget ? "Fechar" : "Cancelar"}
@@ -1140,7 +1160,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 }

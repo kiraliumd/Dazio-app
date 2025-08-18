@@ -232,6 +232,11 @@ export default function AssinaturaGestaoPage() {
     ? Math.max(0, Math.min(100, ((7 - trialDaysLeft) / 7) * 100))
     : 0;
 
+  // Labels dinâmicos do plano
+  const planLabel = subscription?.plan_type === 'annual' ? 'Plano Anual' : 'Plano Mensal';
+  const planPriceAmount = subscription?.plan_type === 'annual' ? 'R$ 979,00' : 'R$ 97,90';
+  const planPriceSuffix = subscription?.plan_type === 'annual' ? '/ano' : '/mês';
+
   return (
     <AuthGuard>
       <SidebarProvider>
@@ -244,117 +249,95 @@ export default function AssinaturaGestaoPage() {
           </PageHeader>
           
             <div className="flex-1 space-y-6 p-6">
-              {/* Card Principal - Status da Assinatura e Período de Teste */}
-              <Card className="border-2">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <CreditCard className="h-6 w-6 text-primary" />
+              {/* Card Principal - Status da Assinatura */}
+              <Card className="border-2 overflow-hidden">
+                <div className="bg-[linear-gradient(135deg,#ff6b35,#f7931e)] p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/20 rounded-lg">
+                        <CreditCard className="h-6 w-6 text-white" />
+                      </div>
+                      <h3 className="text-white text-xl font-semibold">Status da Assinatura</h3>
                     </div>
-                    Status da Assinatura
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Status da Assinatura */}
-                    <div className="space-y-3">
-                      <div className="text-center">
-                        <Badge 
-                          className={`px-4 py-2 text-sm font-semibold ${
-                            subscription?.status === 'active' 
-                              ? 'bg-green-100 text-green-800 border-green-300' 
-                              : subscription?.status === 'trialing'
-                              ? 'bg-blue-100 text-blue-800 border-blue-300'
-                              : subscription?.status === 'past_due'
-                              ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                              : subscription?.status === 'canceled' || subscription?.status === 'unpaid'
-                              ? 'bg-red-100 text-red-800 border-red-300'
-                              : 'bg-gray-100 text-gray-800 border-gray-300'
-                          }`}
-                          variant="outline"
-                        >
-                          {subscription ? getStatusText(subscription.status || '') : 'Trial'}
-                        </Badge>
-                      </div>
-                      
-                      <div className="text-center">
-                        <p className="text-sm font-medium text-gray-600 mb-1">Tipo de Plano</p>
-                        <p className="text-lg font-semibold text-gray-900">
-                          {subscription?.plan_type === 'annual' ? 'Plano Anual' : subscription?.plan_type === 'monthly' ? 'Plano Mensal' : 'Período de Teste'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Valor */}
-                    <div className="text-center space-y-3">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600 mb-1">Valor</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {subscription?.plan_type === 'annual' ? 'R$ 979,00' : subscription?.plan_type === 'monthly' ? 'R$ 97,90' : 'FREE'}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {subscription?.plan_type === 'annual' ? '/ano' : subscription?.plan_type === 'monthly' ? '/mês' : 'Gratuito'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Período de Teste */}
-                    {companyProfile?.status === 'trial' && (
-                      <div className="text-center space-y-3">
-                        <div>
-                          <p className="text-sm font-medium text-gray-600 mb-1">Período de Teste</p>
-                          <div className="flex items-center justify-center gap-2">
-                            <Badge 
-                              className={`px-3 py-1 text-sm font-medium ${
-                                trialDaysLeft > 3 
-                                  ? 'bg-green-100 text-green-800 border-green-300'
-                                  : trialDaysLeft > 1
-                                  ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                                  : 'bg-red-100 text-red-800 border-red-300'
-                              }`}
-                              variant="outline"
-                            >
-                              {trialDaysLeft} dias
-                            </Badge>
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              trialDaysLeft > 3 
-                                ? 'bg-green-50 text-green-700'
-                                : trialDaysLeft > 1
-                                ? 'bg-yellow-50 text-yellow-700'
-                                : 'bg-red-50 text-red-700'
-                            }`}>
-                              {isTrialExpired ? 'Expirado' : 'Restantes'}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Progress 
-                            value={trialProgress} 
-                            className="h-2" 
-                          />
-                          <div className="flex justify-between text-xs text-gray-500">
-                            <span>Início: {format(new Date(companyProfile.trial_start), 'dd/MM', { locale: ptBR })}</span>
-                            <span>Fim: {format(new Date(companyProfile.trial_end), 'dd/MM', { locale: ptBR })}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    <Badge className="bg-green-100 text-green-800 border-green-300" variant="outline">
+                      {subscription ? getStatusText(subscription.status || '') : 'Trial'}
+                    </Badge>
                   </div>
 
-                  {/* Alerta de Trial Expirado */}
-                  {companyProfile?.status === 'trial' && isTrialExpired && (
-                    <div className="mt-6">
-                      <Alert className="border-red-200 bg-red-50">
-                        <AlertTriangle className="h-4 w-4 text-red-600" />
-                        <AlertDescription className="text-red-800">
-                          Seu período de teste expirou. Faça upgrade para continuar usando o sistema.
-                        </AlertDescription>
-                      </Alert>
+                  <div className="mt-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                    <div className="text-white">
+                      <div className="flex items-end gap-2">
+                        <span className="text-[48px] leading-none font-extrabold">{planPriceAmount}</span>
+                        <span className="text-white/90 text-lg mb-1">{planPriceSuffix}</span>
+                      </div>
+                      <div className="text-white/90 text-sm mt-1">{planLabel}</div>
                     </div>
-                  )}
-                </CardContent>
+
+                    {/* Ações removidas deste card para manter o portal apenas no card de Gerenciar Assinatura */}
+                  </div>
+                </div>
               </Card>
+
+              {/* Card - Período de Teste (quando aplicável) */}
+              {companyProfile?.status === 'trial' && (
+                <Card className="border-2">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-primary" /> Período de Teste
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600">Dias Restantes</p>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            className={`px-3 py-1 text-sm font-medium ${
+                              trialDaysLeft > 3 
+                                ? 'bg-green-100 text-green-800 border-green-300'
+                                : trialDaysLeft > 1
+                                ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                : 'bg-red-100 text-red-800 border-red-300'
+                            }`} 
+                            variant="outline"
+                          >
+                            {trialDaysLeft} dias
+                          </Badge>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            trialDaysLeft > 3 
+                              ? 'bg-green-50 text-green-700'
+                              : trialDaysLeft > 1
+                              ? 'bg-yellow-50 text-yellow-700'
+                              : 'bg-red-50 text-red-700'
+                          }`}>
+                            {isTrialExpired ? 'Expirado' : 'Restantes'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <p className="text-sm text-gray-600 mb-2">Progresso do Teste</p>
+                        <Progress value={trialProgress} className="h-2" />
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span>Início: {format(new Date(companyProfile.trial_start), 'dd/MM', { locale: ptBR })}</span>
+                          <span>Fim: {format(new Date(companyProfile.trial_end), 'dd/MM', { locale: ptBR })}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {isTrialExpired && (
+                      <div className="mt-4">
+                        <Alert className="border-red-200 bg-red-50">
+                          <AlertTriangle className="h-4 w-4 text-red-600" />
+                          <AlertDescription className="text-red-800">
+                            Seu período de teste expirou. Faça upgrade para continuar usando o sistema.
+                          </AlertDescription>
+                        </Alert>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Planos de Assinatura */}
               {(!subscription || subscription.status === 'canceled' || subscription.status === 'unpaid') && (
@@ -485,11 +468,9 @@ export default function AssinaturaGestaoPage() {
                   </CardContent>
                 </Card>
               )}
-
-              
-                          </div>
+            </div>
           </SidebarInset>
-      </SidebarProvider>
-    </AuthGuard>
-  );
-} 
+        </SidebarProvider>
+      </AuthGuard>
+    );
+  } 
