@@ -166,6 +166,13 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
   const [selectedEquipment, setSelectedEquipment] = useState("")
   const [quantity, setQuantity] = useState(1)
   const [equipmentSearch, setEquipmentSearch] = useState("")
+  
+  // Estados para manipular valor da diária e novo produto
+  const [customDailyRate, setCustomDailyRate] = useState("")
+  const [newProductName, setNewProductName] = useState("")
+  const [newProductCategory, setNewProductCategory] = useState("")
+  const [newProductDailyRate, setNewProductDailyRate] = useState("")
+  const [showNewProductForm, setShowNewProductForm] = useState(false)
 
   // Estados para dados do Supabase
   const [clients, setClients] = useState<any[]>([])
@@ -222,6 +229,11 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
       setSelectedEquipment("")
       setQuantity(1)
       setEquipmentSearch("")
+      setCustomDailyRate("")
+      setNewProductName("")
+      setNewProductCategory("")
+      setNewProductDailyRate("")
+      setShowNewProductForm(false)
     } else if (open && budget) {
       // Abrindo formulário para editar orçamento
       setCurrentStep(1)
@@ -243,6 +255,11 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
       })
       setIntervalInputValue((budget.recurrenceInterval || 1).toString())
       setEquipmentSearch("")
+      setCustomDailyRate("")
+      setNewProductName("")
+      setNewProductCategory("")
+      setNewProductDailyRate("")
+      setShowNewProductForm(false)
     }
     // Não resetar quando o modal está fechando (open = false)
   }, [open, budget])
@@ -373,12 +390,14 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
     if (selectedEquipment && quantity > 0) {
       const equipment = equipments.find((e) => e.name === selectedEquipment)
       if (equipment) {
-        const total = quantity * equipment.dailyRate * days
+        // Usar valor personalizado da diária se fornecido, senão usar o valor original
+        const dailyRate = customDailyRate ? parseFloat(customDailyRate) : equipment.dailyRate
+        const total = quantity * dailyRate * days
         const newItem: BudgetItem = {
           id: Date.now().toString(),
           equipmentName: equipment.name,
           quantity,
-          dailyRate: equipment.dailyRate,
+          dailyRate,
           days,
           total,
         }
@@ -391,8 +410,43 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
         // Reset selection
         setSelectedEquipment("")
         setQuantity(1)
+        setCustomDailyRate("")
       }
     }
+  }
+
+  const addNewProduct = () => {
+    if (newProductName && newProductDailyRate && quantity > 0) {
+      const dailyRate = parseFloat(newProductDailyRate)
+      const total = quantity * dailyRate * days
+      const newItem: BudgetItem = {
+        id: Date.now().toString(),
+        equipmentName: newProductName,
+        quantity,
+        dailyRate,
+        days,
+        total,
+      }
+
+      setFormData({
+        ...formData,
+        items: [...formData.items, newItem],
+      })
+
+      // Reset form
+      setNewProductName("")
+      setNewProductCategory("")
+      setNewProductDailyRate("")
+      setQuantity(1)
+      setShowNewProductForm(false)
+    }
+  }
+
+  const resetNewProductForm = () => {
+    setNewProductName("")
+    setNewProductCategory("")
+    setNewProductDailyRate("")
+    setShowNewProductForm(false)
   }
 
   const removeItem = (itemId: string) => {
@@ -815,6 +869,140 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                 />
               </div>
             </div>
+
+            {/* Campo para valor personalizado da diária */}
+            {selectedEquipment && selectedEquipment !== "no-results" && (
+              <div className="grid grid-cols-2 gap-6">
+                <div className="grid gap-2">
+                  <Label>Valor da Diária (R$)</Label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={customDailyRate}
+                      onChange={(e) => setCustomDailyRate(e.target.value)}
+                      placeholder="Deixe vazio para usar valor original"
+                      disabled={isApprovedBudget}
+                    />
+                    {customDailyRate && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setCustomDailyRate("")}
+                          className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    Valor original: R$ {equipments.find((e) => e.name === selectedEquipment)?.dailyRate.toFixed(2)}/dia
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Valor Final da Diária</Label>
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <span className="text-lg font-semibold text-blue-800">
+                      R$ {(() => {
+                        const equipment = equipments.find((e) => e.name === selectedEquipment)
+                        const dailyRate = customDailyRate ? parseFloat(customDailyRate) : equipment?.dailyRate || 0
+                        return dailyRate.toFixed(2)
+                      })()}/dia
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Opção para adicionar novo produto */}
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-4">
+                <Label className="text-base font-medium">Adicionar Novo Produto</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowNewProductForm(!showNewProductForm)}
+                  disabled={isApprovedBudget}
+                >
+                  {showNewProductForm ? "Cancelar" : "Novo Produto"}
+                </Button>
+              </div>
+
+              {showNewProductForm && (
+                <div className="space-y-4 p-4 bg-gray-50 rounded-lg border">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label>Nome do Produto *</Label>
+                      <Input
+                        value={newProductName}
+                        onChange={(e) => setNewProductName(e.target.value)}
+                        placeholder="Ex: Mesa de Som Profissional"
+                        disabled={isApprovedBudget}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Categoria (Opcional)</Label>
+                      <Input
+                        value={newProductCategory}
+                        onChange={(e) => setNewProductCategory(e.target.value)}
+                        placeholder="Ex: Áudio, Iluminação, etc."
+                        disabled={isApprovedBudget}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label>Valor da Diária (R$) *</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={newProductDailyRate}
+                        onChange={(e) => setNewProductDailyRate(e.target.value)}
+                        placeholder="0,00"
+                        disabled={isApprovedBudget}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Quantidade</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={quantity}
+                        onChange={(e) => setQuantity(Number.parseInt(e.target.value) || 1)}
+                        disabled={isApprovedBudget}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      onClick={addNewProduct}
+                      disabled={!newProductName || !newProductDailyRate || quantity <= 0 || isApprovedBudget}
+                      className="flex-1"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Novo Produto
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={resetNewProductForm}
+                      disabled={isApprovedBudget}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {selectedEquipment && selectedEquipment !== "no-results" && (
@@ -824,9 +1012,11 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                   <span>Total do item:</span>
                   <span className="font-semibold">
                     R${" "}
-                    {(quantity * (equipments.find((e) => e.name === selectedEquipment)?.dailyRate || 0) * days).toFixed(
-                      2,
-                    )}
+                    {(quantity * (() => {
+                      const equipment = equipments.find((e) => e.name === selectedEquipment)
+                      const dailyRate = customDailyRate ? parseFloat(customDailyRate) : equipment?.dailyRate || 0
+                      return dailyRate
+                    })() * days).toFixed(2)}
                   </span>
                 </div>
                 {calculateRealDays() > 30 && (
@@ -845,8 +1035,19 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                       <span className="font-medium">{equipment.name}</span>
                     </div>
                     <p className="text-sm text-blue-700 mt-1">
-                      Categoria: {equipment.category || "Não especificada"} • R$ {equipment.dailyRate.toFixed(2)} por
-                      dia
+                      Categoria: {equipment.category || "Não especificada"} • 
+                      {customDailyRate ? (
+                        <>
+                          <span className="text-orange-600 font-medium">
+                            R$ {parseFloat(customDailyRate).toFixed(2)}/dia (personalizado)
+                          </span>
+                          <span className="text-gray-500 text-xs ml-2">
+                            Original: R$ {equipment.dailyRate.toFixed(2)}/dia
+                          </span>
+                        </>
+                      ) : (
+                        <span>R$ {equipment.dailyRate.toFixed(2)}/dia</span>
+                      )}
                     </p>
                   </div>
                 ) : null
