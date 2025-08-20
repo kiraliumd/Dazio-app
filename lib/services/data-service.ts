@@ -10,6 +10,7 @@ export interface DataServiceOptions {
 export class DataService {
   private static instance: DataService
   private cache = new Map<string, { data: any; timestamp: number; ttl: number }>()
+  private cacheContext: any = null
 
   private constructor() {}
 
@@ -18,6 +19,11 @@ export class DataService {
       DataService.instance = new DataService()
     }
     return DataService.instance
+  }
+
+  // Método para conectar com o DataCacheContext
+  setCacheContext(context: any) {
+    this.cacheContext = context
   }
 
   private getCacheKey(operation: string, params?: any): string {
@@ -58,6 +64,26 @@ export class DataService {
       return null
     }
     return this.cache.get(key)?.data || null
+  }
+
+  // Método para notificar mudanças e invalidar cache
+  notifyDataChange(dataType: 'clients' | 'equipments' | 'budgets' | 'rentals', operation: 'create' | 'update' | 'delete') {
+    console.log(`🔄 DataService: Notificando mudança em ${dataType} (${operation})`)
+    
+    // Invalidar cache local
+    this.invalidateCacheByType(dataType)
+    
+    // Notificar contexto se disponível
+    if (this.cacheContext?.notifyDataChange) {
+      this.cacheContext.notifyDataChange(dataType, operation)
+    }
+  }
+
+  // Método para invalidar cache por tipo
+  private invalidateCacheByType(dataType: 'clients' | 'equipments' | 'budgets' | 'rentals') {
+    const keysToDelete = Array.from(this.cache.keys()).filter(key => key.includes(dataType))
+    keysToDelete.forEach(key => this.cache.delete(key))
+    console.log(`🗑️ DataService: Cache de ${dataType} invalidado localmente`)
   }
 
   async getClients(limit?: number, options: DataServiceOptions = {}): Promise<any[]> {
@@ -302,27 +328,23 @@ export class DataService {
 
   // Métodos para invalidar cache quando dados são modificados
   invalidateClientsCache(): void {
-    const keysToDelete = Array.from(this.cache.keys()).filter(key => key.includes('clients'))
-    keysToDelete.forEach(key => this.cache.delete(key))
-    console.log('🗑️ DataService: Cache de clientes invalidado')
+    this.invalidateCacheByType('clients')
+    this.notifyDataChange('clients', 'update')
   }
 
   invalidateEquipmentsCache(): void {
-    const keysToDelete = Array.from(this.cache.keys()).filter(key => key.includes('equipments'))
-    keysToDelete.forEach(key => this.cache.delete(key))
-    console.log('🗑️ DataService: Cache de equipamentos invalidado')
+    this.invalidateCacheByType('equipments')
+    this.notifyDataChange('equipments', 'update')
   }
 
   invalidateBudgetsCache(): void {
-    const keysToDelete = Array.from(this.cache.keys()).filter(key => key.includes('budgets'))
-    keysToDelete.forEach(key => this.cache.delete(key))
-    console.log('🗑️ DataService: Cache de orçamentos invalidado')
+    this.invalidateCacheByType('budgets')
+    this.notifyDataChange('budgets', 'update')
   }
 
   invalidateRentalsCache(): void {
-    const keysToDelete = Array.from(this.cache.keys()).filter(key => key.includes('rentals'))
-    keysToDelete.forEach(key => this.cache.delete(key))
-    console.log('🗑️ DataService: Cache de locações invalidado')
+    this.invalidateCacheByType('rentals')
+    this.notifyDataChange('rentals', 'update')
   }
 
   // Método para limpar todo o cache

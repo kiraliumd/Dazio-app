@@ -2,6 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { dataService, DataServiceOptions } from '../services/data-service'
 import { useDataCache } from '../contexts/data-cache-context'
 
+// Importar o tipo DataCache do contexto
+type DataCache = {
+  clients: any
+  equipments: any
+  budgets: any
+  rentals: any
+}
+
 interface UseOptimizedDataOptions extends DataServiceOptions {
   autoRefresh?: boolean
   refreshInterval?: number
@@ -24,7 +32,7 @@ export function useOptimizedData<T>(
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
-  const { getCachedData, setCachedData, invalidateCache: invalidateContextCache } = useDataCache()
+  const { getCachedData, setCachedData, invalidateCache: invalidateContextCache, subscribeToChanges } = useDataCache()
   
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -156,6 +164,21 @@ export function useOptimizedData<T>(
     }
   }, [options.autoRefresh, options.refreshInterval, refresh])
 
+  // Inscrever-se nas mudanças de dados para atualização automática
+  useEffect(() => {
+    const unsubscribe = subscribeToChanges((changedDataType: keyof DataCache, operation: string) => {
+      // Se o tipo de dados mudou é o mesmo que este hook está observando
+      if (changedDataType === dataType) {
+        console.log(`🔄 useOptimizedData: ${dataType} mudou (${operation}), atualizando automaticamente`)
+        
+        // Atualizar dados automaticamente
+        fetchData(true)
+      }
+    })
+
+    return unsubscribe
+  }, [dataType, subscribeToChanges, fetchData])
+
   // Buscar dados na montagem do componente
   useEffect(() => {
     fetchData()
@@ -209,4 +232,67 @@ export function useRentalsForReports(startDate?: string, endDate?: string, optio
 
 export function useBudgetsForReports(startDate?: string, endDate?: string, options?: UseOptimizedDataOptions) {
   return useOptimizedData('budgets', { startDate, endDate, forReports: true }, options)
+}
+
+// Hook especializado para orçamentos com operações CRUD
+export function useBudgetsWithCRUD(limit?: number, startDate?: string, endDate?: string, options?: UseOptimizedDataOptions) {
+  const budgetsHook = useOptimizedData('budgets', { limit, startDate, endDate }, options)
+  const { invalidateCache } = useDataCache()
+
+  const createBudget = useCallback(async (budgetData: any, items: any[]) => {
+    try {
+      const { createBudget } = await import('../database/budgets')
+      const result = await createBudget(budgetData, items)
+      
+      // O cache será invalidado automaticamente pela função createBudget
+      console.log('✅ Orçamento criado com sucesso, cache invalidado automaticamente')
+      
+      return result
+    } catch (error) {
+      console.error('Erro ao criar orçamento:', error)
+      throw error
+    }
+  }, [])
+
+  const updateBudget = useCallback(async (id: string, budgetData: any, items?: any[]) => {
+    try {
+      const { updateBudget } = await import('../database/budgets')
+      const result = await updateBudget(id, budgetData, items)
+      
+      // O cache será invalidado automaticamente pela função updateBudget
+      console.log('✅ Orçamento atualizado com sucesso, cache invalidado automaticamente')
+      
+      return result
+    } catch (error) {
+      console.error('Erro ao atualizar orçamento:', error)
+      throw error
+    }
+  }, [])
+
+  const deleteBudget = useCallback(async (id: string) => {
+    try {
+      const { deleteBudget } = await import('../database/budgets')
+      const result = await deleteBudget(id)
+      
+      // O cache será invalidado automaticamente pela função deleteBudget
+      console.log('✅ Orçamento excluído com sucesso, cache invalidado automaticamente')
+      
+      return result
+    } catch (error) {
+      console.error('Erro ao excluir orçamento:', error)
+      throw error
+    }
+  }, [])
+
+  const forceRefresh = useCallback(() => {
+    budgetsHook.refresh(true)
+  }, [budgetsHook])
+
+  return {
+    ...budgetsHook,
+    createBudget,
+    updateBudget,
+    deleteBudget,
+    forceRefresh,
+  }
 }

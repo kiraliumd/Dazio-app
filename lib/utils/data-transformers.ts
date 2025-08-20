@@ -53,6 +53,7 @@ export interface Budget {
   status: "Pendente" | "Aprovado" | "Rejeitado"
   observations: string
   // Campos de recorrência
+  isRecurring?: boolean
   recurrenceType?: RecurrenceType
   recurrenceInterval?: number
   recurrenceEndDate?: string
@@ -233,6 +234,7 @@ export function transformBudgetFromDB(dbBudget: any): Budget {
     status: dbBudget.status,
     observations: dbBudget.observations || "",
     // Campos de recorrência
+    isRecurring: Boolean(dbBudget.is_recurring),
     recurrenceType: dbBudget.recurrence_type || undefined,
     recurrenceInterval: dbBudget.recurrence_interval || 1,
     recurrenceEndDate: dbBudget.recurrence_end_date ? formatDateFromDB(dbBudget.recurrence_end_date) : undefined,
@@ -257,6 +259,7 @@ export function transformBudgetToDB(
     total_value: budget.totalValue,
     status: budget.status,
     observations: budget.observations || null,
+    is_recurring: Boolean(budget.isRecurring),
     recurrence_type: budget.recurrenceType || null,
     recurrence_interval: budget.recurrenceInterval || 1,
     recurrence_end_date: budget.recurrenceEndDate || null,

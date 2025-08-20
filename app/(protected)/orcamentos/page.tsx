@@ -327,11 +327,11 @@ export default function BudgetsPage() {
         total_value: budgetData.totalValue,
         status: budgetData.status,
         observations: budgetData.observations || null,
-        // Campos de recorrência
-        is_recurring: budgetData.recurrenceType ? true : false,
-        recurrence_type: (budgetData.recurrenceType as "weekly" | "monthly" | "yearly") || "weekly",
-        recurrence_interval: budgetData.recurrenceInterval || 1,
-        recurrence_end_date: budgetData.recurrenceEndDate || null,
+        // Campos de recorrência - CORRIGIDO: usar isRecurring do formulário
+        is_recurring: Boolean(budgetData.isRecurring),
+        recurrence_type: budgetData.isRecurring ? (budgetData.recurrenceType as "weekly" | "monthly" | "yearly") || "weekly" : null,
+        recurrence_interval: budgetData.isRecurring ? (budgetData.recurrenceInterval || 1) : null,
+        recurrence_end_date: budgetData.isRecurring ? (budgetData.recurrenceEndDate || null) : null,
       }
 
       const items = budgetData.items.map((item: any) => ({
@@ -407,10 +407,10 @@ export default function BudgetsPage() {
         observations: selectedBudget.observations || null,
         budget_id: selectedBudget.id,
         // Campos de recorrência
-        is_recurring: selectedBudget.recurrenceType ? true : false,
-        recurrence_type: selectedBudget.recurrenceType || "weekly",
-        recurrence_interval: selectedBudget.recurrenceInterval || 1,
-        recurrence_end_date: selectedBudget.recurrenceEndDate || null,
+        is_recurring: Boolean(selectedBudget.isRecurring),
+        recurrence_type: selectedBudget.isRecurring ? (selectedBudget.recurrenceType || "weekly") : null,
+        recurrence_interval: selectedBudget.isRecurring ? (selectedBudget.recurrenceInterval || 1) : null,
+        recurrence_end_date: selectedBudget.isRecurring ? (selectedBudget.recurrenceEndDate || null) : null,
         recurrence_status: "active" as const,
         parent_rental_id: null,
         next_occurrence_date: null,

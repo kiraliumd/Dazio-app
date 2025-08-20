@@ -1,7 +1,8 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 import { supabase } from '../supabase'
+import { dataService } from '../services/data-service'
 
 interface CacheItem<T> {
   data: T
@@ -23,6 +24,9 @@ interface DataCacheContextType {
   invalidateCache: (key?: keyof DataCache) => void
   isDataStale: (key: keyof DataCache) => boolean
   clearCache: () => void
+  // Novos métodos para invalidação automática
+  notifyDataChange: (dataType: keyof DataCache, operation: 'create' | 'update' | 'delete') => void
+  subscribeToChanges: (callback: (dataType: keyof DataCache, operation: string) => void) => () => void
 }
 
 const DataCacheContext = createContext<DataCacheContextType | undefined>(undefined)
@@ -45,6 +49,19 @@ export function DataCacheProvider({ children }: { children: ReactNode }) {
     budgets: null,
     rentals: null,
   })
+
+  // Sistema de notificações para mudanças de dados
+  const [changeSubscribers, setChangeSubscribers] = useState<Set<(dataType: keyof DataCache, operation: string) => void>>(new Set())
+
+  // Conectar com o DataService
+  useEffect(() => {
+    dataService.setCacheContext({
+      notifyDataChange: (dataType: keyof DataCache, operation: 'create' | 'update' | 'delete') => {
+        console.log(`🔄 DataCacheContext: Recebendo notificação do DataService para ${dataType} (${operation})`)
+        notifyDataChange(dataType, operation)
+      }
+    })
+  }, [])
 
   // Carregar cache do localStorage na inicialização
   useEffect(() => {
@@ -104,6 +121,7 @@ export function DataCacheProvider({ children }: { children: ReactNode }) {
   const invalidateCache = (key?: keyof DataCache) => {
     if (key) {
       setCache(prev => ({ ...prev, [key]: null }))
+      console.log(`🗑️ DataCacheContext: Cache de ${key} invalidado`)
     } else {
       setCache({
         clients: null,
@@ -111,6 +129,7 @@ export function DataCacheProvider({ children }: { children: ReactNode }) {
         budgets: null,
         rentals: null,
       })
+      console.log('🗑️ DataCacheContext: Todo o cache invalidado')
     }
   }
 
@@ -136,6 +155,36 @@ export function DataCacheProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Sistema de notificações para mudanças de dados
+  const notifyDataChange = useCallback((dataType: keyof DataCache, operation: 'create' | 'update' | 'delete') => {
+    console.log(`🔄 DataCacheContext: Notificando mudança em ${dataType} (${operation})`)
+    
+    // Invalidar cache imediatamente
+    invalidateCache(dataType)
+    
+    // Notificar todos os subscribers
+    changeSubscribers.forEach(callback => {
+      try {
+        callback(dataType, operation)
+      } catch (error) {
+        console.warn('Erro ao executar callback de mudança:', error)
+      }
+    })
+  }, [changeSubscribers])
+
+  const subscribeToChanges = useCallback((callback: (dataType: keyof DataCache, operation: string) => void) => {
+    setChangeSubscribers(prev => new Set(prev).add(callback))
+    
+    // Retornar função para cancelar inscrição
+    return () => {
+      setChangeSubscribers(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(callback)
+        return newSet
+      })
+    }
+  }, [])
+
   return (
     <DataCacheContext.Provider value={{
       cache,
@@ -144,6 +193,8 @@ export function DataCacheProvider({ children }: { children: ReactNode }) {
       invalidateCache,
       isDataStale,
       clearCache,
+      notifyDataChange,
+      subscribeToChanges,
     }}>
       {children}
     </DataCacheContext.Provider>

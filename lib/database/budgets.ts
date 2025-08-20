@@ -1,6 +1,7 @@
-import { supabase } from "../supabase"
-import type { Budget, BudgetItem } from "../supabase"
-import { getCurrentUserCompanyId } from "./client-utils"
+import { supabase } from '../supabase'
+import { getCurrentUserCompanyId } from './client-utils'
+import { dataService } from '../services/data-service'
+import type { Budget, BudgetItem } from '../utils/data-transformers'
 
 export async function getBudgets(limit?: number, startDate?: string, endDate?: string) {
   const companyId = await getCurrentUserCompanyId()
@@ -19,13 +20,11 @@ export async function getBudgets(limit?: number, startDate?: string, endDate?: s
     .eq("company_id", companyId)
     .order("created_at", { ascending: false })
 
-  // Aplicar filtros de período se fornecidos
   if (startDate && endDate) {
     query = query.gte("created_at", `${startDate}T00:00:00`)
     query = query.lte("created_at", `${endDate}T23:59:59`)
   }
 
-  // Aplicar limite se fornecido
   if (limit) {
     query = query.limit(limit)
   }
@@ -37,7 +36,7 @@ export async function getBudgets(limit?: number, startDate?: string, endDate?: s
     throw error
   }
 
-  return data || []
+  return data
 }
 
 export async function getBudgetById(id: string) {
@@ -136,6 +135,13 @@ export async function createBudget(
     }
   }
 
+  // Notificar mudança para invalidar cache
+  try {
+    dataService.notifyDataChange('budgets', 'create')
+  } catch (error) {
+    console.warn('Erro ao notificar mudança de cache:', error)
+  }
+
   return budgetData
 }
 
@@ -144,147 +150,139 @@ export async function updateBudget(
   budget: Partial<Omit<Budget, "id" | "created_at" | "updated_at">>,
   items?: Omit<BudgetItem, "id" | "budget_id" | "created_at">[],
 ) {
-  // Verificar se o orçamento está aprovado antes de permitir atualização
-  const { data: existingBudget, error: fetchError } = await supabase
-    .from("budgets")
-    .select("status")
-    .eq("id", id)
-    .single()
-
-  if (fetchError) {
-    console.error("Erro ao verificar status do orçamento:", fetchError)
-    throw fetchError
+  const companyId = await getCurrentUserCompanyId()
+  
+  if (!companyId) {
+    console.error('❌ updateBudget: Company ID não encontrado')
+    throw new Error('Usuário não autenticado ou empresa não encontrada')
   }
 
-  if (existingBudget.status === "Aprovado") {
-    throw new Error("Orçamentos aprovados não podem ser editados")
-  }
   // Atualizar o orçamento
-  const { data: budgetData, error: budgetError } = await supabase
+  const { error: budgetError } = await supabase
     .from("budgets")
-    .update(budget)
+    .update({
+      ...budget,
+      updated_at: new Date().toISOString()
+    })
     .eq("id", id)
-    .select()
-    .single()
+    .eq("company_id", companyId)
 
   if (budgetError) {
     console.error("Erro ao atualizar orçamento:", budgetError)
     throw budgetError
   }
 
-  // Se itens foram fornecidos, atualizar os itens
-  if (items) {
-    // Deletar itens existentes
-    await supabase.from("budget_items").delete().eq("budget_id", id)
+  // Atualizar itens se fornecidos
+  if (items && items.length > 0) {
+    // Remover itens existentes
+    const { error: deleteError } = await supabase
+      .from("budget_items")
+      .delete()
+      .eq("budget_id", id)
+
+    if (deleteError) {
+      console.error("Erro ao remover itens existentes:", deleteError)
+      throw deleteError
+    }
 
     // Inserir novos itens
-    if (items.length > 0) {
-      const budgetItems = items.map((item) => ({
-        ...item,
-        budget_id: id,
-      }))
+    const budgetItems = items.map((item) => ({
+      ...item,
+      budget_id: id,
+    }))
 
-      const { error: itemsError } = await supabase.from("budget_items").insert(budgetItems)
+    const { error: itemsError } = await supabase.from("budget_items").insert(budgetItems)
 
-      if (itemsError) {
-        console.error("Erro ao atualizar itens do orçamento:", itemsError)
-        throw itemsError
-      }
+    if (itemsError) {
+      console.error("Erro ao inserir novos itens:", itemsError)
+      throw itemsError
     }
   }
 
-  return budgetData
+  // Notificar mudança para invalidar cache
+  try {
+    dataService.notifyDataChange('budgets', 'update')
+  } catch (error) {
+    console.warn('Erro ao notificar mudança de cache:', error)
+  }
+
+  return { success: true }
 }
 
 export async function deleteBudget(id: string) {
-  // Verificar se o orçamento está aprovado antes de permitir exclusão
-  const { data: existingBudget, error: fetchError } = await supabase
-    .from("budgets")
-    .select("status")
-    .eq("id", id)
-    .single()
-
-  if (fetchError) {
-    console.error("Erro ao verificar status do orçamento:", fetchError)
-    throw fetchError
-  }
-
-  if (existingBudget.status === "Aprovado") {
-    throw new Error("Orçamentos aprovados não podem ser excluídos")
-  }
-
-  // Os itens serão deletados automaticamente devido ao CASCADE
-  const { error } = await supabase.from("budgets").delete().eq("id", id)
-
-  if (error) {
-    console.error("Erro ao deletar orçamento:", error)
-    throw error
-  }
-
-  return true
-}
-
-export async function searchBudgets(searchTerm?: string) {
   const companyId = await getCurrentUserCompanyId()
   
   if (!companyId) {
-    console.error('❌ searchBudgets: Company ID não encontrado')
+    console.error('❌ deleteBudget: Company ID não encontrado')
     throw new Error('Usuário não autenticado ou empresa não encontrada')
   }
 
-  let query = supabase.from("budgets").select(`
-      *,
-      budget_items (*)
-    `)
-    .eq('company_id', companyId)
+  // Remover itens primeiro (devido à foreign key)
+  const { error: itemsError } = await supabase
+    .from("budget_items")
+    .delete()
+    .eq("budget_id", id)
 
-  if (searchTerm) {
-    query = query.or(`number.ilike.%${searchTerm}%,client_name.ilike.%${searchTerm}%,status.ilike.%${searchTerm}%`)
+  if (itemsError) {
+    console.error("Erro ao remover itens do orçamento:", itemsError)
+    throw itemsError
   }
 
-  query = query.order("created_at", { ascending: false })
+  // Remover o orçamento
+  const { error: budgetError } = await supabase
+    .from("budgets")
+    .delete()
+    .eq("id", id)
+    .eq("company_id", companyId)
 
-  const { data, error } = await query
-
-  if (error) {
-    console.error("Erro ao buscar orçamentos:", error)
-    throw error
+  if (budgetError) {
+    console.error("Erro ao remover orçamento:", budgetError)
+    throw budgetError
   }
 
-  return data || []
+  // Notificar mudança para invalidar cache
+  try {
+    dataService.notifyDataChange('budgets', 'delete')
+  } catch (error) {
+    console.warn('Erro ao notificar mudança de cache:', error)
+  }
+
+  return { success: true }
 }
 
-export async function generateBudgetNumber() {
-  const year = new Date().getFullYear()
+export async function generateBudgetNumber(): Promise<string> {
   const companyId = await getCurrentUserCompanyId()
-
+  
   if (!companyId) {
-    console.error('❌ generateBudgetNumber: Company ID não encontrado')
     throw new Error('Usuário não autenticado ou empresa não encontrada')
   }
 
-  // Buscar o último número do ano para a empresa atual
-  const { data, error } = await supabase
+  const currentYear = new Date().getFullYear()
+  
+  // Buscar o último número de orçamento deste ano
+  const { data: lastBudget, error } = await supabase
     .from("budgets")
     .select("number")
-    .eq('company_id', companyId)
-    .like("number", `ORC-${year}-%`)
+    .eq("company_id", companyId)
+    .like("number", `${currentYear}-%`)
     .order("number", { ascending: false })
     .limit(1)
+    .single()
 
-  if (error) {
-    console.error("Erro ao gerar número do orçamento:", error)
+  if (error && error.code !== 'PGRST116') { // PGRST116 = nenhum resultado encontrado
+    console.error("Erro ao buscar último orçamento:", error)
     throw error
   }
 
   let nextNumber = 1
-  if (data && data.length > 0) {
-    const lastNumber = data[0].number
-    const match = lastNumber.match(/ORC-\d{4}-(\d{3})/)
-    if (match) {
-      nextNumber = Number.parseInt(match[1]) + 1
+  
+  if (lastBudget) {
+    const lastNumberStr = lastBudget.number.split('-')[1]
+    const lastNumber = parseInt(lastNumberStr, 10)
+    if (!isNaN(lastNumber)) {
+      nextNumber = lastNumber + 1
     }
   }
 
-  return `ORC-${year}-${nextNumber.toString().padStart(3, "0")}`
+  return `${currentYear}-${nextNumber.toString().padStart(4, '0')}`
 }

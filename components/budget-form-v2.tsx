@@ -48,6 +48,7 @@ export interface Budget {
   totalValue: number
   status: "Pendente" | "Aprovado" | "Rejeitado"
   observations: string
+  isRecurring?: boolean
   recurrenceType?: RecurrenceType
   recurrenceInterval?: number
   recurrenceEndDate?: string
@@ -265,7 +266,7 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
         discount: budget.discount,
         observations: budget.observations,
         // Campos de recorrência
-        isRecurring: budget.recurrenceType ? true : false,
+        isRecurring: Boolean(budget.isRecurring),
         recurrenceType: budget.recurrenceType || "weekly",
         recurrenceInterval: budget.recurrenceInterval || 1,
         recurrenceEndDate: budget.recurrenceEndDate || "",
