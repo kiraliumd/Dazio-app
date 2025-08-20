@@ -525,10 +525,18 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
         subtotal: totalValue,
         totalValue: finalValue,
         status: "Pendente" as const,
-        // Campos de recorrência
-        recurrenceType: formData.isRecurring ? formData.recurrenceType : "weekly",
-        recurrenceInterval: formData.isRecurring ? formData.recurrenceInterval : 1,
-        recurrenceEndDate: formData.isRecurring ? formData.recurrenceEndDate : undefined,
+        // Campos de recorrência - só incluir se for recorrente
+        ...(formData.isRecurring && {
+          recurrenceType: formData.recurrenceType,
+          recurrenceInterval: formData.recurrenceInterval,
+          recurrenceEndDate: formData.recurrenceEndDate,
+        }),
+        // Se não for recorrente, remover os campos de recorrência
+        ...(!formData.isRecurring && {
+          recurrenceType: undefined,
+          recurrenceInterval: undefined,
+          recurrenceEndDate: undefined,
+        }),
       }
 
       await onSave(budgetData)
@@ -699,30 +707,6 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
                     {formData.recurrenceType === "monthly" && "Duração em meses (ex: 1 = 1 mês, 3 = 3 meses, 6 = 6 meses)"}
                     {formData.recurrenceType === "yearly" && "Duração em anos (ex: 1 = 1 ano, 2 = 2 anos)"}
                   </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div className="grid gap-2">
-                  <Label htmlFor="startDate">Data de Início *</Label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    disabled={isApprovedBudget}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="endDate">Data de Término *</Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    min={formData.startDate}
-                    readOnly
-                  />
                 </div>
               </div>
 
