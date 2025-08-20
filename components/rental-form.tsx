@@ -19,8 +19,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Trash2, Search, MapPin } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
-import { getClients } from "../lib/database/clients"
-import { getEquipments } from "../lib/database/equipments"
+import { useClients, useEquipments } from "../lib/hooks/use-optimized-data"
 import { transformClientFromDB, transformEquipmentFromDB } from "../lib/utils/data-transformers"
 import type { Client, Equipment, RecurrenceType } from "../lib/utils/data-transformers"
 import { RecurrenceConfig } from "./recurrence-config"
@@ -105,33 +104,47 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
   const [loadingClients, setLoadingClients] = useState(false)
   const [loadingEquipments, setLoadingEquipments] = useState(false)
 
-  // Carregar clientes e equipamentos do Supabase
-  const loadData = async () => {
-    try {
-      setLoadingClients(true)
-      setLoadingEquipments(true)
+  // Usar hooks otimizados para dados
+  const { data: dbClients, loading: clientsLoading, error: clientsError } = useClients()
+  const { data: dbEquipments, loading: equipmentsLoading, error: equipmentsError } = useEquipments()
 
-      const [clientsData, equipmentsData] = await Promise.all([getClients(), getEquipments()])
-
-      const transformedClients = clientsData.map(transformClientFromDB)
-      const transformedEquipments = equipmentsData
-        .filter((eq) => eq.status === "Disponível")
-        .map(transformEquipmentFromDB)
-
+  // Atualizar estados locais quando dados são carregados
+  useEffect(() => {
+    if (dbClients && Array.isArray(dbClients)) {
+      const transformedClients = dbClients.map(transformClientFromDB)
       setClients(transformedClients)
-      setEquipments(transformedEquipments)
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error)
-    } finally {
-      setLoadingClients(false)
-      setLoadingEquipments(false)
     }
-  }
+  }, [dbClients])
+
+  useEffect(() => {
+    if (dbEquipments && Array.isArray(dbEquipments)) {
+      const transformedEquipments = dbEquipments
+        .filter((eq: any) => eq.status === "Disponível")
+        .map(transformEquipmentFromDB)
+      setEquipments(transformedEquipments)
+    }
+  }, [dbEquipments])
+
+  // Calcular loading geral
+  useEffect(() => {
+    setLoadingClients(clientsLoading)
+    setLoadingEquipments(equipmentsLoading)
+  }, [clientsLoading, equipmentsLoading])
+
+  // Tratar erros
+  useEffect(() => {
+    if (clientsError) {
+      console.error('Erro ao carregar clientes:', clientsError)
+    }
+    if (equipmentsError) {
+      console.error('Erro ao carregar equipamentos:', equipmentsError)
+    }
+  }, [clientsError, equipmentsError])
 
   // Carregar dados quando o dialog abrir
   useEffect(() => {
     if (open) {
-      loadData()
+      console.log('📦 RentalForm: Dados sendo carregados pelos hooks otimizados')
     }
   }, [open])
 

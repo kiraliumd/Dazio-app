@@ -1,17 +1,38 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
-import { Edit, Plus, Search, Trash2, Package, Wrench, AlertTriangle } from "lucide-react"
-import { AppSidebar } from "../../../components/app-sidebar"
-import { PageHeader } from "../../../components/page-header"
-// Lazy load do componente pesado
-const EquipmentForm = lazy(() => import("../../../components/equipment-form").then(module => ({ default: module.EquipmentForm })))
-import type { Equipment } from "../../../components/equipment-form"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Package,
+  DollarSign,
+  Calendar,
+  Filter,
+  X,
+  Eye,
+  EyeOff,
+} from "lucide-react"
+import { PageHeader } from "@/components/page-header"
+import { EquipmentForm } from "@/components/equipment-form"
+import { useEquipments } from "@/lib/hooks/use-optimized-data"
+import { transformEquipmentFromDB } from "@/lib/utils/data-transformers"
+import type { Equipment } from "@/lib/utils/data-transformers"
+import { AppSidebar } from "@/components/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { CardDescription } from "@/components/ui/card"
+import { Suspense, lazy } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,9 +43,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 
+import { 
+  getEquipments, 
+  createEquipment, 
+  updateEquipment, 
+  deleteEquipment 
+} from "../../../lib/database/equipments"
+import { transformEquipmentToDB } from "../../../lib/utils/data-transformers"
+import { useEquipmentCategories } from "../../../hooks/useEquipmentCategories"
+import { useToast } from "../../../hooks/use-toast"
 import { 
   Pagination, 
   PaginationContent, 
@@ -33,16 +61,7 @@ import {
   PaginationNext, 
   PaginationPrevious, 
   PaginationEllipsis 
-} from "@/components/ui/pagination";
-import {
-  getEquipments,
-  createEquipment,
-  updateEquipment,
-  deleteEquipment,
-} from "../../../lib/database/equipments"
-import { transformEquipmentFromDB, transformEquipmentToDB } from "../../../lib/utils/data-transformers"
-import { useEquipmentCategories } from "../../../hooks/useEquipmentCategories"
-import { useToast } from "@/components/ui/use-toast"
+} from "@/components/ui/pagination"
 
 // Hook para debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -64,21 +83,54 @@ const LoadingSpinner = () => (
 export default function EquipmentsPage() {
   const { categories: equipmentCategories, refreshCategories } = useEquipmentCategories();
   const { toast } = useToast();
+  
+  // Estados para dados
   const [equipments, setEquipments] = useState<Equipment[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("Todas")
   const [statusFilter, setStatusFilter] = useState("Todos")
+  const [currentPage, setCurrentPage] = useState(1)
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingEquipment, setEditingEquipment] = useState<Equipment | undefined>()
+  const [editingEquipment, setEditingEquipment] = useState<Equipment | undefined>(undefined)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [equipmentToDelete, setEquipmentToDelete] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
+
+  // Constantes
   const ITEMS_PER_PAGE = 10
 
   // Debounce do termo de busca
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Usar hooks otimizados para dados
+  const { data: dbEquipments, loading: equipmentsLoading, error: equipmentsError, refresh: refreshEquipments } = useEquipments()
+
+  // Atualizar estados locais quando dados são carregados
+  useEffect(() => {
+    if (dbEquipments && Array.isArray(dbEquipments)) {
+      const transformedEquipments = dbEquipments.map(transformEquipmentFromDB)
+      setEquipments(transformedEquipments)
+    }
+  }, [dbEquipments])
+
+  // Calcular loading geral
+  useEffect(() => {
+    setLoading(equipmentsLoading)
+  }, [equipmentsLoading])
+
+  // Tratar erros
+  useEffect(() => {
+    if (equipmentsError) {
+      console.error('Erro ao carregar equipamentos:', equipmentsError)
+      alert("Erro ao carregar equipamentos")
+    }
+  }, [equipmentsError])
+
+  // Carregar dados na montagem
+  useEffect(() => {
+    console.log('📦 Equipamentos: Dados sendo carregados pelos hooks otimizados')
+  }, [])
 
   // Memoização dos filtros aplicados
   const filteredEquipments = useMemo(() => {
@@ -115,10 +167,6 @@ export default function EquipmentsPage() {
   const totalPages = useMemo(() => {
     return Math.ceil(filteredEquipments.length / ITEMS_PER_PAGE);
   }, [filteredEquipments.length]);
-
-  useEffect(() => {
-    loadEquipments()
-  }, [])
 
   // Reset da página quando filtros mudarem
   useEffect(() => {
@@ -172,7 +220,7 @@ export default function EquipmentsPage() {
         });
       }
 
-      await loadEquipments() // Recarregar lista
+      await refreshEquipments() // Recarregar lista
       setEditingEquipment(undefined)
       setIsFormOpen(false) // Fechar o modal
     } catch (error) {
@@ -201,7 +249,7 @@ export default function EquipmentsPage() {
     if (equipmentToDelete) {
       try {
         await deleteEquipment(equipmentToDelete)
-        await loadEquipments() // Recarregar lista
+        await refreshEquipments() // Recarregar lista
       } catch (error) {
         console.error("Erro ao deletar equipamento:", error)
         alert("Erro ao deletar equipamento")
@@ -279,7 +327,7 @@ export default function EquipmentsPage() {
                   <SelectContent>
                     <SelectItem value="Todas">Todas as categorias</SelectItem>
                     {equipmentCategories
-                      .filter((cat) => cat.active)
+                      .filter((cat) => cat.isActive)
                       .map((category) => (
                         <SelectItem key={category.id} value={category.name}>
                           {category.name}

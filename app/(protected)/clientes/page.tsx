@@ -1,17 +1,42 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
-import { Edit, Mail, Phone, Plus, Search, Trash2, User } from "lucide-react"
-import { AppSidebar } from "../../../components/app-sidebar"
-import { PageHeader } from "../../../components/page-header"
-// Lazy load do componente pesado
-const ClientForm = lazy(() => import("../../../components/client-form").then(module => ({ default: module.ClientForm })))
-import type { Client } from "../../../components/client-form"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  User,
+  Mail,
+  Phone,
+  FileText,
+  Calendar,
+  Building,
+  MapPin,
+  Filter,
+  X,
+  Eye,
+  EyeOff,
+} from "lucide-react"
+import { PageHeader } from "@/components/page-header"
+import { ClientForm } from "@/components/client-form"
+import { useClients } from "@/lib/hooks/use-optimized-data"
+import { transformClientFromDB } from "@/lib/utils/data-transformers"
+import type { Client } from "@/lib/utils/data-transformers"
+import { AppSidebar } from "@/components/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { CardDescription } from "@/components/ui/card"
+import { Suspense, lazy } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +47,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import {
   Pagination,
@@ -35,7 +59,7 @@ import {
 } from "@/components/ui/pagination";
 
 import { getClients, createClient, updateClient, deleteClient } from "../../../lib/database/clients"
-import { transformClientFromDB, transformClientToDB } from "../../../lib/utils/data-transformers"
+import { transformClientToDB } from "../../../lib/utils/data-transformers"
 
 // Hook para debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -55,21 +79,49 @@ const LoadingSpinner = () => (
 );
 
 export default function ClientsPage() {
+  // Estados para dados
   const [clients, setClients] = useState<Client[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
   const [documentTypeFilter, setDocumentTypeFilter] = useState("Todos")
+  const [currentPage, setCurrentPage] = useState(1)
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingClient, setEditingClient] = useState<Client | undefined>()
+  const [editingClient, setEditingClient] = useState<Client | undefined>(undefined)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [clientToDelete, setClientToDelete] = useState<string | null>(null)
 
-  // Paginação
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
+  // Usar hooks otimizados para dados
+  const { data: dbClients, loading: clientsLoading, error: clientsError, refresh: refreshClients } = useClients(50)
 
-  // Debounce do termo de busca
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  // Atualizar estados locais quando dados são carregados
+  useEffect(() => {
+    if (dbClients && Array.isArray(dbClients)) {
+      const transformedClients = dbClients.map(transformClientFromDB)
+      setClients(transformedClients)
+    }
+  }, [dbClients])
+
+  // Calcular loading geral
+  useEffect(() => {
+    setLoading(clientsLoading)
+  }, [clientsLoading])
+
+  // Tratar erros
+  useEffect(() => {
+    if (clientsError) {
+      console.error('Erro ao carregar clientes:', clientsError)
+      alert("Erro ao carregar clientes")
+    }
+  }, [clientsError])
+
+  // Carregar dados na montagem
+  useEffect(() => {
+    console.log('📦 Clientes: Dados sendo carregados pelos hooks otimizados')
+  }, [])
+
+  // Paginação
+  const ITEMS_PER_PAGE = 10;
 
   // Memoização dos filtros aplicados
   const filteredClients = useMemo(() => {
@@ -102,10 +154,6 @@ export default function ClientsPage() {
   const totalPages = useMemo(() => {
     return Math.ceil(filteredClients.length / ITEMS_PER_PAGE);
   }, [filteredClients.length]);
-
-  useEffect(() => {
-    loadClients()
-  }, [])
 
   // Reset da página quando filtros mudarem
   useEffect(() => {
@@ -147,7 +195,7 @@ export default function ClientsPage() {
         await createClient(dbClientData)
       }
 
-      await loadClients() // Recarregar lista
+      await refreshClients() // Recarregar lista
       setEditingClient(undefined)
     } catch (error) {
       console.error("Erro ao salvar cliente:", error)
@@ -169,7 +217,7 @@ export default function ClientsPage() {
     if (clientToDelete) {
       try {
         await deleteClient(clientToDelete)
-        await loadClients() // Recarregar lista
+        await refreshClients() // Recarregar lista
       } catch (error) {
         console.error("Erro ao deletar cliente:", error)
         alert("Erro ao deletar cliente")
