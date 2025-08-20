@@ -17,7 +17,7 @@ interface UseOptimizedDataReturn<T> {
 }
 
 export function useOptimizedData<T>(
-  dataType: 'clients' | 'equipments' | 'budgets' | 'rentals',
+  dataType: 'clients' | 'equipments' | 'budgets' | 'rentals' | 'dashboard',
   params?: any,
   options: UseOptimizedDataOptions = {}
 ): UseOptimizedDataReturn<T> {
@@ -77,6 +77,9 @@ export function useOptimizedData<T>(
           break
         case 'rentals':
           result = await dataService.getRentals(params?.limit, serviceOptions) as T
+          break
+        case 'dashboard':
+          result = await dataService.getDashboardMetrics(serviceOptions) as T
           break
         default:
           throw new Error(`Tipo de dados não suportado: ${dataType}`)
@@ -194,4 +197,16 @@ export function useBudgets(limit?: number, startDate?: string, endDate?: string,
 
 export function useRentals(limit?: number, options?: UseOptimizedDataOptions) {
   return useOptimizedData('rentals', { limit }, options)
+}
+
+export function useDashboardMetrics(options?: UseOptimizedDataOptions) {
+  return useOptimizedData('dashboard', undefined, options)
+}
+
+export function useRentalsForReports(startDate?: string, endDate?: string, options?: UseOptimizedDataOptions) {
+  return useOptimizedData('rentals', { startDate, endDate, forReports: true }, options)
+}
+
+export function useBudgetsForReports(startDate?: string, endDate?: string, options?: UseOptimizedDataOptions) {
+  return useOptimizedData('budgets', { startDate, endDate, forReports: true }, options)
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Calendar, DollarSign, FileText, TrendingUp, Users, Package } from "lucide-react"
 import { AppSidebar } from "../../../components/app-sidebar"
 import { PageHeader } from "../../../components/page-header"
@@ -10,11 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { useRentalsForReports, useBudgetsForReports } from "@/lib/hooks/use-optimized-data"
 import { 
-  getRentalsForReports, 
-  getBudgetsForReports, 
-  getAllRentalsForReports, 
-  getAllBudgetsForReports,
   type RentalReport,
   type BudgetReport 
 } from "../../../lib/database/reports"
@@ -34,10 +31,9 @@ export default function RelatoriosPage() {
   const [endDate, setEndDate] = useState("")
   const [filteredRentals, setFilteredRentals] = useState<RentalReport[]>([])
   const [filteredBudgets, setFilteredBudgets] = useState<BudgetReport[]>([])
-  const [loading, setLoading] = useState(false)
 
   // Calcular datas baseado no período selecionado
-  const calculateDateRange = () => {
+  const calculateDateRange = useCallback(() => {
     const today = new Date()
     let start: Date
     let end: Date = today
@@ -55,54 +51,67 @@ export default function RelatoriosPage() {
     }
 
     return { start, end }
-  }
-
-  // Aplicar filtros
-  const applyFilters = async () => {
-    const { start, end } = calculateDateRange()
-
-    if (!start || !end) {
-      setFilteredRentals([])
-      setFilteredBudgets([])
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      // Buscar dados do banco
-      const filters = {
-        startDate: start.toISOString().split('T')[0],
-        endDate: end.toISOString().split('T')[0]
-      }
-
-      const [rentals, budgets] = await Promise.all([
-        getRentalsForReports(filters),
-        getBudgetsForReports(filters)
-      ])
-
-      setFilteredRentals(rentals)
-      setFilteredBudgets(budgets)
-    } catch (error) {
-      console.error("Erro ao buscar dados para relatórios:", error)
-      setFilteredRentals([])
-      setFilteredBudgets([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Carregar dados iniciais
-  useEffect(() => {
-    applyFilters()
-  }, [])
-
-  // Aplicar filtros quando período mudar
-  useEffect(() => {
-    if (selectedPeriod || startDate || endDate) {
-      applyFilters()
-    }
   }, [selectedPeriod, startDate, endDate])
+
+  // Calcular datas para os hooks
+  const dateRange = useMemo(() => {
+    const { start, end } = calculateDateRange()
+    if (!start || !end) return { startDate: "", endDate: "" }
+    
+    return {
+      startDate: start.toISOString().split('T')[0],
+      endDate: end.toISOString().split('T')[0]
+    }
+  }, [calculateDateRange])
+
+  // Usar hooks otimizados para dados
+  const { 
+    data: rentals, 
+    loading: rentalsLoading, 
+    error: rentalsError,
+    refresh: refreshRentals 
+  } = useRentalsForReports(dateRange.startDate, dateRange.endDate, {
+    useCache: true,
+    ttl: 2 * 60 * 1000, // 2 minutos para relatórios
+  })
+
+  const { 
+    data: budgets, 
+    loading: budgetsLoading, 
+    error: budgetsError,
+    refresh: refreshBudgets 
+  } = useBudgetsForReports(dateRange.startDate, dateRange.endDate, {
+    useCache: true,
+    ttl: 2 * 60 * 1000, // 2 minutos para relatórios
+  })
+
+  // Calcular loading geral
+  const loading = rentalsLoading || budgetsLoading
+
+  // Tratar erros
+  useEffect(() => {
+    if (rentalsError) {
+      console.error('Erro ao carregar locações para relatórios:', rentalsError)
+    }
+    if (budgetsError) {
+      console.error('Erro ao carregar orçamentos para relatórios:', budgetsError)
+    }
+  }, [rentalsError, budgetsError])
+
+  // Atualizar dados filtrados quando os dados mudarem
+  useEffect(() => {
+    if (rentals && Array.isArray(rentals)) {
+      setFilteredRentals(rentals)
+    }
+    if (budgets && Array.isArray(budgets)) {
+      setFilteredBudgets(budgets)
+    }
+  }, [rentals, budgets])
+
+  // Carregar dados na montagem
+  useEffect(() => {
+    console.log('📦 Relatórios: Dados sendo carregados pelos hooks otimizados')
+  }, [])
 
   // Calcular métricas
   const totalRevenue = filteredRentals.reduce((sum, rental) => sum + rental.finalValue, 0)

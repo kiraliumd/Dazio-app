@@ -26,15 +26,14 @@ import { formatDateCuiaba, formatTimeCuiaba } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel, SelectSeparator, SelectScrollUpButton, SelectScrollDownButton } from "@/components/ui/select";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast"
-
-
-
-import { getRentals, createRental, updateRental, deleteRental, searchRentals } from "../../../lib/database/rentals"
+import { useRentals, useClients } from "@/lib/hooks/use-optimized-data"
 import { transformRentalFromDB } from "../../../lib/utils/data-transformers"
-import { getCompanySettings } from "../../../lib/database/settings"
-import { getClientById } from "../../../lib/database/clients"
 import { pdf } from '@react-pdf/renderer'
 import { ContractPDF } from "../../../components/contract-pdf"
+
+// Importar funções de CRUD que ainda são necessárias
+import { createRental, updateRental, deleteRental, searchRentals } from "../../../lib/database/rentals"
+import { getCompanySettings } from "../../../lib/database/settings"
 
 // Lazy load dos componentes pesados
 const RentalForm = lazy(() => import("../../../components/rental-form").then(module => ({ default: module.RentalForm })))
@@ -58,7 +57,7 @@ const LoadingSpinner = () => (
 export default function RentalsPage() {
   const { toast } = useToast()
   const [rentals, setRentals] = useState<Rental[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingRental, setEditingRental] = useState<Rental | undefined>()
@@ -70,28 +69,50 @@ export default function RentalsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 10
 
-  // Carregar locações do Supabase
-  const loadRentals = async () => {
-    try {
-      setLoading(true)
-      // Carregar apenas as primeiras 50 locações para melhor performance
-      const data = await getRentals(50)
-      const transformedRentals = data.map(transformRentalFromDB)
+  // Usar hooks otimizados para dados
+  const { data: dbRentals, loading: rentalsLoading, error: rentalsError, refresh: refreshRentals } = useRentals(50)
+  const { data: dbClients, loading: clientsLoading, error: clientsError } = useClients()
+
+  // Atualizar estados locais quando dados são carregados
+  useEffect(() => {
+    if (dbRentals && Array.isArray(dbRentals)) {
+      const transformedRentals = dbRentals.map(transformRentalFromDB)
       setRentals(transformedRentals)
-      setCurrentPage(1)
-    } catch (error) {
-      console.error("Erro ao carregar locações:", error)
+    }
+  }, [dbRentals])
+
+  // Calcular loading geral
+  useEffect(() => {
+    setLoading(rentalsLoading || clientsLoading)
+  }, [rentalsLoading, clientsLoading])
+
+  // Tratar erros
+  useEffect(() => {
+    if (rentalsError) {
+      console.error('Erro ao carregar locações:', rentalsError)
       toast({
         title: "Erro",
         description: "Erro ao carregar locações. Tente novamente.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false)
     }
-  }
+    if (clientsError) {
+      console.error('Erro ao carregar clientes:', clientsError)
+    }
+  }, [rentalsError, clientsError, toast])
 
-  useEffect(() => { loadRentals() }, [])
+  // Carregar dados na montagem
+  useEffect(() => {
+    console.log('📦 Locações: Dados sendo carregados pelos hooks otimizados')
+  }, [])
+
+  // Função para buscar cliente por ID usando dados em cache
+  const getClientById = useCallback((clientId: string) => {
+    if (dbClients && Array.isArray(dbClients)) {
+      return dbClients.find(client => client.id === clientId)
+    }
+    return null
+  }, [dbClients])
 
   // Debounce do termo de busca
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
@@ -189,7 +210,7 @@ export default function RentalsPage() {
       }
 
       // Recarregar dados
-      await loadRentals()
+      await refreshRentals()
       setEditingRental(undefined)
     } catch (error) {
       console.error("Erro ao salvar locação:", error)
@@ -212,7 +233,7 @@ export default function RentalsPage() {
           description: "Locação excluída com sucesso!",
           variant: "default",
         });
-        await loadRentals()
+        await refreshRentals()
       } catch (error) {
         console.error("Erro ao excluir locação:", error)
         toast({

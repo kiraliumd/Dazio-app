@@ -265,6 +265,41 @@ export class DataService {
     }
   }
 
+  async getDashboardMetrics(options: DataServiceOptions = {}): Promise<any> {
+    const cacheKey = this.getCacheKey('dashboard')
+    
+    // Verificar cache se habilitado
+    if (options.useCache !== false && !options.forceRefresh) {
+      const cached = this.getCache(cacheKey)
+      if (cached) {
+        console.log('📦 DataService: Métricas do dashboard carregadas do cache')
+        return cached
+      }
+    }
+
+    try {
+      const companyId = await getCurrentUserCompanyId()
+      if (!companyId) {
+        throw new Error('Usuário não autenticado ou empresa não encontrada')
+      }
+
+      // Importar dinamicamente para evitar dependência circular
+      const { getDashboardMetrics } = await import('../database/dashboard')
+      const result = await getDashboardMetrics()
+      
+      // Armazenar no cache
+      if (options.useCache !== false) {
+        this.setCache(cacheKey, result, options.ttl || 1 * 60 * 1000) // 1 minuto para métricas
+      }
+
+      console.log('🗄️ DataService: Métricas do dashboard carregadas do banco')
+      return result
+    } catch (error) {
+      console.error('DataService: Erro ao buscar métricas do dashboard:', error)
+      throw error
+    }
+  }
+
   // Métodos para invalidar cache quando dados são modificados
   invalidateClientsCache(): void {
     const keysToDelete = Array.from(this.cache.keys()).filter(key => key.includes('clients'))

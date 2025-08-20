@@ -12,7 +12,8 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
-import { getDashboardMetrics, type DashboardMetrics } from "../../../lib/database/dashboard"
+import { useDashboardMetrics } from "@/lib/hooks/use-optimized-data"
+import { type DashboardMetrics } from "../../../lib/database/dashboard"
 import { useAuth } from "../../../lib/auth-context"
 import { LogoutConfirmationModal } from "../../../components/logout-confirmation-modal"
 import { TrialWrapper } from "@/components/trial-wrapper"
@@ -26,58 +27,32 @@ const dashboardCache = {
 };
 
 export default function Dashboard() {
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
-  const [loading, setLoading] = useState(true)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { companyName, setCompanyName, refreshCompanyName } = useCompanyName()
   const router = useRouter()
   const { user, signOut } = useAuth()
 
-  // Verificar se os dados em cache ainda são válidos
-  const isCacheValid = useMemo(() => {
-    return Date.now() - dashboardCache.lastFetch < dashboardCache.ttl;
-  }, []);
+  // Usar hooks otimizados para dados
+  const { data: metrics, loading, error, refresh: refreshMetrics } = useDashboardMetrics({
+    useCache: true,
+    ttl: 1 * 60 * 1000, // 1 minuto para métricas
+    autoRefresh: true,
+    refreshInterval: 5 * 60 * 1000, // Auto-refresh a cada 5 minutos
+  })
 
-  // Carregar dados apenas se necessário
-  const loadDashboardData = useCallback(async (forceRefresh = false) => {
-    // Se não for refresh forçado e o cache for válido, usar dados em cache
-    if (!forceRefresh && isCacheValid && dashboardCache.metrics) {
-      setMetrics(dashboardCache.metrics);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true)
-      console.log('Dashboard: Carregando dados...')
-      
-      // Carregar métricas e dados da empresa em paralelo
-      const [metricsData] = await Promise.all([
-        getDashboardMetrics(),
-        new Promise(resolve => setTimeout(resolve, 150)),
-        forceRefresh ? refreshCompanyName() : Promise.resolve(), // Só refresh se forçado
-      ])
-      
-      setMetrics(metricsData)
-      
-      // Atualizar cache
-      dashboardCache.metrics = metricsData;
-      dashboardCache.lastFetch = Date.now();
-      
-      console.log('Dashboard: Dados carregados com sucesso')
-    } catch (error) {
+  // Tratar erros
+  useEffect(() => {
+    if (error) {
       console.error("Erro ao carregar dados do dashboard:", error)
-    } finally {
-      setLoading(false)
     }
-  }, [isCacheValid, refreshCompanyName])
+  }, [error])
 
-  // Carregar dados apenas uma vez quando o usuário estiver disponível
+  // Carregar dados quando usuário estiver disponível
   useEffect(() => {
     if (user && !metrics) {
-      loadDashboardData();
+      console.log('📦 Dashboard: Dados sendo carregados pelos hooks otimizados')
     }
-  }, [user, metrics, loadDashboardData])
+  }, [user, metrics])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -86,33 +61,35 @@ export default function Dashboard() {
     }).format(value)
   }
 
-  const metricsData = metrics
+  const metricsData = metrics && typeof metrics === 'object' && 'pendingBudgets' in metrics
     ? [
         {
           title: "Orçamentos Pendentes",
-          value: metrics.pendingBudgets || 0,
+          value: (metrics as DashboardMetrics).pendingBudgets || 0,
           icon: FileText,
           description: "Aguardando aprovação",
           variant: "accent" as const,
         },
         {
           title: "Total de Locações no Mês",
-          value: metrics.monthlyRentals || 0,
-          icon: TrendingUp,
-          description: "Contratos fechados",
+          value: (metrics as DashboardMetrics).monthlyRentals || 0,
+          icon: Package,
+          description: "Locações ativas",
+          variant: "default" as const,
         },
         {
-          title: "Faturamento do Mês",
-          value: formatCurrency(metrics.monthlyRevenue || 0),
+          title: "Receita do Mês",
+          value: formatCurrency((metrics as DashboardMetrics).monthlyRevenue || 0),
           icon: DollarSign,
-          description: "Receita atual",
-          variant: "accent" as const,
+          description: "Faturamento mensal",
+          variant: "default" as const,
         },
         {
           title: "Eventos Agendados",
-          value: metrics.scheduledEvents || 0,
+          value: (metrics as DashboardMetrics).scheduledEvents || 0,
           icon: Calendar,
-          description: "Próximos 7 dias",
+          description: "Para hoje",
+          variant: "default" as const,
         },
       ]
     : []
@@ -125,7 +102,7 @@ export default function Dashboard() {
       color: "bg-blue-500",
       hoverColor: "hover:bg-blue-600",
       path: "/orcamentos",
-      count: metrics?.pendingBudgets || 0,
+      count: metrics && typeof metrics === 'object' && 'pendingBudgets' in metrics ? (metrics as DashboardMetrics).pendingBudgets || 0 : 0,
       countLabel: "pendentes",
     },
     {
@@ -135,7 +112,7 @@ export default function Dashboard() {
       color: "bg-green-500",
       hoverColor: "hover:bg-green-600",
       path: "/locacoes",
-      count: metrics?.activeRentals || 0,
+      count: metrics && typeof metrics === 'object' && 'activeRentals' in metrics ? (metrics as DashboardMetrics).activeRentals || 0 : 0,
       countLabel: "ativas",
     },
     {
@@ -145,7 +122,7 @@ export default function Dashboard() {
       color: "bg-purple-500",
       hoverColor: "hover:bg-purple-600",
       path: "/agenda",
-      count: metrics?.scheduledEvents || 0,
+      count: metrics && typeof metrics === 'object' && 'scheduledEvents' in metrics ? (metrics as DashboardMetrics).scheduledEvents || 0 : 0,
       countLabel: "agendados",
     },
     {
