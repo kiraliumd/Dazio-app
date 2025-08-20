@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/lib/auth-context";
+import { DataCacheProvider } from "@/lib/contexts/data-cache-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -46,7 +47,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            {children}
+            <DataCacheProvider>
+              {children}
+            </DataCacheProvider>
           </AuthProvider>
           <Toaster />
         </ThemeProvider>

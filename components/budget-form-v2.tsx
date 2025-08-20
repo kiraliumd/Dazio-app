@@ -20,8 +20,7 @@ import {
   MapPin,
 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
-import { getClients } from "../lib/database/clients"
-import { getEquipments } from "../lib/database/equipments"
+import { useClients, useEquipments } from "../lib/hooks/use-optimized-data"
 import { transformClientFromDB, transformEquipmentFromDB } from "../lib/utils/data-transformers"
 import type { RecurrenceType } from "../lib/utils/data-transformers"
 
@@ -179,30 +178,48 @@ export function BudgetFormV2({ open, onOpenChange, budget, onSave }: BudgetFormP
   const [equipments, setEquipments] = useState<any[]>([])
   const [loadingData, setLoadingData] = useState(false)
 
+  // Usar hooks otimizados para dados
+  const { data: dbClients, loading: clientsLoading, error: clientsError } = useClients()
+  const { data: dbEquipments, loading: equipmentsLoading, error: equipmentsError } = useEquipments()
+
+  // Atualizar estados locais quando dados são carregados
   useEffect(() => {
-    if (open) {
-      loadData()
-    }
-  }, [open])
-
-  const loadData = async () => {
-    try {
-      setLoadingData(true)
-      const [dbClients, dbEquipments] = await Promise.all([getClients(), getEquipments()])
-
+    if (dbClients && Array.isArray(dbClients)) {
       const transformedClients = dbClients.map(transformClientFromDB)
+      setClients(transformedClients)
+    }
+  }, [dbClients])
+
+  useEffect(() => {
+    if (dbEquipments && Array.isArray(dbEquipments)) {
       const transformedEquipments = dbEquipments
         .map(transformEquipmentFromDB)
-        .filter((eq) => eq.status === "Disponível")
-
-      setClients(transformedClients)
+        .filter((eq: any) => eq.status === "Disponível")
       setEquipments(transformedEquipments)
-    } catch (error) {
-      alert("Erro ao carregar dados. Tente novamente.")
-    } finally {
-      setLoadingData(false)
     }
-  }
+  }, [dbEquipments])
+
+  // Calcular loading geral
+  useEffect(() => {
+    setLoadingData(clientsLoading || equipmentsLoading)
+  }, [clientsLoading, equipmentsLoading])
+
+  // Tratar erros
+  useEffect(() => {
+    if (clientsError) {
+      console.error('Erro ao carregar clientes:', clientsError)
+    }
+    if (equipmentsError) {
+      console.error('Erro ao carregar equipamentos:', equipmentsError)
+    }
+  }, [clientsError, equipmentsError])
+
+  useEffect(() => {
+    if (open) {
+      // Os dados são carregados automaticamente pelos hooks
+      console.log('📦 BudgetForm: Dados sendo carregados pelos hooks otimizados')
+    }
+  }, [open])
 
   // Reset form when dialog opens/closes
   useEffect(() => {
