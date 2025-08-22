@@ -57,7 +57,8 @@ export function useOptimizedData<T>(
             result = await dataService.getBudgets(
               params?.limit,
               params?.startDate,
-              params?.endDate
+              params?.endDate,
+              { useCache: !forceRefresh, ttl: options.ttl }
             );
             break;
           case 'rentals':
@@ -85,7 +86,7 @@ export function useOptimizedData<T>(
         }
       }
     },
-    [dataType, params, options.onError]
+    [dataType, params, options.ttl, options.onError]
   );
 
   const refresh = useCallback(
@@ -130,10 +131,10 @@ export function useOptimizedData<T>(
 
   // Buscar dados apenas uma vez na montagem
   useEffect(() => {
-    if (!hasLoaded) {
+    if (!hasLoaded && !loading) {
       fetchData();
     }
-  }, []); // Array vazio para executar apenas uma vez
+  }, [hasLoaded, loading, fetchData]);
 
   // Cleanup ao desmontar
   useEffect(() => {

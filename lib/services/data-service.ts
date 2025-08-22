@@ -54,6 +54,14 @@ export class DataService {
   }
 
   private setCache(key: string, data: any, ttl: number = 5 * 60 * 1000) {
+    // Limpar cache antigo se exceder 100 entradas
+    if (this.cache.size > 100) {
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey) {
+        this.cache.delete(oldestKey);
+      }
+    }
+    
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -220,12 +228,37 @@ export class DataService {
 
       let query = supabase
         .from('budgets')
-        .select(
-          `
-          *,
-          budget_items (*)
-        `
-        )
+        .select(`
+          id,
+          number,
+          client_id,
+          client_name,
+          created_at,
+          start_date,
+          end_date,
+          installation_time,
+          removal_time,
+          installation_location,
+          items,
+          subtotal,
+          discount,
+          total_value,
+          status,
+          observations,
+          is_recurring,
+          recurrence_type,
+          recurrence_interval,
+          recurrence_end_date,
+          company_id,
+          budget_items (
+            id,
+            equipment_name,
+            quantity,
+            daily_rate,
+            days,
+            total
+          )
+        `)
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 

@@ -15,34 +15,64 @@ export async function getBudgets(
     throw new Error('Usuário não autenticado ou empresa não encontrada');
   }
 
-  let query = supabase
-    .from('budgets')
-    .select(
-      `
-      *,
-      budget_items (*)
-    `
-    )
-    .eq('company_id', companyId)
-    .order('created_at', { ascending: false });
+  try {
+    let query = supabase
+      .from('budgets')
+      .select(`
+        id,
+        number,
+        client_id,
+        client_name,
+        created_at,
+        start_date,
+        end_date,
+        installation_time,
+        removal_time,
+        installation_location,
+        items,
+        subtotal,
+        discount,
+        total_value,
+        status,
+        observations,
+        is_recurring,
+        recurrence_type,
+        recurrence_interval,
+        recurrence_end_date,
+        company_id,
+        budget_items (
+          id,
+          equipment_name,
+          quantity,
+          daily_rate,
+          days,
+          total
+        )
+      `)
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false });
 
-  if (startDate && endDate) {
-    query = query.gte('created_at', `${startDate}T00:00:00`);
-    query = query.lte('created_at', `${endDate}T23:59:59`);
-  }
+    if (startDate && endDate) {
+      query = query.gte('created_at', `${startDate}T00:00:00`);
+      query = query.lte('created_at', `${endDate}T23:59:59`);
+    }
 
-  if (limit) {
-    query = query.limit(limit);
-  }
+    if (limit) {
+      query = query.limit(limit);
+    }
 
-  const { data, error } = await query;
+    const { data, error } = await query;
 
-  if (error) {
+    if (error) {
+      console.error('Erro ao buscar orçamentos:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
     console.error('Erro ao buscar orçamentos:', error);
     throw error;
   }
-
-  return data;
 }
 
 export async function getBudgetById(id: string) {
@@ -53,24 +83,54 @@ export async function getBudgetById(id: string) {
     throw new Error('Usuário não autenticado ou empresa não encontrada');
   }
 
-  const { data, error } = await supabase
-    .from('budgets')
-    .select(
-      `
-      *,
-      budget_items (*)
-    `
-    )
-    .eq('id', id)
-    .eq('company_id', companyId)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('budgets')
+      .select(`
+        id,
+        number,
+        client_id,
+        client_name,
+        created_at,
+        start_date,
+        end_date,
+        installation_time,
+        removal_time,
+        installation_location,
+        items,
+        subtotal,
+        discount,
+        total_value,
+        status,
+        observations,
+        is_recurring,
+        recurrence_type,
+        recurrence_interval,
+        recurrence_end_date,
+        company_id,
+        budget_items (
+          id,
+          equipment_name,
+          quantity,
+          daily_rate,
+          days,
+          total
+        )
+      `)
+      .eq('id', id)
+      .eq('company_id', companyId)
+      .single();
 
-  if (error) {
+    if (error) {
+      console.error('Erro ao buscar orçamento:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
     console.error('Erro ao buscar orçamento:', error);
     throw error;
   }
-
-  return data;
 }
 
 export async function createBudget(
@@ -276,31 +336,36 @@ export async function generateBudgetNumber(): Promise<string> {
 
   const currentYear = new Date().getFullYear();
 
-  // Buscar o último número de orçamento deste ano
-  const { data: lastBudget, error } = await supabase
-    .from('budgets')
-    .select('number')
-    .eq('company_id', companyId)
-    .like('number', `${currentYear}-%`)
-    .order('number', { ascending: false })
-    .limit(1)
-    .single();
+  try {
+    // Buscar o último número de orçamento deste ano usando ilike (case-insensitive)
+    const { data: lastBudget, error } = await supabase
+      .from('budgets')
+      .select('number')
+      .eq('company_id', companyId)
+      .ilike('number', `${currentYear}-%`)
+      .order('number', { ascending: false })
+      .limit(1);
 
-  if (error && error.code !== 'PGRST116') {
-    // PGRST116 = nenhum resultado encontrado
-    console.error('Erro ao buscar último orçamento:', error);
-    throw error;
-  }
-
-  let nextNumber = 1;
-
-  if (lastBudget) {
-    const lastNumberStr = lastBudget.number.split('-')[1];
-    const lastNumber = parseInt(lastNumberStr, 10);
-    if (!isNaN(lastNumber)) {
-      nextNumber = lastNumber + 1;
+    if (error) {
+      console.error('Erro ao buscar último orçamento:', error);
+      // Em caso de erro, retornar um número padrão
+      return `${currentYear}-0001`;
     }
-  }
 
-  return `${currentYear}-${nextNumber.toString().padStart(4, '0')}`;
+    let nextNumber = 1;
+
+    if (lastBudget && lastBudget.length > 0) {
+      const lastNumberStr = lastBudget[0].number.split('-')[1];
+      const lastNumber = parseInt(lastNumberStr, 10);
+      if (!isNaN(lastNumber)) {
+        nextNumber = lastNumber + 1;
+      }
+    }
+
+    return `${currentYear}-${nextNumber.toString().padStart(4, '0')}`;
+  } catch (error) {
+    console.error('Erro ao gerar número do orçamento:', error);
+    // Em caso de erro, retornar um número padrão
+    return `${currentYear}-0001`;
+  }
 }
