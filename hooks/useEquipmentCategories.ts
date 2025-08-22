@@ -1,29 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getActiveEquipmentCategories, type EquipmentCategory } from '@/lib/database/equipment-categories';
 
 export function useEquipmentCategories() {
   const [categories, setCategories] = useState<EquipmentCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
+      // Cancelar requisição anterior se existir
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+
+      // Criar novo controller para esta requisição
+      abortControllerRef.current = new AbortController()
+
       setLoading(true);
       setError(null);
       const data = await getActiveEquipmentCategories();
+      
+      if (abortControllerRef.current.signal.aborted) return
+      
       setCategories(data);
+      setHasLoaded(true);
     } catch (err) {
-      console.error("Erro ao carregar categorias:", err);
-      setError("Erro ao carregar categorias");
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error("Erro ao carregar categorias:", err);
+        setError("Erro ao carregar categorias");
+      }
     } finally {
-      setLoading(false);
+      if (!abortControllerRef.current?.signal.aborted) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   // Carregar categorias apenas uma vez na montagem
   useEffect(() => {
-    loadCategories();
-  }, []); // Array vazio para executar apenas uma vez
+    if (!hasLoaded) {
+      loadCategories();
+    }
+  }, [hasLoaded, loadCategories]);
 
   // Escutar mudanças nas categorias
   useEffect(() => {
@@ -35,11 +55,20 @@ export function useEquipmentCategories() {
     return () => {
       window.removeEventListener('categoriesChanged', handleCategoriesChanged);
     };
-  }, []); // Array vazio para executar apenas uma vez
+  }, [loadCategories]);
 
-  const refreshCategories = () => {
+  const refreshCategories = useCallback(() => {
     loadCategories();
-  };
+  }, [loadCategories]);
+
+  // Cleanup ao desmontar
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, []);
 
   return {
     categories,

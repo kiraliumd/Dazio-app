@@ -77,7 +77,7 @@ export function NotificationBell() {
     const interval = setInterval(fetchNotifications, 60 * 60 * 1000)
     
     return () => clearInterval(interval)
-  }, [])
+  }, []) // Array vazio para executar apenas uma vez
 
   const unreadCount = notifications.filter(n => !n.isRead).length
 

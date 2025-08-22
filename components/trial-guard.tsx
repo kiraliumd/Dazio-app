@@ -31,7 +31,7 @@ export function TrialGuard({ children }: TrialGuardProps) {
   const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutos
 
   useEffect(() => {
-    if (user && !loading) {
+    if (user && !loading && !hasCheckedOnce) {
       try {
         const raw = sessionStorage.getItem(CACHE_KEY)
         if (raw) {
@@ -49,8 +49,9 @@ export function TrialGuard({ children }: TrialGuardProps) {
       } catch {}
       // Sem cache fresco: checar normalmente (pode mostrar loader apenas na primeira vez)
       checkTrialStatus(true)
+      setHasCheckedOnce(true)
     }
-  }, [user, loading])
+  }, [user, loading, hasCheckedOnce])
 
   const checkTrialStatus = async (blockUI: boolean = true) => {
     try {

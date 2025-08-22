@@ -61,7 +61,7 @@ function ConfirmacaoContent() {
       console.log('🔍 Confirmacao: Token detectado, processando confirmação');
       handleEmailConfirmation(token);
     }
-  }, [searchParams]);
+  }, []); // Array vazio para executar apenas uma vez
 
   const handleEmailConfirmation = async (token: string) => {
     setLoading(true);

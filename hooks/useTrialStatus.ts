@@ -23,7 +23,7 @@ export function useTrialStatus() {
     } else {
       setLoading(false)
     }
-  }, [user])
+  }, [user]) // Apenas user como dependência
 
   const checkTrialStatus = async () => {
     try {

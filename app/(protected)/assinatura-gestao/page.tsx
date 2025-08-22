@@ -108,10 +108,10 @@ export default function AssinaturaGestaoPage() {
 
   // Carregar dados apenas uma vez quando o usuário estiver disponível
   useEffect(() => {
-    if (user && !companyProfile && !subscription) {
+    if (user) {
       loadSubscriptionData();
     }
-  }, [user, companyProfile, subscription, loadSubscriptionData]);
+  }, [user, loadSubscriptionData]);
 
   const refreshData = async () => {
     await loadSubscriptionData(true); // Forçar refresh

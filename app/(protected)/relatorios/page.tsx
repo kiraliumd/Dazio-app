@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { useRentalsForReports, useBudgetsForReports } from "@/lib/hooks/use-optimized-data"
+import { useRentals, useBudgets } from "@/lib/hooks/use-optimized-data"
 import { 
   type RentalReport,
   type BudgetReport 
@@ -70,7 +70,7 @@ export default function RelatoriosPage() {
     loading: rentalsLoading, 
     error: rentalsError,
     refresh: refreshRentals 
-  } = useRentalsForReports(dateRange.startDate, dateRange.endDate, {
+  } = useRentals(50, {
     useCache: true,
     ttl: 2 * 60 * 1000, // 2 minutos para relatórios
   })
@@ -80,7 +80,7 @@ export default function RelatoriosPage() {
     loading: budgetsLoading, 
     error: budgetsError,
     refresh: refreshBudgets 
-  } = useBudgetsForReports(dateRange.startDate, dateRange.endDate, {
+  } = useBudgets(50, dateRange.startDate, dateRange.endDate, {
     useCache: true,
     ttl: 2 * 60 * 1000, // 2 minutos para relatórios
   })
@@ -108,7 +108,7 @@ export default function RelatoriosPage() {
     }
   }, [rentals, budgets])
 
-  // Carregar dados na montagem
+  // Carregar dados apenas uma vez na montagem
   useEffect(() => {
     console.log('📦 Relatórios: Dados sendo carregados pelos hooks otimizados')
   }, [])

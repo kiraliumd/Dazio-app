@@ -29,7 +29,7 @@ export default function CreateProfilePage() {
 
   useEffect(() => {
     checkUser();
-  }, []);
+  }, []); // Array vazio para executar apenas uma vez
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();

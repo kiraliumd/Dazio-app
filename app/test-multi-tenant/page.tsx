@@ -21,7 +21,7 @@ export default function TestMultiTenantPage() {
       loadCompanyInfo()
       setHasLoadedCompanyInfo(true)
     }
-  }, [user, hasLoadedCompanyInfo])
+  }, [user]) // Apenas user como dependência
 
   const loadCompanyInfo = async () => {
     try {

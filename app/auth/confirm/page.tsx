@@ -26,7 +26,7 @@ function ConfirmContent() {
       setStatus('error');
       setMessage('Token de confirmação não encontrado');
     }
-  }, [searchParams]);
+  }, []); // Array vazio para executar apenas uma vez
 
   const handleEmailConfirmation = async (token: string) => {
     setLoading(true);

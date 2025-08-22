@@ -52,7 +52,7 @@ export default function AgendaDatePage({ params }: { params: Promise<{ date: str
 
   useEffect(() => {
     loadEvents()
-  }, [date])
+  }, [date]) // Apenas date como dependência para recarregar quando a data mudar
 
   const loadEvents = async () => {
     try {

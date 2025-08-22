@@ -22,7 +22,7 @@ function UnsubscribeContent() {
     }
 
     handleUnsubscribe();
-  }, [email]);
+  }, []); // Array vazio para executar apenas uma vez
 
   const handleUnsubscribe = async () => {
     try {

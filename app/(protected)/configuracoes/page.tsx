@@ -60,7 +60,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadSettings();
-  }, [loadSettings]);
+  }, []); // Array vazio para executar apenas uma vez
 
   // Verificar mudanças nos dados - memoizado
   const checkForChanges = useCallback(() => {

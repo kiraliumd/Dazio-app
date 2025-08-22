@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
 
 // Cache com TTL para evitar refetches desnecessários
@@ -15,6 +15,8 @@ export function useCompanyName() {
   const [companyName, setCompanyName] = useState<string>(
     typeof window !== 'undefined' ? (sessionStorage.getItem('company_name') || '') : ''
   )
+  const [hasLoaded, setHasLoaded] = useState(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Verificar se o cache ainda é válido
   const isCacheValid = useMemo(() => {
@@ -40,25 +42,41 @@ export function useCompanyName() {
         return;
       }
 
+      // Cancelar requisição anterior se existir
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+
+      // Criar novo controller para esta requisição
+      abortControllerRef.current = new AbortController()
+
       // endpoint leve com nome unificado (settings -> profile -> email)
       const res = await fetch('/api/company/name', { 
-        cache: forceRefresh ? 'no-store' : 'default' 
+        cache: forceRefresh ? 'no-store' : 'default',
+        signal: abortControllerRef.current.signal
       })
+      
+      if (abortControllerRef.current.signal.aborted) return
+
       const json = await res.json()
       const name = json?.name
       if (name && typeof name === 'string') {
         updateLocal(name)
       }
-    } catch {}
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.error('Erro ao buscar nome da empresa:', error)
+      }
+    }
   }, [user, updateLocal, isCacheValid])
 
   // Carregar nome da empresa apenas uma vez quando usuário estiver disponível
   useEffect(() => {
-    if (!companyName && user) {
-      // busca em background sem flicker
+    if (user && !hasLoaded && !companyName) {
+      setHasLoaded(true)
       refreshCompanyName()
     }
-  }, [user]) // Removida dependência de companyName e refreshCompanyName
+  }, [user]) // Apenas user como dependência
 
   // Escutar mudanças de storage
   useEffect(() => {
@@ -78,6 +96,15 @@ export function useCompanyName() {
       window.removeEventListener('companyNameChanged', onCustom as EventListener)
     }
   }, [updateLocal])
+
+  // Cleanup ao desmontar
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
 
   return { companyName, setCompanyName: updateLocal, refreshCompanyName }
 }

@@ -245,11 +245,11 @@ export default function BudgetsPage() {
   useEffect(() => {
     if (budgetsError) {
       console.error('Erro ao carregar orçamentos:', budgetsError)
-      alert("Erro ao carregar orçamentos. Tente novamente.")
+      // Remover alert para melhor UX
     }
   }, [budgetsError])
 
-  // Carregar dados na montagem
+  // Carregar dados apenas uma vez na montagem
   useEffect(() => {
     console.log('📦 Orçamentos: Dados sendo carregados pelos hooks otimizados')
   }, [])
@@ -259,9 +259,13 @@ export default function BudgetsPage() {
     setCurrentPage(1);
   }, [debouncedSearchTerm, statusFilter, periodFilter, startDate, endDate]);
 
-  // Recarregar dados quando filtros de período mudarem
+  // Recarregar dados quando filtros de período mudarem - com debounce
   useEffect(() => {
-    refreshBudgets()
+    const timeoutId = setTimeout(() => {
+      refreshBudgets()
+    }, 500) // Debounce de 500ms
+
+    return () => clearTimeout(timeoutId)
   }, [periodFilter, startDate, endDate, refreshBudgets])
 
   const loadBudgets = async () => {
@@ -315,29 +319,31 @@ export default function BudgetsPage() {
 
       const dbBudgetData = {
         number: budgetNumber,
-        client_id: budgetData.clientId,
-        client_name: budgetData.clientName,
-        start_date: budgetData.startDate, // Usar diretamente, já está no formato correto
-        end_date: budgetData.endDate, // Usar diretamente, já está no formato correto
-        installation_time: null, // Removido do formulário, agora é definido no modal de logística
-        removal_time: null, // Removido do formulário, agora é definido no modal de logística
-        installation_location: budgetData.installationLocation || null,
+        clientId: budgetData.clientId,
+        clientName: budgetData.clientName,
+        createdAt: new Date().toISOString(),
+        startDate: budgetData.startDate,
+        endDate: budgetData.endDate,
+        installationTime: undefined,
+        removalTime: undefined,
+        installationLocation: budgetData.installationLocation || "",
+        items: [],
         subtotal: budgetData.subtotal,
         discount: budgetData.discount,
-        total_value: budgetData.totalValue,
+        totalValue: budgetData.totalValue,
         status: budgetData.status,
-        observations: budgetData.observations || null,
-        // Campos de recorrência - CORRIGIDO: usar isRecurring do formulário
-        is_recurring: Boolean(budgetData.isRecurring),
-        recurrence_type: budgetData.isRecurring ? (budgetData.recurrenceType as "weekly" | "monthly" | "yearly") || "weekly" : null,
-        recurrence_interval: budgetData.isRecurring ? (budgetData.recurrenceInterval || 1) : null,
-        recurrence_end_date: budgetData.isRecurring ? (budgetData.recurrenceEndDate || null) : null,
+        observations: budgetData.observations || "",
+        // Campos de recorrência
+        isRecurring: Boolean(budgetData.isRecurring),
+        recurrenceType: budgetData.isRecurring ? (budgetData.recurrenceType as "weekly" | "monthly" | "yearly") || "weekly" : "weekly",
+        recurrenceInterval: budgetData.isRecurring ? (budgetData.recurrenceInterval || 1) : 1,
+        recurrenceEndDate: budgetData.isRecurring ? (budgetData.recurrenceEndDate || "") : "",
       }
 
       const items = budgetData.items.map((item: any) => ({
-        equipment_name: item.equipmentName,
+        equipmentName: item.equipmentName,
         quantity: item.quantity,
-        daily_rate: item.dailyRate,
+        dailyRate: item.dailyRate,
         days: item.days,
         total: item.total,
       }))
@@ -404,12 +410,12 @@ export default function BudgetsPage() {
         discount: selectedBudget.discount,
         final_value: selectedBudget.totalValue - selectedBudget.discount,
         status: "Instalação Pendente" as const,
-        observations: selectedBudget.observations || null,
+        observations: selectedBudget.observations || "",
         budget_id: selectedBudget.id,
         // Campos de recorrência
         is_recurring: Boolean(selectedBudget.isRecurring),
-        recurrence_type: selectedBudget.isRecurring ? (selectedBudget.recurrenceType || "weekly") : null,
-        recurrence_interval: selectedBudget.isRecurring ? (selectedBudget.recurrenceInterval || 1) : null,
+        recurrence_type: selectedBudget.isRecurring ? (selectedBudget.recurrenceType || "weekly") : "weekly",
+        recurrence_interval: selectedBudget.isRecurring ? (selectedBudget.recurrenceInterval || 1) : 1,
         recurrence_end_date: selectedBudget.isRecurring ? (selectedBudget.recurrenceEndDate || null) : null,
         recurrence_status: "active" as const,
         parent_rental_id: null,

@@ -93,7 +93,7 @@ export default function RecurringRentalsPage() {
 
   useEffect(() => {
     loadRecurringRentals()
-  }, [])
+  }, []) // Array vazio para executar apenas uma vez
 
   const loadRecurringRentals = async () => {
     try {

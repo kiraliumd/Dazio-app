@@ -25,6 +25,7 @@ export function useOptimizedData<T>(
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const [hasLoaded, setHasLoaded] = useState(false)
   
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -65,6 +66,7 @@ export function useOptimizedData<T>(
       }
 
       setData(result)
+      setHasLoaded(true)
     } catch (error) {
       if (error instanceof Error && error.name !== 'AbortError') {
         setError(error)
@@ -116,10 +118,12 @@ export function useOptimizedData<T>(
     }
   }, [options.autoRefresh, options.refreshInterval, refresh])
 
-  // Buscar dados na montagem do componente
+  // Buscar dados apenas uma vez na montagem
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    if (!hasLoaded) {
+      fetchData()
+    }
+  }, []) // Array vazio para executar apenas uma vez
 
   // Cleanup ao desmontar
   useEffect(() => {

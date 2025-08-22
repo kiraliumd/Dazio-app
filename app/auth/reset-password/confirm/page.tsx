@@ -82,7 +82,7 @@ function ResetPasswordConfirmContent() {
     }
 
     checkToken()
-  }, [])
+  }, []) // Array vazio para executar apenas uma vez
 
   const validatePassword = (password: string) => {
     if (!password) {

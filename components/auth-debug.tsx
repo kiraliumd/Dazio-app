@@ -36,7 +36,7 @@ export function AuthDebug() {
     updateDebugInfo();
     const interval = setInterval(updateDebugInfo, 2000);
     return () => clearInterval(interval);
-  }, [user, session, loading]);
+  }, [user, session, loading]); // Dependências corretas
 
   const clearStorage = () => {
     localStorage.clear();

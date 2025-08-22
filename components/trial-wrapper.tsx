@@ -16,7 +16,7 @@ export function TrialWrapper({ children }: TrialWrapperProps) {
     if (user) {
       loadTrialData();
     }
-  }, [user]);
+  }, [user]); // Apenas user como dependência
 
   const loadTrialData = async () => {
     try {

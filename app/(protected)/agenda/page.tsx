@@ -65,7 +65,7 @@ export default function AgendaPage() {
 
   useEffect(() => {
     loadEvents()
-  }, [])
+  }, []) // Array vazio para executar apenas uma vez
 
   const loadEvents = async () => {
     try {

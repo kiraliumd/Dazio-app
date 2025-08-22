@@ -123,11 +123,11 @@ export default function EquipmentsPage() {
   useEffect(() => {
     if (equipmentsError) {
       console.error('Erro ao carregar equipamentos:', equipmentsError)
-      alert("Erro ao carregar equipamentos")
+      // Remover alert para melhor UX
     }
   }, [equipmentsError])
 
-  // Carregar dados na montagem
+  // Carregar dados apenas uma vez na montagem
   useEffect(() => {
     console.log('📦 Equipamentos: Dados sendo carregados pelos hooks otimizados')
   }, [])

@@ -111,11 +111,11 @@ export default function ClientsPage() {
   useEffect(() => {
     if (clientsError) {
       console.error('Erro ao carregar clientes:', clientsError)
-      alert("Erro ao carregar clientes")
+      // Remover alert para melhor UX
     }
   }, [clientsError])
 
-  // Carregar dados na montagem
+  // Carregar dados apenas uma vez na montagem
   useEffect(() => {
     console.log('📦 Clientes: Dados sendo carregados pelos hooks otimizados')
   }, [])

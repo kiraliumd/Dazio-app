@@ -101,7 +101,7 @@ export default function RentalsPage() {
     }
   }, [rentalsError, clientsError, toast])
 
-  // Carregar dados na montagem
+  // Carregar dados apenas uma vez na montagem
   useEffect(() => {
     console.log('📦 Locações: Dados sendo carregados pelos hooks otimizados')
   }, [])
