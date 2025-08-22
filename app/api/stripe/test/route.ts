@@ -14,11 +14,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Obter o ID do preço baseado no tipo de plano
-    const priceId = planType === 'monthly' 
-      ? process.env.STRIPE_MONTHLY_PRICE_ID 
-      : process.env.STRIPE_ANNUAL_PRICE_ID;
+    const priceId =
+      planType === 'monthly'
+        ? process.env.STRIPE_MONTHLY_PRICE_ID
+        : process.env.STRIPE_ANNUAL_PRICE_ID;
 
-    console.log('🔍 Stripe Test API: Verificando priceId...', { priceId, planType });
+    console.log('🔍 Stripe Test API: Verificando priceId...', {
+      priceId,
+      planType,
+    });
 
     if (!priceId) {
       throw new Error('ID do preço não configurado');
@@ -34,7 +38,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('✅ Stripe Test API: Customer criado', { customerId: customer.id });
+    console.log('✅ Stripe Test API: Customer criado', {
+      customerId: customer.id,
+    });
 
     // Criar checkout session
     console.log('🔄 Stripe Test API: Criando checkout session...');
@@ -45,7 +51,10 @@ export async function POST(request: NextRequest) {
       cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL}/assinatura/cancel`,
     });
 
-    console.log('✅ Stripe Test API: Checkout session criada', { sessionId: session.id, url: session.url });
+    console.log('✅ Stripe Test API: Checkout session criada', {
+      sessionId: session.id,
+      url: session.url,
+    });
 
     const response = {
       success: true,
@@ -63,12 +72,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Stripe Test API: Erro', error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: error instanceof Error ? error.message : 'Erro desconhecido',
         timestamp: new Date().toISOString(),
       },
       { status: 500 }
     );
   }
-} 
+}

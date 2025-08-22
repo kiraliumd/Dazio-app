@@ -27,4 +27,4 @@ export function createUserClient(userId: string) {
 
   // Definir o usuário atual para operações
   return client.auth.admin.setUser(userId);
-} 
+}

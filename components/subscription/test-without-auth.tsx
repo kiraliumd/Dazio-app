@@ -12,12 +12,12 @@ export function TestWithoutAuth() {
     console.log('🔄 TestWithoutAuth: Iniciando teste para:', planType);
     setLoading(true);
     setDebugInfo(`Iniciando teste para ${planType}...`);
-    
+
     try {
       // Testar se conseguimos fazer uma chamada para o servidor
       console.log('📞 TestWithoutAuth: Fazendo chamada para API...');
       setDebugInfo('Fazendo chamada para API...');
-      
+
       // Fazer uma chamada simples para testar se o servidor responde
       const response = await fetch('/api/test', {
         method: 'POST',
@@ -26,10 +26,10 @@ export function TestWithoutAuth() {
         },
         body: JSON.stringify({ planType }),
       });
-      
+
       console.log('📋 TestWithoutAuth: Resposta do servidor:', response.status);
       setDebugInfo(`Resposta do servidor: ${response.status}`);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('✅ TestWithoutAuth: Dados recebidos:', data);
@@ -38,10 +38,11 @@ export function TestWithoutAuth() {
         console.error('❌ TestWithoutAuth: Erro na resposta:', response.status);
         setDebugInfo(`Erro na resposta: ${response.status}`);
       }
-      
     } catch (error) {
       console.error('❌ TestWithoutAuth: Erro na chamada:', error);
-      setDebugInfo(`Erro na chamada: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      setDebugInfo(
+        `Erro na chamada: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
+      );
     } finally {
       setLoading(false);
     }
@@ -54,15 +55,15 @@ export function TestWithoutAuth() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Button 
+          <Button
             onClick={() => handleTest('monthly')}
             disabled={loading}
             className="w-full"
           >
             {loading ? 'Carregando...' : 'Testar API Mensal'}
           </Button>
-          
-          <Button 
+
+          <Button
             onClick={() => handleTest('annual')}
             disabled={loading}
             variant="outline"
@@ -71,17 +72,17 @@ export function TestWithoutAuth() {
             {loading ? 'Carregando...' : 'Testar API Anual'}
           </Button>
         </div>
-        
+
         {debugInfo && (
           <div className="p-3 bg-gray-100 rounded-lg">
             <p className="text-xs font-mono whitespace-pre-wrap">{debugInfo}</p>
           </div>
         )}
-        
+
         <p className="text-sm text-gray-600 text-center">
           Teste de conectividade com o servidor
         </p>
       </CardContent>
     </Card>
   );
-} 
+}

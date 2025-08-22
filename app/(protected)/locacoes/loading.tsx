@@ -1,13 +1,24 @@
-"use client"
+'use client';
 
-import { AppSidebar } from "../../../components/app-sidebar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Search } from "lucide-react"
+import { AppSidebar } from '../../../components/app-sidebar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Plus, Search } from 'lucide-react';
 
 export default function LocacoesLoading() {
   return (
@@ -62,9 +73,13 @@ export default function LocacoesLoading() {
                       <TableHead className="font-semibold">Cliente</TableHead>
                       <TableHead className="font-semibold">Período</TableHead>
                       <TableHead className="font-semibold">Horários</TableHead>
-                      <TableHead className="font-semibold">Valor Total</TableHead>
+                      <TableHead className="font-semibold">
+                        Valor Total
+                      </TableHead>
                       <TableHead className="font-semibold">Status</TableHead>
-                      <TableHead className="font-semibold text-right">Ações</TableHead>
+                      <TableHead className="font-semibold text-right">
+                        Ações
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -104,5 +119,5 @@ export default function LocacoesLoading() {
         </main>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

@@ -1,39 +1,39 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useAuth } from '../lib/auth-context'
-import { NotificationBell } from './notification-bell'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { LogOut } from 'lucide-react'
-import { LogoutConfirmationModal } from './logout-confirmation-modal'
-import { useCompanyName } from '@/hooks/useCompanyName'
+import { useState, useEffect } from 'react';
+import { useAuth } from '../lib/auth-context';
+import { NotificationBell } from './notification-bell';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { LogOut } from 'lucide-react';
+import { LogoutConfirmationModal } from './logout-confirmation-modal';
+import { useCompanyName } from '@/hooks/useCompanyName';
 
 interface PageHeaderProps {
-  title: string
-  description: string
-  children?: React.ReactNode
+  title: string;
+  description: string;
+  children?: React.ReactNode;
 }
 
 export function PageHeader({ title, description, children }: PageHeaderProps) {
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const { companyName, setCompanyName, refreshCompanyName } = useCompanyName()
-  const { user, signOut } = useAuth()
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const { companyName, setCompanyName, refreshCompanyName } = useCompanyName();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     if (user && !companyName) {
-      refreshCompanyName()
+      refreshCompanyName();
     }
-  }, [user, companyName, refreshCompanyName])
+  }, [user, companyName, refreshCompanyName]);
 
   const handleLogout = async () => {
     try {
-      await signOut()
+      await signOut();
     } catch (error) {
-      console.error("Erro no logout:", error)
+      console.error('Erro no logout:', error);
     }
-  }
+  };
 
   return (
     <>
@@ -71,5 +71,5 @@ export function PageHeader({ title, description, children }: PageHeaderProps) {
         onConfirm={handleLogout}
       />
     </>
-  )
-} 
+  );
+}

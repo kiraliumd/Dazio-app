@@ -10,7 +10,10 @@ interface TrialWrapperProps {
 
 export function TrialWrapper({ children }: TrialWrapperProps) {
   const { user } = useAuth();
-  const [trialData, setTrialData] = useState<{ trialEnd: string; companyName: string } | null>(null);
+  const [trialData, setTrialData] = useState<{
+    trialEnd: string;
+    companyName: string;
+  } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -22,11 +25,11 @@ export function TrialWrapper({ children }: TrialWrapperProps) {
     try {
       const response = await fetch('/api/company/profile');
       const { data: profile } = await response.json();
-      
+
       if (profile && profile.status === 'trial') {
         setTrialData({
           trialEnd: profile.trial_end,
-          companyName: profile.company_name
+          companyName: profile.company_name,
         });
       }
     } catch (error) {
@@ -37,12 +40,12 @@ export function TrialWrapper({ children }: TrialWrapperProps) {
   return (
     <div>
       {trialData && (
-        <TrialNotification 
-          trialEnd={trialData.trialEnd} 
-          companyName={trialData.companyName} 
+        <TrialNotification
+          trialEnd={trialData.trialEnd}
+          companyName={trialData.companyName}
         />
       )}
       {children}
     </div>
   );
-} 
+}

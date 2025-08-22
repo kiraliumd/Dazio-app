@@ -28,21 +28,30 @@ export interface CheckContactResult {
 /**
  * Adiciona um novo contato à audiência do Resend
  */
-export async function addContactToAudience(contactData: ContactData): Promise<ContactResult> {
+export async function addContactToAudience(
+  contactData: ContactData
+): Promise<ContactResult> {
   try {
     if (!AUDIENCE_ID) {
-      console.warn('⚠️ RESEND_AUDIENCE_ID não configurado. Contato não será adicionado à audiência.');
+      console.warn(
+        '⚠️ RESEND_AUDIENCE_ID não configurado. Contato não será adicionado à audiência.'
+      );
       return { success: false, error: 'AUDIENCE_ID não configurado' };
     }
 
-    console.log('🔍 Resend Contacts: Adicionando contato à audiência:', contactData.email);
+    console.log(
+      '🔍 Resend Contacts: Adicionando contato à audiência:',
+      contactData.email
+    );
 
     // Primeiro verificar se o contato já existe
     const existingContact = await checkContactInAudience(contactData.email);
-    
+
     if (existingContact.success && existingContact.exists) {
-      console.log('ℹ️ Resend Contacts: Contato já existe, atualizando em vez de adicionar');
-      
+      console.log(
+        'ℹ️ Resend Contacts: Contato já existe, atualizando em vez de adicionar'
+      );
+
       // Se já existe, atualizar em vez de adicionar
       return await updateContactInAudience(contactData);
     }
@@ -57,19 +66,26 @@ export async function addContactToAudience(contactData: ContactData): Promise<Co
 
     if (error) {
       console.error('❌ Resend Contacts: Erro ao adicionar contato:', error);
-      
+
       // Se o erro for de contato duplicado, tentar atualizar
-      if (error.message.includes('already exists') || error.message.includes('duplicate')) {
-        console.log('ℹ️ Resend Contacts: Contato duplicado detectado, tentando atualizar...');
+      if (
+        error.message.includes('already exists') ||
+        error.message.includes('duplicate')
+      ) {
+        console.log(
+          'ℹ️ Resend Contacts: Contato duplicado detectado, tentando atualizar...'
+        );
         return await updateContactInAudience(contactData);
       }
-      
+
       return { success: false, error: error.message };
     }
 
-    console.log('✅ Resend Contacts: Contato adicionado com sucesso:', data?.id);
+    console.log(
+      '✅ Resend Contacts: Contato adicionado com sucesso:',
+      data?.id
+    );
     return { success: true, contactId: data?.id };
-
   } catch (error) {
     console.error('❌ Resend Contacts: Erro inesperado:', error);
     return { success: false, error: 'Erro interno' };
@@ -79,26 +95,38 @@ export async function addContactToAudience(contactData: ContactData): Promise<Co
 /**
  * Atualiza um contato existente na audiência do Resend
  */
-export async function updateContactInAudience(contactData: ContactData): Promise<ContactResult> {
+export async function updateContactInAudience(
+  contactData: ContactData
+): Promise<ContactResult> {
   try {
     if (!AUDIENCE_ID) {
-      console.warn('⚠️ RESEND_AUDIENCE_ID não configurado. Contato não será atualizado na audiência.');
+      console.warn(
+        '⚠️ RESEND_AUDIENCE_ID não configurado. Contato não será atualizado na audiência.'
+      );
       return { success: false, error: 'AUDIENCE_ID não configurado' };
     }
 
-    console.log('🔍 Resend Contacts: Atualizando contato na audiência:', contactData.email);
+    console.log(
+      '🔍 Resend Contacts: Atualizando contato na audiência:',
+      contactData.email
+    );
 
     // Primeiro verificar se o contato existe
     const existingContact = await checkContactInAudience(contactData.email);
-    
+
     if (!existingContact.success) {
-      console.error('❌ Resend Contacts: Erro ao verificar contato existente:', existingContact.error);
+      console.error(
+        '❌ Resend Contacts: Erro ao verificar contato existente:',
+        existingContact.error
+      );
       return { success: false, error: existingContact.error };
     }
 
     if (!existingContact.exists) {
-      console.log('ℹ️ Resend Contacts: Contato não existe, criando em vez de atualizar');
-      
+      console.log(
+        'ℹ️ Resend Contacts: Contato não existe, criando em vez de atualizar'
+      );
+
       // Se não existe, criar em vez de atualizar
       return await addContactToAudience(contactData);
     }
@@ -116,9 +144,11 @@ export async function updateContactInAudience(contactData: ContactData): Promise
       return { success: false, error: error.message };
     }
 
-    console.log('✅ Resend Contacts: Contato atualizado com sucesso:', data?.id);
+    console.log(
+      '✅ Resend Contacts: Contato atualizado com sucesso:',
+      data?.id
+    );
     return { success: true, contactId: data?.id };
-
   } catch (error) {
     console.error('❌ Resend Contacts: Erro inesperado:', error);
     return { success: false, error: 'Erro interno' };
@@ -128,14 +158,21 @@ export async function updateContactInAudience(contactData: ContactData): Promise
 /**
  * Remove um contato da audiência do Resend (desinscreve)
  */
-export async function unsubscribeContactFromAudience(email: string): Promise<ContactResult> {
+export async function unsubscribeContactFromAudience(
+  email: string
+): Promise<ContactResult> {
   try {
     if (!AUDIENCE_ID) {
-      console.warn('⚠️ RESEND_AUDIENCE_ID não configurado. Contato não será desinscrito da audiência.');
+      console.warn(
+        '⚠️ RESEND_AUDIENCE_ID não configurado. Contato não será desinscrito da audiência.'
+      );
       return { success: false, error: 'AUDIENCE_ID não configurado' };
     }
 
-    console.log('🔍 Resend Contacts: Desinscrevendo contato da audiência:', email);
+    console.log(
+      '🔍 Resend Contacts: Desinscrevendo contato da audiência:',
+      email
+    );
 
     const { data, error } = await resend.contacts.update({
       email: email,
@@ -148,9 +185,11 @@ export async function unsubscribeContactFromAudience(email: string): Promise<Con
       return { success: false, error: error.message };
     }
 
-    console.log('✅ Resend Contacts: Contato desinscrito com sucesso:', data?.id);
+    console.log(
+      '✅ Resend Contacts: Contato desinscrito com sucesso:',
+      data?.id
+    );
     return { success: true, contactId: data?.id };
-
   } catch (error) {
     console.error('❌ Resend Contacts: Erro inesperado:', error);
     return { success: false, error: 'Erro interno' };
@@ -160,10 +199,14 @@ export async function unsubscribeContactFromAudience(email: string): Promise<Con
 /**
  * Verifica se um contato existe na audiência
  */
-export async function checkContactInAudience(email: string): Promise<CheckContactResult> {
+export async function checkContactInAudience(
+  email: string
+): Promise<CheckContactResult> {
   try {
     if (!AUDIENCE_ID) {
-      console.warn('⚠️ RESEND_AUDIENCE_ID não configurado. Não é possível verificar contato.');
+      console.warn(
+        '⚠️ RESEND_AUDIENCE_ID não configurado. Não é possível verificar contato.'
+      );
       return { success: false, error: 'AUDIENCE_ID não configurado' };
     }
 
@@ -180,7 +223,7 @@ export async function checkContactInAudience(email: string): Promise<CheckContac
     }
 
     const contact = data?.data?.find(contact => contact.email === email);
-    
+
     if (contact) {
       console.log('✅ Resend Contacts: Contato encontrado:', contact.id);
       return { success: true, exists: true, contact };
@@ -188,9 +231,8 @@ export async function checkContactInAudience(email: string): Promise<CheckContac
       console.log('ℹ️ Resend Contacts: Contato não encontrado');
       return { success: true, exists: false };
     }
-
   } catch (error) {
     console.error('❌ Resend Contacts: Erro inesperado:', error);
     return { success: false, error: 'Erro interno' };
   }
-} 
+}

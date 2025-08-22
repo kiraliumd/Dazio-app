@@ -38,7 +38,7 @@ async function createRecurringPrices() {
       monthlyPriceId: monthlyPrice.id,
       annualPriceId: annualPrice.id,
       monthlyProductId: 'prod_Sn2n2D1UuSgF4u',
-      annualProductId: 'prod_Sn2ndrRgXRp0rC'
+      annualProductId: 'prod_Sn2ndrRgXRp0rC',
     };
 
     console.log('\n🎯 IDs dos preços criados:');
@@ -47,7 +47,6 @@ async function createRecurringPrices() {
     console.log('\n📝 Atualize o arquivo stripe-price-ids.json com esses IDs');
 
     return priceIds;
-
   } catch (error) {
     console.error('❌ Erro ao criar preços:', error);
     throw error;
@@ -61,7 +60,7 @@ if (require.main === module) {
       console.log('\n✅ Script executado com sucesso!');
       process.exit(0);
     })
-    .catch((error) => {
+    .catch(error => {
       console.error('\n❌ Script falhou:', error);
       process.exit(1);
     });

@@ -1,31 +1,44 @@
-"use client"
+'use client';
 
-import { useState, useEffect, Suspense } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Lock, Eye, EyeOff, Loader2, CheckCircle, ArrowLeft } from "lucide-react"
-import { Skeleton } from '@/components/ui/skeleton'
-import Image from 'next/image'
-import { supabase } from '../../../../lib/supabase'
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  ArrowLeft,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+} from 'lucide-react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { supabase } from '../../../../lib/supabase';
 
 function ResetPasswordConfirmContent() {
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState('')
-  const [passwordError, setPasswordError] = useState('')
-  const [confirmPasswordError, setConfirmPasswordError] = useState('')
-  const [isValidToken, setIsValidToken] = useState(false)
-  const [isCheckingToken, setIsCheckingToken] = useState(true)
-  
-  const router = useRouter()
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const [isValidToken, setIsValidToken] = useState(false);
+  const [isCheckingToken, setIsCheckingToken] = useState(true);
+
+  const router = useRouter();
 
   useEffect(() => {
     const checkToken = async () => {
@@ -34,7 +47,7 @@ function ResetPasswordConfirmContent() {
         const urlParams = new URLSearchParams(window.location.search);
         const errorParam = urlParams.get('error');
         const messageParam = urlParams.get('message');
-        
+
         // Verificar se há erros no hash da URL (erros do Supabase)
         const hash = window.location.hash;
         if (hash) {
@@ -42,124 +55,143 @@ function ResetPasswordConfirmContent() {
           const hashError = hashParams.get('error');
           const errorCode = hashParams.get('error_code');
           const errorDescription = hashParams.get('error_description');
-          
-          console.log('🔍 Reset Password: Hash params:', { hashError, errorCode, errorDescription });
-          
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔍 Reset Password: Hash params:', {
+              hashError,
+              errorCode,
+              errorDescription,
+            });
+          }
+
           if (hashError === 'access_denied') {
             if (errorCode === 'otp_expired') {
               setError('Link de redefinição expirado. Solicite um novo link.');
             } else {
-              setError(errorDescription || 'Link de redefinição inválido. Solicite um novo link.');
+              setError(
+                errorDescription ||
+                  'Link de redefinição inválido. Solicite um novo link.'
+              );
             }
             setIsValidToken(false);
             setIsCheckingToken(false);
             return;
           }
         }
-        
+
         if (errorParam === 'auth_failed') {
-          setError(messageParam || 'Link inválido ou expirado. Solicite um novo link de redefinição.');
+          setError(
+            messageParam ||
+              'Link inválido ou expirado. Solicite um novo link de redefinição.'
+          );
           setIsValidToken(false);
           setIsCheckingToken(false);
           return;
         }
 
         // Verificar se há uma sessão válida (token de reset)
-        const { data: { session }, error } = await supabase.auth.getSession()
-        
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
         if (error || !session) {
-          setError('Link inválido ou expirado. Solicite um novo link de redefinição.')
-          setIsValidToken(false)
+          setError(
+            'Link inválido ou expirado. Solicite um novo link de redefinição.'
+          );
+          setIsValidToken(false);
         } else {
-          setIsValidToken(true)
+          setIsValidToken(true);
         }
       } catch (err) {
-        setError('Erro ao verificar link. Tente novamente.')
-        setIsValidToken(false)
+        setError('Erro ao verificar link. Tente novamente.');
+        setIsValidToken(false);
       } finally {
-        setIsCheckingToken(false)
+        setIsCheckingToken(false);
       }
-    }
+    };
 
-    checkToken()
-  }, []) // Array vazio para executar apenas uma vez
+    checkToken();
+  }, []); // Array vazio para executar apenas uma vez
 
   const validatePassword = (password: string) => {
     if (!password) {
-      setPasswordError('Senha é obrigatória')
-      return false
+      setPasswordError('Senha é obrigatória');
+      return false;
     }
     if (password.length < 6) {
-      setPasswordError('Senha deve ter pelo menos 6 caracteres')
-      return false
+      setPasswordError('Senha deve ter pelo menos 6 caracteres');
+      return false;
     }
-    setPasswordError('')
-    return true
-  }
+    setPasswordError('');
+    return true;
+  };
 
   const validateConfirmPassword = (confirmPassword: string) => {
     if (!confirmPassword) {
-      setConfirmPasswordError('Confirmação de senha é obrigatória')
-      return false
+      setConfirmPasswordError('Confirmação de senha é obrigatória');
+      return false;
     }
     if (confirmPassword !== password) {
-      setConfirmPasswordError('As senhas não coincidem')
-      return false
+      setConfirmPasswordError('As senhas não coincidem');
+      return false;
     }
-    setConfirmPasswordError('')
-    return true
-  }
+    setConfirmPasswordError('');
+    return true;
+  };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setPassword(value)
+    const value = e.target.value;
+    setPassword(value);
     if (passwordError) {
-      validatePassword(value)
+      validatePassword(value);
     }
     if (confirmPassword && confirmPasswordError) {
-      validateConfirmPassword(confirmPassword)
+      validateConfirmPassword(confirmPassword);
     }
-  }
+  };
 
-  const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setConfirmPassword(value)
+  const handleConfirmPasswordChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    setConfirmPassword(value);
     if (confirmPasswordError) {
-      validateConfirmPassword(value)
+      validateConfirmPassword(value);
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    
-    const isPasswordValid = validatePassword(password)
-    const isConfirmPasswordValid = validateConfirmPassword(confirmPassword)
-    
+    e.preventDefault();
+    setError('');
+
+    const isPasswordValid = validatePassword(password);
+    const isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
+
     if (!isPasswordValid || !isConfirmPasswordValid) {
-      return
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
       const { error } = await supabase.auth.updateUser({
-        password: password
-      })
+        password: password,
+      });
 
       if (error) {
-        setError('Erro ao atualizar senha. Tente novamente.')
+        setError('Erro ao atualizar senha. Tente novamente.');
       } else {
-        setSuccess(true)
+        setSuccess(true);
         // Fazer logout para garantir que o usuário faça login com a nova senha
-        await supabase.auth.signOut()
+        await supabase.auth.signOut();
       }
     } catch (err) {
-      setError('Erro de conexão. Tente novamente.')
+      setError('Erro de conexão. Tente novamente.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (isCheckingToken) {
     return (
@@ -175,7 +207,7 @@ function ResetPasswordConfirmContent() {
               priority
             />
           </div>
-          
+
           <Card className="shadow-xl border-0">
             <CardContent className="p-8">
               <div className="space-y-4">
@@ -186,7 +218,7 @@ function ResetPasswordConfirmContent() {
           </Card>
         </div>
       </div>
-    )
+    );
   }
 
   if (!isValidToken) {
@@ -203,10 +235,12 @@ function ResetPasswordConfirmContent() {
               priority
             />
           </div>
-          
+
           <Card className="shadow-xl border-0">
             <CardHeader className="space-y-1 text-center">
-              <CardTitle className="text-2xl font-bold text-foreground">Link Inválido</CardTitle>
+              <CardTitle className="text-2xl font-bold text-foreground">
+                Link Inválido
+              </CardTitle>
               <CardDescription className="text-base text-muted-foreground">
                 O link de redefinição é inválido ou expirou
               </CardDescription>
@@ -215,7 +249,7 @@ function ResetPasswordConfirmContent() {
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
-              
+
               <div className="space-y-3">
                 <Button
                   onClick={() => router.push('/auth/reset-password')}
@@ -223,7 +257,7 @@ function ResetPasswordConfirmContent() {
                 >
                   Solicitar Novo Link
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   onClick={() => router.push('/login')}
@@ -237,7 +271,7 @@ function ResetPasswordConfirmContent() {
           </Card>
         </div>
       </div>
-    )
+    );
   }
 
   if (success) {
@@ -260,7 +294,9 @@ function ResetPasswordConfirmContent() {
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
                 <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
-              <CardTitle className="text-2xl font-bold text-foreground">Senha Alterada!</CardTitle>
+              <CardTitle className="text-2xl font-bold text-foreground">
+                Senha Alterada!
+              </CardTitle>
               <CardDescription className="text-base text-muted-foreground">
                 Sua senha foi atualizada com sucesso
               </CardDescription>
@@ -282,7 +318,7 @@ function ResetPasswordConfirmContent() {
           </Card>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -301,7 +337,9 @@ function ResetPasswordConfirmContent() {
 
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Nova Senha</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              Nova Senha
+            </CardTitle>
             <CardDescription className="text-center">
               Digite sua nova senha
             </CardDescription>
@@ -315,7 +353,7 @@ function ResetPasswordConfirmContent() {
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={password}
                     onChange={handlePasswordChange}
@@ -351,7 +389,7 @@ function ResetPasswordConfirmContent() {
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
+                    type={showConfirmPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={handleConfirmPasswordChange}
@@ -393,11 +431,7 @@ function ResetPasswordConfirmContent() {
                 className="w-full bg-orange-600 hover:bg-orange-700"
                 disabled={loading}
               >
-                {loading ? (
-                  'Atualizando...'
-                ) : (
-                  'Atualizar Senha'
-                )}
+                {loading ? 'Atualizando...' : 'Atualizar Senha'}
               </Button>
             </form>
 
@@ -425,35 +459,37 @@ function ResetPasswordConfirmContent() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default function ResetPasswordConfirmPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <Image
-              src="/logo-dazio.svg"
-              alt="Dazio Logo"
-              width={120}
-              height={48}
-              className="mx-auto"
-              priority
-            />
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md">
+            <div className="text-center mb-8">
+              <Image
+                src="/logo-dazio.svg"
+                alt="Dazio Logo"
+                width={120}
+                height={48}
+                className="mx-auto"
+                priority
+              />
+            </div>
+
+            <Card className="shadow-xl border-0">
+              <CardContent className="p-8 text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-orange-600" />
+                <p className="text-muted-foreground">Carregando...</p>
+              </CardContent>
+            </Card>
           </div>
-          
-          <Card className="shadow-xl border-0">
-            <CardContent className="p-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-orange-600" />
-              <p className="text-muted-foreground">Carregando...</p>
-            </CardContent>
-          </Card>
         </div>
-      </div>
-    }>
+      }
+    >
       <ResetPasswordConfirmContent />
     </Suspense>
-  )
+  );
 }

@@ -1,11 +1,17 @@
 'use server';
 
-import { stripe, createCheckoutSession, createCustomerPortalSession } from '@/lib/stripe';
+import {
+  stripe,
+  createCheckoutSession,
+  createCustomerPortalSession,
+} from '@/lib/stripe';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { CreateSubscriptionRequest, CreateSubscriptionResponse } from './types';
 
-export async function createSubscription(planType: 'monthly' | 'annual'): Promise<CreateSubscriptionResponse> {
+export async function createSubscription(
+  planType: 'monthly' | 'annual'
+): Promise<CreateSubscriptionResponse> {
   console.log('🔄 createSubscription: Iniciando...', { planType });
 
   try {
@@ -13,7 +19,10 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
     console.log('✅ createSubscription: Cliente Supabase criado');
 
     // Verificar usuário autenticado
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
       console.error('❌ createSubscription: Erro ao obter usuário:', userError);
       return {
@@ -30,7 +39,10 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
       .single();
 
     if (companyError || !companyProfile) {
-      console.error('❌ createSubscription: Erro ao obter perfil da empresa:', companyError);
+      console.error(
+        '❌ createSubscription: Erro ao obter perfil da empresa:',
+        companyError
+      );
       return {
         success: false,
         error: 'Perfil da empresa não encontrado',
@@ -38,22 +50,25 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
     }
 
     // Verificar se já existe assinatura ativa
-    const { data: existingSubscription, error: subscriptionError } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('company_id', companyProfile.id)
-      .in('status', ['active', 'trialing'])
-      .single();
+    const { data: existingSubscription, error: subscriptionError } =
+      await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('company_id', companyProfile.id)
+        .in('status', ['active', 'trialing'])
+        .single();
 
     console.log('🔍 createSubscription: Verificando assinatura existente...', {
       existingSubscription,
       subscriptionError,
-      companyId: companyProfile.id
+      companyId: companyProfile.id,
     });
 
     // Se já existe assinatura ativa, permitir upgrade/downgrade
     if (existingSubscription && !subscriptionError) {
-      console.log('⚠️ createSubscription: Assinatura existente encontrada, permitindo upgrade/downgrade');
+      console.log(
+        '⚠️ createSubscription: Assinatura existente encontrada, permitindo upgrade/downgrade'
+      );
       // Não bloquear, permitir continuar para upgrade/downgrade
     }
 
@@ -75,13 +90,19 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
 
     // Usar IDs fixos dos produtos e preços existentes
     let priceId: string;
-    
+
     if (planType === 'monthly') {
       priceId = 'price_1RsR6sKDs9V3MH8vtyRCyQmy'; // Preço mensal fixo
-      console.log('✅ createSubscription: Usando preço mensal existente:', priceId);
+      console.log(
+        '✅ createSubscription: Usando preço mensal existente:',
+        priceId
+      );
     } else {
       priceId = 'price_1RsR6sKDs9V3MH8v8HfmE83N'; // Preço anual fixo
-      console.log('✅ createSubscription: Usando preço anual existente:', priceId);
+      console.log(
+        '✅ createSubscription: Usando preço anual existente:',
+        priceId
+      );
     }
 
     if (!priceId) {
@@ -102,7 +123,10 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
       },
     });
 
-    console.log('✅ createSubscription: Checkout session criada', { sessionId: session.id, url: session.url });
+    console.log('✅ createSubscription: Checkout session criada', {
+      sessionId: session.id,
+      url: session.url,
+    });
 
     return {
       success: true,
@@ -120,8 +144,11 @@ export async function createSubscription(planType: 'monthly' | 'annual'): Promis
 export async function getSubscription() {
   try {
     const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return null;
     }
@@ -154,8 +181,11 @@ export async function getSubscription() {
 export async function cancelSubscription() {
   try {
     const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       throw new Error('Usuário não autenticado');
     }
@@ -179,9 +209,9 @@ export async function cancelSubscription() {
     // Atualizar no banco
     await supabase
       .from('subscriptions')
-      .update({ 
+      .update({
         cancel_at_period_end: true,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', subscription.id);
 
@@ -199,8 +229,11 @@ export async function cancelSubscription() {
 export async function getCustomerPortalUrl() {
   try {
     const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       throw new Error('Usuário não autenticado');
     }
@@ -228,4 +261,4 @@ export async function getCustomerPortalUrl() {
       error: error instanceof Error ? error.message : 'Erro desconhecido',
     };
   }
-} 
+}

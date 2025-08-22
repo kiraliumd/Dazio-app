@@ -25,7 +25,10 @@ export function TrialBanner() {
         <AlertTriangleIcon className="h-4 w-4 text-red-600" />
         <AlertDescription className="text-red-800">
           <div className="flex items-center justify-between">
-            <span>Seu período de teste gratuito expirou. Para continuar usando o sistema, assine um plano.</span>
+            <span>
+              Seu período de teste gratuito expirou. Para continuar usando o
+              sistema, assine um plano.
+            </span>
             <Link href="/assinatura-gestao">
               <Button size="sm" className="ml-4">
                 Assinar agora
@@ -44,7 +47,10 @@ export function TrialBanner() {
       <AlertDescription className="text-blue-800">
         <div className="flex items-center justify-between">
           <span>
-            <strong>Teste gratuito ativo:</strong> {trialStatus.daysLeft === 1 ? '1 dia restante' : `${trialStatus.daysLeft} dias restantes`}
+            <strong>Teste gratuito ativo:</strong>{' '}
+            {trialStatus.daysLeft === 1
+              ? '1 dia restante'
+              : `${trialStatus.daysLeft} dias restantes`}
           </span>
           <div className="flex space-x-2">
             <Link href="/assinatura-gestao">
@@ -52,7 +58,11 @@ export function TrialBanner() {
                 Assinar agora
               </Button>
             </Link>
-            <Button size="sm" variant="ghost" onClick={() => setTrialStatus(null)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setTrialStatus(null)}
+            >
               Fechar
             </Button>
           </div>
@@ -60,4 +70,4 @@ export function TrialBanner() {
       </AlertDescription>
     </Alert>
   );
-} 
+}

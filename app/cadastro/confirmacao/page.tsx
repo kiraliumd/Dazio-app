@@ -2,17 +2,31 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Mail, CheckCircle, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
+import {
+  Mail,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  ArrowRight,
+} from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
 function ConfirmacaoContent() {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<'pending' | 'success' | 'error'>('pending');
+  const [status, setStatus] = useState<'pending' | 'success' | 'error'>(
+    'pending'
+  );
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
   const router = useRouter();
@@ -26,7 +40,9 @@ function ConfirmacaoContent() {
         setEmail(pendingEmail);
       } else {
         // Tentar obter email do usuário autenticado
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           setEmail(user.email || '');
         }
@@ -42,7 +58,13 @@ function ConfirmacaoContent() {
     const success = searchParams.get('success');
     const message = searchParams.get('message');
 
-    console.log('🔍 Confirmacao: Parâmetros da URL:', { token, type, error, success, message });
+    console.log('🔍 Confirmacao: Parâmetros da URL:', {
+      token,
+      type,
+      error,
+      success,
+      message,
+    });
 
     if (success === 'true' && token && type === 'signup') {
       console.log('✅ Confirmacao: Sucesso detectado, processando confirmação');
@@ -52,7 +74,11 @@ function ConfirmacaoContent() {
 
     if (error === 'auth_failed') {
       setStatus('error');
-      setMessage(message ? decodeURIComponent(message) : 'Erro na confirmação do email. Tente novamente.');
+      setMessage(
+        message
+          ? decodeURIComponent(message)
+          : 'Erro na confirmação do email. Tente novamente.'
+      );
       return;
     }
 
@@ -72,7 +98,7 @@ function ConfirmacaoContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token })
+        body: JSON.stringify({ token }),
       });
 
       const result = await response.json();
@@ -84,22 +110,26 @@ function ConfirmacaoContent() {
       } else {
         // Criar perfil da empresa após confirmação
         await createCompanyProfile();
-        
+
         setStatus('success');
-        setMessage('Email confirmado com sucesso! Redirecionando para o dashboard...');
+        setMessage(
+          'Email confirmado com sucesso! Redirecionando para o dashboard...'
+        );
         toast.success('Email confirmado com sucesso!');
-        
+
         // Limpar dados do localStorage
         localStorage.removeItem('pendingEmail');
         localStorage.removeItem('pendingProfileData');
-        
+
         // Limpar dados com chaves únicas também
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           localStorage.removeItem(`pendingEmail_${user.id}`);
           localStorage.removeItem(`pendingProfileData_${user.id}`);
         }
-        
+
         // Redirecionar após 1s para criar perfil
         setTimeout(() => {
           router.push('/create-profile');
@@ -126,13 +156,15 @@ function ConfirmacaoContent() {
       // Obter dados temporários do localStorage (se existirem)
       const pendingProfileData = localStorage.getItem('pendingProfileData');
       let profileData = {};
-      
+
       if (pendingProfileData) {
         profileData = JSON.parse(pendingProfileData);
       }
 
       // Criar perfil básico da empresa com email
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         console.error('Usuário não autenticado');
         return;
@@ -153,10 +185,13 @@ function ConfirmacaoContent() {
         employee_count: null,
         trial_start: new Date().toISOString(),
         trial_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
-        status: 'trial'
+        status: 'trial',
       };
 
-      console.log('🔍 Confirmacao: Criando perfil básico com email:', pendingEmail);
+      console.log(
+        '🔍 Confirmacao: Criando perfil básico com email:',
+        pendingEmail
+      );
 
       // 1. Criar perfil básico da empresa
       const { data: profileResult, error: profileError } = await supabase
@@ -171,7 +206,10 @@ function ConfirmacaoContent() {
         return;
       }
 
-      console.log('✅ Confirmacao: Perfil básico criado com sucesso:', profileResult);
+      console.log(
+        '✅ Confirmacao: Perfil básico criado com sucesso:',
+        profileResult
+      );
 
       // 2. Atualizar template no profile
       const { error: settingsError } = await supabase
@@ -226,14 +264,17 @@ _____________________
 {client_name}
 Contratado
 
-Data: {contract_date}`
+Data: {contract_date}`,
         })
         .eq('id', profileResult.id)
         .select('id')
         .single();
 
       if (settingsError) {
-        console.error('❌ Confirmacao: Erro ao criar configurações:', settingsError);
+        console.error(
+          '❌ Confirmacao: Erro ao criar configurações:',
+          settingsError
+        );
         toast.error(`Erro ao criar configurações: ${settingsError.message}`);
         return;
       }
@@ -260,7 +301,7 @@ Data: {contract_date}`
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email }),
       });
 
       const result = await response.json();
@@ -298,31 +339,35 @@ Data: {contract_date}`
         {/* Card de Confirmação */}
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Confirme seu email</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              Confirme seu email
+            </CardTitle>
             <CardDescription className="text-center">
               Verifique sua caixa de entrada para ativar sua conta
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             {status === 'pending' && (
               <div className="text-center space-y-4">
                 <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
                   <Mail className="w-8 h-8 text-blue-600" />
                 </div>
-                
+
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">Email enviado!</h3>
                   <p className="text-gray-600 text-sm">
-                    Enviamos um link de confirmação para <strong>{email}</strong>. 
-                    Clique no link para ativar sua conta e começar a usar o Dazio.
+                    Enviamos um link de confirmação para{' '}
+                    <strong>{email}</strong>. Clique no link para ativar sua
+                    conta e começar a usar o Dazio.
                   </p>
                 </div>
 
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Não recebeu o email? Verifique sua pasta de spam ou solicite um novo link.
+                    Não recebeu o email? Verifique sua pasta de spam ou solicite
+                    um novo link.
                   </AlertDescription>
                 </Alert>
 
@@ -342,7 +387,7 @@ Data: {contract_date}`
                       'Reenviar email'
                     )}
                   </Button>
-                  
+
                   <Button
                     onClick={handleGoToLogin}
                     variant="ghost"
@@ -359,11 +404,14 @@ Data: {contract_date}`
                 <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                   <CheckCircle className="w-8 h-8 text-green-600" />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-green-600">Email confirmado!</h3>
+                  <h3 className="text-lg font-semibold text-green-600">
+                    Email confirmado!
+                  </h3>
                   <p className="text-gray-600 text-sm">
-                    Sua conta foi ativada com sucesso. Você será redirecionado para o dashboard.
+                    Sua conta foi ativada com sucesso. Você será redirecionado
+                    para o dashboard.
                   </p>
                 </div>
 
@@ -379,12 +427,12 @@ Data: {contract_date}`
                 <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
                   <AlertCircle className="w-8 h-8 text-red-600" />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-red-600">Erro na confirmação</h3>
-                  <p className="text-gray-600 text-sm">
-                    {message}
-                  </p>
+                  <h3 className="text-lg font-semibold text-red-600">
+                    Erro na confirmação
+                  </h3>
+                  <p className="text-gray-600 text-sm">{message}</p>
                 </div>
 
                 <div className="space-y-3">
@@ -402,7 +450,7 @@ Data: {contract_date}`
                       'Reenviar email de confirmação'
                     )}
                   </Button>
-                  
+
                   <Button
                     onClick={handleGoToLogin}
                     variant="outline"
@@ -457,4 +505,4 @@ export default function ConfirmacaoPage() {
       <ConfirmacaoContent />
     </Suspense>
   );
-} 
+}

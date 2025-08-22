@@ -6,7 +6,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Test Email Visible: Enviando email de teste...');
-    
+
     const { data, error } = await resend.emails.send({
       from: 'Dazio <onboarding@resend.dev>',
       to: ['kiral.digital@gmail.com'],
@@ -58,28 +58,33 @@ Se você recebeu este email, o sistema está funcionando corretamente! 🎉
 
     if (error) {
       console.error('❌ Test Email Visible: Erro:', error);
-      return NextResponse.json({ 
-        success: false, 
-        error: error.message || 'Erro desconhecido',
-        details: error
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message || 'Erro desconhecido',
+          details: error,
+        },
+        { status: 500 }
+      );
     }
 
     console.log('✅ Test Email Visible: Sucesso:', data);
-    
-    return NextResponse.json({ 
-      success: true, 
+
+    return NextResponse.json({
+      success: true,
       message: 'Email de teste visível enviado com sucesso!',
       emailId: data?.id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error('❌ Test Email Visible: Erro inesperado:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Erro interno do servidor',
-      details: error
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Erro interno do servidor',
+        details: error,
+      },
+      { status: 500 }
+    );
   }
-} 
+}

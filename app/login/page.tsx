@@ -1,111 +1,123 @@
-"use client"
+'use client';
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '../../lib/auth-context'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, Lock, Mail, Loader2, AlertCircle } from "lucide-react"
-import { BrandLogo } from '@/components/brand-logo'
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../../lib/auth-context';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Eye, EyeOff, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
+import { BrandLogo } from '@/components/brand-logo';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [emailError, setEmailError] = useState('')
-  const [passwordError, setPasswordError] = useState('')
-  const { signIn } = useAuth()
-  const router = useRouter()
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const { signIn } = useAuth();
+  const router = useRouter();
 
   const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) {
-      setEmailError('Email é obrigatório')
-      return false
+      setEmailError('Email é obrigatório');
+      return false;
     }
     if (!emailRegex.test(email)) {
-      setEmailError('Digite um email válido')
-      return false
+      setEmailError('Digite um email válido');
+      return false;
     }
-    setEmailError('')
-    return true
-  }
+    setEmailError('');
+    return true;
+  };
 
   const validatePassword = (password: string) => {
     if (!password) {
-      setPasswordError('Senha é obrigatória')
-      return false
+      setPasswordError('Senha é obrigatória');
+      return false;
     }
     if (password.length < 6) {
-      setPasswordError('Senha deve ter pelo menos 6 caracteres')
-      return false
+      setPasswordError('Senha deve ter pelo menos 6 caracteres');
+      return false;
     }
-    setPasswordError('')
-    return true
-  }
+    setPasswordError('');
+    return true;
+  };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setEmail(value)
+    const value = e.target.value;
+    setEmail(value);
     if (emailError) {
-      validateEmail(value)
+      validateEmail(value);
     }
-  }
+  };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setPassword(value)
+    const value = e.target.value;
+    setPassword(value);
     if (passwordError) {
-      validatePassword(value)
+      validatePassword(value);
     }
-  }
+  };
 
   const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    setError('')
-    
+    if (e) e.preventDefault();
+    setError('');
+
     // Validar campos
-    const isEmailValid = validateEmail(email)
-    const isPasswordValid = validatePassword(password)
-    
+    const isEmailValid = validateEmail(email);
+    const isPasswordValid = validatePassword(password);
+
     if (!isEmailValid || !isPasswordValid) {
-      return
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
-      const { error } = await signIn(email, password)
-      
+      const { error } = await signIn(email, password);
+
       if (error) {
         // Mapear erros específicos do Supabase para mensagens mais amigáveis
         if (error.message.includes('Invalid login credentials')) {
-          setError('Email ou senha incorretos. Verifique suas credenciais e tente novamente.')
+          setError(
+            'Email ou senha incorretos. Verifique suas credenciais e tente novamente.'
+          );
         } else if (error.message.includes('Email not confirmed')) {
-          setError('Email não confirmado. Verifique sua caixa de entrada e confirme seu email.')
+          setError(
+            'Email não confirmado. Verifique sua caixa de entrada e confirme seu email.'
+          );
         } else if (error.message.includes('Too many requests')) {
-          setError('Muitas tentativas de login. Aguarde alguns minutos e tente novamente.')
+          setError(
+            'Muitas tentativas de login. Aguarde alguns minutos e tente novamente.'
+          );
         } else {
-          setError('Erro ao fazer login. Tente novamente.')
+          setError('Erro ao fazer login. Tente novamente.');
         }
       } else {
         try {
-          router.replace('/dashboard')
+          router.replace('/dashboard');
         } catch {
-          router.replace('/')
+          router.replace('/');
         }
       }
     } catch (err) {
-      setError('Erro inesperado. Tente novamente.')
+      setError('Erro inesperado. Tente novamente.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
@@ -118,13 +130,19 @@ export default function LoginPage() {
         {/* Card de Login */}
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Entrar</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              Entrar
+            </CardTitle>
             <CardDescription className="text-center">
               Digite suas credenciais para acessar o sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={(e) => e.preventDefault()} noValidate className="space-y-4">
+            <form
+              onSubmit={e => e.preventDefault()}
+              noValidate
+              className="space-y-4"
+            >
               {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -158,7 +176,7 @@ export default function LoginPage() {
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     placeholder="••••••••"
                     value={password}
@@ -227,7 +245,7 @@ export default function LoginPage() {
                 >
                   Ainda não tenho conta
                 </Button>
-                
+
                 <Button
                   type="button"
                   variant="link"
@@ -248,5 +266,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

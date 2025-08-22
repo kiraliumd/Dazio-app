@@ -1,55 +1,61 @@
-"use client"
+'use client';
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Mail, Loader2, ArrowLeft, CheckCircle } from "lucide-react"
-import { BrandLogo } from '@/components/brand-logo'
+import { BrandLogo } from '@/components/brand-logo';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ArrowLeft, CheckCircle, Loader2, Mail } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function ResetPasswordPage() {
-  const [email, setEmail] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState('')
-  const [emailError, setEmailError] = useState('')
-  const router = useRouter()
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const router = useRouter();
 
   const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) {
-      setEmailError('Email é obrigatório')
-      return false
+      setEmailError('Email é obrigatório');
+      return false;
     }
     if (!emailRegex.test(email)) {
-      setEmailError('Digite um email válido')
-      return false
+      setEmailError('Digite um email válido');
+      return false;
     }
-    setEmailError('')
-    return true
-  }
+    setEmailError('');
+    return true;
+  };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setEmail(value)
+    const value = e.target.value;
+    setEmail(value);
     if (emailError) {
-      validateEmail(value)
+      validateEmail(value);
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    
-    const isEmailValid = validateEmail(email)
+    e.preventDefault();
+    setError('');
+
+    const isEmailValid = validateEmail(email);
     if (!isEmailValid) {
-      return
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
       const response = await fetch('/api/auth/reset-password', {
@@ -58,22 +64,28 @@ export default function ResetPasswordPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok) {
-        setSuccess(true)
+        setSuccess(true);
       } else {
-        setError(data.error ? `${data.error}${data.details ? `: ${data.details}` : ''}` : 'Erro ao processar solicitação')
-        console.error('Reset password API error:', data)
+        setError(
+          data.error
+            ? `${data.error}${data.details ? `: ${data.details}` : ''}`
+            : 'Erro ao processar solicitação'
+        );
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Reset password API error:', data);
+        }
       }
     } catch (err) {
-      setError('Erro de conexão. Tente novamente.')
+      setError('Erro de conexão. Tente novamente.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (success) {
     return (
@@ -90,7 +102,9 @@ export default function ResetPasswordPage() {
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
                 <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
-              <CardTitle className="text-2xl font-bold text-foreground">Email Enviado!</CardTitle>
+              <CardTitle className="text-2xl font-bold text-foreground">
+                Email Enviado!
+              </CardTitle>
               <CardDescription className="text-base text-muted-foreground">
                 Verifique sua caixa de entrada
               </CardDescription>
@@ -114,12 +128,12 @@ export default function ResetPasswordPage() {
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Voltar ao Login
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setSuccess(false)
-                    setEmail('')
+                    setSuccess(false);
+                    setEmail('');
                   }}
                   className="w-full"
                 >
@@ -135,7 +149,7 @@ export default function ResetPasswordPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -149,7 +163,9 @@ export default function ResetPasswordPage() {
         {/* Card de Reset de Senha */}
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Redefinir Senha</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              Redefinir Senha
+            </CardTitle>
             <CardDescription className="text-center">
               Digite seu email para receber um link de redefinição
             </CardDescription>
@@ -228,5 +244,5 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

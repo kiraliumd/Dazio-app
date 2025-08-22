@@ -1,5 +1,15 @@
 import * as React from 'react';
-import { Html, Head, Body, Container, Section, Text, Button, Hr, Img } from '@react-email/components';
+import {
+  Html,
+  Head,
+  Body,
+  Container,
+  Section,
+  Text,
+  Button,
+  Hr,
+  Img,
+} from '@react-email/components';
 
 interface DazioConfirmationEmailProps {
   userEmail: string;
@@ -16,21 +26,27 @@ export const DazioConfirmationEmail: React.FC<DazioConfirmationEmailProps> = ({
         <title>Confirme seu email - Dazio</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
-      <Body style={{ 
-        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        margin: 0,
-        padding: 0,
-        backgroundColor: '#F8F8F8',
-        color: '#1A1A1A'
-      }}>
-        <Container style={{ 
-          maxWidth: '600px',
-          margin: '0 auto',
-          backgroundColor: '#FFFFFF',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-        }}>
+      <Body
+        style={{
+          fontFamily:
+            'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          margin: 0,
+          padding: 0,
+          backgroundColor: '#F8F8F8',
+          color: '#1A1A1A',
+        }}
+      >
+        <Container
+          style={{
+            maxWidth: '600px',
+            margin: '0 auto',
+            backgroundColor: '#FFFFFF',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            boxShadow:
+              '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          }}
+        >
           {/* Header com logo sem fundo */}
           <Section
             style={{
@@ -38,7 +54,7 @@ export const DazioConfirmationEmail: React.FC<DazioConfirmationEmailProps> = ({
               padding: '24px',
               textAlign: 'center',
             }}
-         >
+          >
             <Img
               src={`${process.env.NEXT_PUBLIC_APP_URL}/logo-dazio.svg`}
               width="120"
@@ -46,33 +62,37 @@ export const DazioConfirmationEmail: React.FC<DazioConfirmationEmailProps> = ({
               alt="Dazio"
               style={{
                 display: 'block',
-                margin: '0 auto'
+                margin: '0 auto',
               }}
             />
           </Section>
 
           {/* Conteúdo principal */}
           <Section style={{ padding: '48px 32px' }}>
-            <Text style={{
-              fontSize: '28px',
-              fontWeight: '700',
-              color: '#1A1A1A',
-              margin: '0 0 16px 0',
-              textAlign: 'center',
-              letterSpacing: '-0.025em'
-            }}>
+            <Text
+              style={{
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#1A1A1A',
+                margin: '0 0 16px 0',
+                textAlign: 'center',
+                letterSpacing: '-0.025em',
+              }}
+            >
               Bem-vindo ao Dazio! 🎉
             </Text>
 
-            <Text style={{
-              fontSize: '16px',
-              color: '#707070',
-              margin: '0 0 32px 0',
-              textAlign: 'center',
-              lineHeight: '1.6'
-            }}>
-              Estamos muito felizes em tê-lo conosco! Para começar a usar sua conta, 
-              confirme seu endereço de email clicando no botão abaixo.
+            <Text
+              style={{
+                fontSize: '16px',
+                color: '#707070',
+                margin: '0 0 32px 0',
+                textAlign: 'center',
+                lineHeight: '1.6',
+              }}
+            >
+              Estamos muito felizes em tê-lo conosco! Para começar a usar sua
+              conta, confirme seu endereço de email clicando no botão abaixo.
             </Text>
 
             {/* Botão de confirmação */}
@@ -91,83 +111,101 @@ export const DazioConfirmationEmail: React.FC<DazioConfirmationEmailProps> = ({
                   border: 'none',
                   cursor: 'pointer',
                   boxShadow: '0 4px 6px -1px rgba(255, 122, 0, 0.3)',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
                 }}
               >
                 Confirmar Email
               </Button>
             </div>
 
-            <Text style={{
-              fontSize: '14px',
-              color: '#707070',
-              margin: '24px 0 0 0',
-              textAlign: 'center',
-              lineHeight: '1.5'
-            }}>
+            <Text
+              style={{
+                fontSize: '14px',
+                color: '#707070',
+                margin: '24px 0 0 0',
+                textAlign: 'center',
+                lineHeight: '1.5',
+              }}
+            >
               Se o botão não funcionar, copie e cole este link no seu navegador:
             </Text>
 
-            <Text style={{
-              fontSize: '14px',
-              color: '#FF7A00',
-              margin: '8px 0 0 0',
-              textAlign: 'center',
-              wordBreak: 'break-all',
-              fontFamily: 'monospace'
-            }}>
+            <Text
+              style={{
+                fontSize: '14px',
+                color: '#FF7A00',
+                margin: '8px 0 0 0',
+                textAlign: 'center',
+                wordBreak: 'break-all',
+                fontFamily: 'monospace',
+              }}
+            >
               {confirmationUrl}
             </Text>
           </Section>
 
-          <Hr style={{ 
-            border: 'none',
-            borderTop: '1px solid #E0E0E0',
-            margin: '0'
-          }} />
+          <Hr
+            style={{
+              border: 'none',
+              borderTop: '1px solid #E0E0E0',
+              margin: '0',
+            }}
+          />
 
           {/* Footer */}
-          <Section style={{ 
-            padding: '24px 32px',
-            backgroundColor: '#F8F8F8'
-          }}>
-            <Text style={{
-              fontSize: '14px',
-              color: '#707070',
-              margin: '0 0 16px 0',
-              textAlign: 'center'
-            }}>
+          <Section
+            style={{
+              padding: '24px 32px',
+              backgroundColor: '#F8F8F8',
+            }}
+          >
+            <Text
+              style={{
+                fontSize: '14px',
+                color: '#707070',
+                margin: '0 0 16px 0',
+                textAlign: 'center',
+              }}
+            >
               <strong>Email cadastrado:</strong> {userEmail}
             </Text>
 
-            <Text style={{
-              fontSize: '12px',
-              color: '#707070',
-              margin: '0 0 16px 0',
-              textAlign: 'center',
-              lineHeight: '1.5'
-            }}>
-              Este link de confirmação expira em 24 horas. 
-              Se você não solicitou esta conta, pode ignorar este email.
+            <Text
+              style={{
+                fontSize: '12px',
+                color: '#707070',
+                margin: '0 0 16px 0',
+                textAlign: 'center',
+                lineHeight: '1.5',
+              }}
+            >
+              Este link de confirmação expira em 24 horas. Se você não solicitou
+              esta conta, pode ignorar este email.
             </Text>
 
-            <Text style={{
-              fontSize: '12px',
-              color: '#707070',
-              margin: '0 0 8px 0',
-              textAlign: 'center'
-            }}>
+            <Text
+              style={{
+                fontSize: '12px',
+                color: '#707070',
+                margin: '0 0 8px 0',
+                textAlign: 'center',
+              }}
+            >
               © 2024 Dazio. Todos os direitos reservados.
             </Text>
 
-            <Text style={{
-              fontSize: '11px',
-              color: '#707070',
-              margin: '0',
-              textAlign: 'center'
-            }}>
-              <a href={`${process.env.NEXT_PUBLIC_APP_URL}/unsubscribe?email=${userEmail}`} 
-                 style={{ color: '#707070', textDecoration: 'underline' }}>
+            <Text
+              style={{
+                fontSize: '11px',
+                color: '#707070',
+                margin: '0',
+                textAlign: 'center',
+              }}
+            >
+              <a
+                href={`${process.env.NEXT_PUBLIC_APP_URL}/unsubscribe?email=${userEmail}`}
+                style={{ color: '#707070', textDecoration: 'underline' }}
+              >
                 Desinscrever-se
               </a>
             </Text>
@@ -178,4 +216,4 @@ export const DazioConfirmationEmail: React.FC<DazioConfirmationEmailProps> = ({
   );
 };
 
-export default DazioConfirmationEmail; 
+export default DazioConfirmationEmail;

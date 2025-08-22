@@ -1,10 +1,14 @@
-"use client"
+'use client';
 
-import { AppSidebar } from "../../../components/app-sidebar"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
+import { AppSidebar } from '../../../components/app-sidebar';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RelatoriosLoading() {
   return (
@@ -64,7 +68,10 @@ export default function RelatoriosLoading() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {Array.from({ length: 3 }).map((_, index) => (
-                  <div key={index} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0"
+                  >
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-8 w-8 rounded-lg" />
                       <div className="space-y-1">
@@ -86,7 +93,10 @@ export default function RelatoriosLoading() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {Array.from({ length: 5 }).map((_, index) => (
-                  <div key={index} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0"
+                  >
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-8 w-8 rounded-lg" />
                       <div className="space-y-1">
@@ -103,5 +113,5 @@ export default function RelatoriosLoading() {
         </main>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

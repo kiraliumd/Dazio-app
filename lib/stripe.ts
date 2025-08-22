@@ -12,24 +12,29 @@ export const STRIPE_PRODUCTS = {
     name: 'Dazio Admin - Plano Mensal',
     description: 'Acesso completo ao sistema de gestão de locações',
     price: 9790, // R$ 97,90 em centavos
-    interval: 'month'
+    interval: 'month',
   },
   ANNUAL: {
     name: 'Dazio Admin - Plano Anual',
-    description: 'Acesso completo ao sistema de gestão de locações (2 meses grátis)',
+    description:
+      'Acesso completo ao sistema de gestão de locações (2 meses grátis)',
     price: 97900, // R$ 979,00 em centavos
-    interval: 'year'
-  }
+    interval: 'year',
+  },
 } as const;
 
 // IDs dos produtos criados no Stripe
 export const STRIPE_PRODUCT_IDS = {
   MONTHLY: 'prod_Sn2n2D1UuSgF4u',
-  ANNUAL: 'prod_Sn2ndrRgXRp0rC'
+  ANNUAL: 'prod_Sn2ndrRgXRp0rC',
 } as const;
 
 // Função para criar preços recorrentes
-export async function createRecurringPrice(productId: string, amount: number, interval: 'month' | 'year') {
+export async function createRecurringPrice(
+  productId: string,
+  amount: number,
+  interval: 'month' | 'year'
+) {
   return await stripe.prices.create({
     product: productId,
     unit_amount: amount,
@@ -72,9 +77,12 @@ export async function createCheckoutSession({
 }
 
 // Função para criar customer portal session
-export async function createCustomerPortalSession(customerId: string, returnUrl: string) {
+export async function createCustomerPortalSession(
+  customerId: string,
+  returnUrl: string
+) {
   return await stripe.billingPortal.sessions.create({
     customer: customerId,
     return_url: returnUrl,
   });
-} 
+}

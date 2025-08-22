@@ -1,0 +1,15 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Executando verificações pré-commit..."
+
+# Executar ESLint
+npx lint-staged
+
+# Verificar se há erros críticos
+if npx eslint . --ext .ts,.tsx --max-warnings 0; then
+    echo "✅ Verificações passaram!"
+else
+    echo "❌ Erros encontrados. Corrija antes de fazer commit."
+    exit 1
+fi

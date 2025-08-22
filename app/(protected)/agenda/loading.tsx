@@ -1,15 +1,19 @@
-"use client"
+'use client';
 
-import { AppSidebar } from "../../../components/app-sidebar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
-import { ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react"
+import { AppSidebar } from '../../../components/app-sidebar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
 
 export default function AgendaLoading() {
-  const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+  const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   return (
     <SidebarProvider>
@@ -52,7 +56,7 @@ export default function AgendaLoading() {
             <CardContent>
               <div className="grid grid-cols-7 gap-0 border border-gray-200 rounded-lg overflow-hidden">
                 {/* Day headers */}
-                {dayNames.map((day) => (
+                {dayNames.map(day => (
                   <div
                     key={day}
                     className="bg-gray-100 border-b border-gray-200 p-3 text-center text-sm font-medium text-gray-700"
@@ -63,7 +67,10 @@ export default function AgendaLoading() {
 
                 {/* Calendar days skeleton */}
                 {Array.from({ length: 35 }).map((_, index) => (
-                  <div key={index} className="h-32 border border-gray-200 bg-background p-2">
+                  <div
+                    key={index}
+                    className="h-32 border border-gray-200 bg-background p-2"
+                  >
                     <Skeleton className="h-4 w-6 mb-2" />
                     <div className="space-y-1">
                       <Skeleton className="h-5 w-full rounded" />
@@ -90,5 +97,5 @@ export default function AgendaLoading() {
         </main>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

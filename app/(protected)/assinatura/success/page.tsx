@@ -1,16 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
 import { AppSidebar } from '@/components/app-sidebar';
-import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { CheckCircle, ArrowRight } from 'lucide-react';
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AuthGuard } from '@/components/auth-guard';
-import { toast } from 'sonner';
+import { PageHeader } from '@/components/page-header';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { useAuth } from '@/lib/auth-context';
+import { ArrowRight, CheckCircle } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function AssinaturaSuccessPage() {
   const { user } = useAuth();
@@ -23,7 +28,9 @@ export default function AssinaturaSuccessPage() {
     const sessionIdParam = searchParams.get('session_id');
     if (sessionIdParam) {
       setSessionId(sessionIdParam);
-      console.log('✅ Session ID recebido:', sessionIdParam);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Session ID recebido:', sessionIdParam);
+      }
     }
     setLoading(false);
   }, [searchParams]);
@@ -42,8 +49,8 @@ export default function AssinaturaSuccessPage() {
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
-            <PageHeader 
-              title="Processando Assinatura" 
+            <PageHeader
+              title="Processando Assinatura"
               description="Aguarde enquanto processamos sua assinatura..."
             />
             <div className="flex-1 space-y-6 p-6">
@@ -62,11 +69,11 @@ export default function AssinaturaSuccessPage() {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <PageHeader 
-            title="Assinatura Realizada com Sucesso!" 
+          <PageHeader
+            title="Assinatura Realizada com Sucesso!"
             description="Parabéns! Sua assinatura foi ativada com sucesso"
           />
-          
+
           <div className="flex-1 space-y-6 p-6">
             <Card className="border-2 border-green-200 bg-green-50">
               <CardHeader className="text-center">
@@ -91,17 +98,17 @@ export default function AssinaturaSuccessPage() {
                     Este ID pode ser usado para referência em caso de dúvidas
                   </p>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button 
+                  <Button
                     onClick={handleGoToDashboard}
                     className="bg-green-600 hover:bg-green-700"
                   >
                     <ArrowRight className="h-4 w-4 mr-2" />
                     Ir para Dashboard
                   </Button>
-                  
-                  <Button 
+
+                  <Button
                     onClick={handleGoToSubscription}
                     variant="outline"
                     className="border-green-300 text-green-700 hover:bg-green-100"
@@ -109,11 +116,13 @@ export default function AssinaturaSuccessPage() {
                     Gerenciar Assinatura
                   </Button>
                 </div>
-                
+
                 <div className="text-xs text-green-600">
                   <p>• Sua assinatura está ativa e funcionando</p>
                   <p>• Você receberá um email de confirmação</p>
-                  <p>• O webhook do Stripe atualizou seu status automaticamente</p>
+                  <p>
+                    • O webhook do Stripe atualizou seu status automaticamente
+                  </p>
                 </div>
               </CardContent>
             </Card>

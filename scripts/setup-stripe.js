@@ -1,4 +1,8 @@
-const { createRecurringPrice, STRIPE_PRODUCT_IDS, STRIPE_PRODUCTS } = require('../lib/stripe.ts');
+const {
+  createRecurringPrice,
+  STRIPE_PRODUCT_IDS,
+  STRIPE_PRODUCTS,
+} = require('../lib/stripe.ts');
 
 async function setupStripePrices() {
   try {
@@ -30,15 +34,17 @@ async function setupStripePrices() {
     const fs = require('fs');
     const priceIds = {
       monthly: monthlyPrice.id,
-      annual: annualPrice.id
+      annual: annualPrice.id,
     };
-    
-    fs.writeFileSync('stripe-price-ids.json', JSON.stringify(priceIds, null, 2));
-    console.log('\n💾 IDs salvos em stripe-price-ids.json');
 
+    fs.writeFileSync(
+      'stripe-price-ids.json',
+      JSON.stringify(priceIds, null, 2)
+    );
+    console.log('\n💾 IDs salvos em stripe-price-ids.json');
   } catch (error) {
     console.error('❌ Erro ao criar preços:', error.message);
   }
 }
 
-setupStripePrices(); 
+setupStripePrices();

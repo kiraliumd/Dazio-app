@@ -1,12 +1,12 @@
 import { createServerClient } from '@supabase/ssr';
-import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // Rotas que devem ser sempre acessíveis
 const PUBLIC_ROUTES = [
   '/login',
   '/cadastro',
-    '/cadastro/confirmacao',
+  '/cadastro/confirmacao',
   '/auth/reset-password',
   '/auth/reset-password/confirm',
   '/auth/confirm',
@@ -26,7 +26,7 @@ const SUBSCRIPTION_ROUTES = [
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  
+
   let response = NextResponse.next({
     request: {
       headers: req.headers,
@@ -42,7 +42,9 @@ export async function middleware(req: NextRequest) {
           return req.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => req.cookies.set(name, value));
+          cookiesToSet.forEach(({ name, value, options }) =>
+            req.cookies.set(name, value)
+          );
           response = NextResponse.next({
             request: {
               headers: req.headers,
@@ -81,7 +83,11 @@ export async function middleware(req: NextRequest) {
 
     if (error || !profile) {
       // Sem perfil ainda: permita acesso ao fluxo de criação
-      if (pathname.startsWith('/create-profile') || pathname === '/' || PUBLIC_ROUTES.includes(pathname)) {
+      if (
+        pathname.startsWith('/create-profile') ||
+        pathname === '/' ||
+        PUBLIC_ROUTES.includes(pathname)
+      ) {
         return response;
       }
       return NextResponse.redirect(new URL('/create-profile', req.url));
@@ -98,17 +104,27 @@ export async function middleware(req: NextRequest) {
       if (SUBSCRIPTION_ROUTES.includes(pathname)) {
         return response;
       }
-      
+
       // Permitir criar perfil mesmo com trial expirado
       if (pathname.startsWith('/create-profile')) return response;
-      console.log('Middleware: Trial expirado, redirecionando para assinatura-gestao');
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(
+          'Middleware: Trial expirado, redirecionando para assinatura-gestao'
+        );
+      }
+
       return NextResponse.redirect(new URL('/assinatura-gestao', req.url));
     }
 
     // Se o status é 'cancelled' ou 'expired', redirecionar para assinatura
     if (['cancelled', 'expired'].includes(profile.status)) {
       if (!SUBSCRIPTION_ROUTES.includes(pathname)) {
-        console.log('Middleware: Assinatura cancelada/expirada, redirecionando para assinatura-gestao');
+        if (process.env.NODE_ENV === 'development') {
+          console.log(
+            'Middleware: Assinatura cancelada/expirada, redirecionando para assinatura-gestao'
+          );
+        }
         return NextResponse.redirect(new URL('/assinatura-gestao', req.url));
       }
     }
@@ -117,9 +133,10 @@ export async function middleware(req: NextRequest) {
     if (profile.status === 'active' || (!isTrialExpired && isTrialStatus)) {
       return response;
     }
-
   } catch (error) {
-    console.error('Middleware: Erro ao verificar trial:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Middleware: Erro ao verificar trial:', error);
+    }
     // Em caso de erro, redirecionar para assinatura por segurança
     if (!SUBSCRIPTION_ROUTES.includes(pathname)) {
       return NextResponse.redirect(new URL('/assinatura-gestao', req.url));
@@ -138,4 +155,4 @@ export const config = {
     // - favicon e outros arquivos de sistema
     '/((?!_next|api|.*\\.(?:svg|png|jpg|jpeg|gif|ico|css|js|map|woff|woff2|ttf|eot)$).*)',
   ],
-}; 
+};

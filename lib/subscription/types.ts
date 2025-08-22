@@ -68,4 +68,4 @@ export interface SubscriptionCardProps {
   planType: 'monthly' | 'annual';
   popular?: boolean;
   savings?: string;
-} 
+}

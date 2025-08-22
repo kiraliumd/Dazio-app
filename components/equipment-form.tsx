@@ -1,9 +1,9 @@
-"use client"
+'use client';
 
-import type React from "react"
+import type React from 'react';
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -11,48 +11,64 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { useEquipmentCategories } from "@/hooks/useEquipmentCategories"
-import { useToast } from "@/components/ui/use-toast"
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useEquipmentCategories } from '@/hooks/useEquipmentCategories';
+import { useToast } from '@/components/ui/use-toast';
 
 export interface Equipment {
-  id: string
-  name: string
-  category: string
-  description: string
-  dailyRate: number
-  quantity: number
-  rentedQuantity: number
-  maintenanceQuantity: number
-  availableQuantity: number
-  status: "Disponível" | "Alugado" | "Manutenção"
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  dailyRate: number;
+  quantity: number;
+  rentedQuantity: number;
+  maintenanceQuantity: number;
+  availableQuantity: number;
+  status: 'Disponível' | 'Alugado' | 'Manutenção';
 }
 
 interface EquipmentFormProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  equipment?: Equipment
-  onSave: (equipment: Omit<Equipment, "id"> & { id?: string }) => void
-  saving?: boolean
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  equipment?: Equipment;
+  onSave: (equipment: Omit<Equipment, 'id'> & { id?: string }) => void;
+  saving?: boolean;
 }
 
-const statuses = ["Disponível", "Alugado", "Manutenção"] as const
+const statuses = ['Disponível', 'Alugado', 'Manutenção'] as const;
 
-export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = false }: EquipmentFormProps) {
-  const { categories, loading: categoriesLoading, refreshCategories } = useEquipmentCategories();
+export function EquipmentForm({
+  open,
+  onOpenChange,
+  equipment,
+  onSave,
+  saving = false,
+}: EquipmentFormProps) {
+  const {
+    categories,
+    loading: categoriesLoading,
+    refreshCategories,
+  } = useEquipmentCategories();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    name: "",
-    category: "",
-    description: "",
+    name: '',
+    category: '',
+    description: '',
     dailyRate: 0,
     quantity: 1,
-    status: "Disponível" as "Disponível" | "Alugado" | "Manutenção",
-  })
+    status: 'Disponível' as 'Disponível' | 'Alugado' | 'Manutenção',
+  });
 
   // Resetar formulário quando abrir/fechar ou mudar equipamento
   useEffect(() => {
@@ -65,76 +81,78 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
           dailyRate: equipment.dailyRate,
           quantity: equipment.quantity,
           status: equipment.status,
-        })
+        });
       } else {
         setFormData({
-          name: "",
-          category: "",
-          description: "",
+          name: '',
+          category: '',
+          description: '',
           dailyRate: 0,
           quantity: 1,
-          status: "Disponível",
-        })
+          status: 'Disponível',
+        });
       }
     }
-  }, [open, equipment])
+  }, [open, equipment]);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     // Validações básicas
     if (!formData.name.trim()) {
       toast({
-        title: "Nome obrigatório",
-        description: "O nome do equipamento é obrigatório.",
-        variant: "destructive",
+        title: 'Nome obrigatório',
+        description: 'O nome do equipamento é obrigatório.',
+        variant: 'destructive',
       });
-      return
+      return;
     }
 
     if (categoriesLoading) {
       toast({
-        title: "Aguarde",
-        description: "Carregando categorias. Tente novamente em alguns segundos.",
-        variant: "destructive",
+        title: 'Aguarde',
+        description:
+          'Carregando categorias. Tente novamente em alguns segundos.',
+        variant: 'destructive',
       });
-      return
+      return;
     }
 
     if (categories.length === 0) {
       toast({
-        title: "Nenhuma categoria disponível",
-        description: "Cadastre categorias de equipamentos primeiro nas configurações.",
-        variant: "destructive",
+        title: 'Nenhuma categoria disponível',
+        description:
+          'Cadastre categorias de equipamentos primeiro nas configurações.',
+        variant: 'destructive',
       });
-      return
+      return;
     }
 
     if (!formData.category) {
       toast({
-        title: "Categoria obrigatória",
-        description: "Selecione uma categoria para o equipamento.",
-        variant: "destructive",
+        title: 'Categoria obrigatória',
+        description: 'Selecione uma categoria para o equipamento.',
+        variant: 'destructive',
       });
-      return
+      return;
     }
 
     if (formData.dailyRate <= 0) {
       toast({
-        title: "Valor inválido",
-        description: "O valor da diária deve ser maior que zero.",
-        variant: "destructive",
+        title: 'Valor inválido',
+        description: 'O valor da diária deve ser maior que zero.',
+        variant: 'destructive',
       });
-      return
+      return;
     }
 
     if (formData.quantity <= 0) {
       toast({
-        title: "Quantidade inválida",
-        description: "A quantidade deve ser maior que zero.",
-        variant: "destructive",
+        title: 'Quantidade inválida',
+        description: 'A quantidade deve ser maior que zero.',
+        variant: 'destructive',
       });
-      return
+      return;
     }
 
     onSave({
@@ -145,22 +163,26 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
       maintenanceQuantity: 0,
       availableQuantity: formData.quantity,
       ...(equipment && { id: equipment.id }),
-    })
-  }
+    });
+  };
 
   const handleClose = () => {
     if (!saving) {
-      onOpenChange(false)
+      onOpenChange(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-foreground">{equipment ? "Editar Equipamento" : "Novo Equipamento"}</DialogTitle>
+          <DialogTitle className="text-foreground">
+            {equipment ? 'Editar Equipamento' : 'Novo Equipamento'}
+          </DialogTitle>
           <DialogDescription>
-            {equipment ? "Faça as alterações necessárias no equipamento." : "Adicione um novo equipamento ao catálogo."}
+            {equipment
+              ? 'Faça as alterações necessárias no equipamento.'
+              : 'Adicione um novo equipamento ao catálogo.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -170,7 +192,9 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="Ex: Mesa de Som Yamaha"
                 required
                 disabled={saving}
@@ -180,7 +204,9 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
               <Label htmlFor="category">Categoria *</Label>
               <Select
                 value={formData.category}
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
+                onValueChange={value =>
+                  setFormData({ ...formData, category: value })
+                }
                 required
                 disabled={saving}
               >
@@ -197,7 +223,7 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
                       Nenhuma categoria disponível
                     </SelectItem>
                   ) : (
-                    categories.map((category) => (
+                    categories.map(category => (
                       <SelectItem key={category.id} value={category.name}>
                         {category.name}
                       </SelectItem>
@@ -211,7 +237,9 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Descreva as características do equipamento..."
                 rows={3}
                 disabled={saving}
@@ -224,8 +252,13 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
                 type="number"
                 step="0.01"
                 min="0.01"
-                value={formData.dailyRate || ""}
-                onChange={(e) => setFormData({ ...formData, dailyRate: Number.parseFloat(e.target.value) || 0 })}
+                value={formData.dailyRate || ''}
+                onChange={e =>
+                  setFormData({
+                    ...formData,
+                    dailyRate: Number.parseFloat(e.target.value) || 0,
+                  })
+                }
                 placeholder="0,00"
                 required
                 disabled={saving}
@@ -237,8 +270,13 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
                 id="quantity"
                 type="number"
                 min="1"
-                value={formData.quantity || ""}
-                onChange={(e) => setFormData({ ...formData, quantity: Number.parseInt(e.target.value) || 1 })}
+                value={formData.quantity || ''}
+                onChange={e =>
+                  setFormData({
+                    ...formData,
+                    quantity: Number.parseInt(e.target.value) || 1,
+                  })
+                }
                 placeholder="1"
                 required
                 disabled={saving}
@@ -248,7 +286,12 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
               <Label htmlFor="status">Status *</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value as typeof formData.status })}
+                onValueChange={value =>
+                  setFormData({
+                    ...formData,
+                    status: value as typeof formData.status,
+                  })
+                }
                 required
                 disabled={saving}
               >
@@ -256,7 +299,7 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {statuses.map((status) => (
+                  {statuses.map(status => (
                     <SelectItem key={status} value={status}>
                       {status}
                     </SelectItem>
@@ -266,24 +309,31 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSave, saving = 
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={saving}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={saving}
+            >
               Cancelar
             </Button>
-            <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={saving}>
+            <Button
+              type="submit"
+              className="bg-primary hover:bg-primary/90"
+              disabled={saving}
+            >
               {saving ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {equipment ? "Salvando..." : "Adicionando..."}
+                  {equipment ? 'Salvando...' : 'Adicionando...'}
                 </>
               ) : (
-                <>
-                  {equipment ? "Salvar Alterações" : "Adicionar Equipamento"}
-                </>
+                <>{equipment ? 'Salvar Alterações' : 'Adicionar Equipamento'}</>
               )}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

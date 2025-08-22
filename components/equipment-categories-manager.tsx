@@ -1,27 +1,57 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { useToast } from "@/components/ui/use-toast";
-import { Plus, Edit, Trash2, Search, Palette } from "lucide-react";
-import { 
-  getEquipmentCategories, 
-  createEquipmentCategory, 
-  updateEquipmentCategory, 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import { Switch } from '@/components/ui/switch';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
+import {
+  createEquipmentCategory,
   deleteEquipmentCategory,
-  type EquipmentCategory,
+  getEquipmentCategories,
+  updateEquipmentCategory,
   type CreateEquipmentCategory,
-  type UpdateEquipmentCategory
-} from "@/lib/database/equipment-categories";
+  type EquipmentCategory,
+} from '@/lib/database/equipment-categories';
+import { Edit, Palette, Plus, Search, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface EquipmentCategoriesManagerProps {
   onCategoriesChange?: () => void;
@@ -30,22 +60,31 @@ interface EquipmentCategoriesManagerProps {
 
 const ITEMS_PER_PAGE = 10;
 
-export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = false }: EquipmentCategoriesManagerProps) {
+export function EquipmentCategoriesManager({
+  onCategoriesChange,
+  headerOnly = false,
+}: EquipmentCategoriesManagerProps) {
   const [categories, setCategories] = useState<EquipmentCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filteredCategories, setFilteredCategories] = useState<EquipmentCategory[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredCategories, setFilteredCategories] = useState<
+    EquipmentCategory[]
+  >([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<EquipmentCategory | null>(null);
-  const [formData, setFormData] = useState<CreateEquipmentCategory & { isActive?: boolean }>({
-    name: "",
-    description: "",
+  const [editingCategory, setEditingCategory] =
+    useState<EquipmentCategory | null>(null);
+  const [formData, setFormData] = useState<
+    CreateEquipmentCategory & { isActive?: boolean }
+  >({
+    name: '',
+    description: '',
     isActive: true,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<EquipmentCategory | null>(null);
+  const [categoryToDelete, setCategoryToDelete] =
+    useState<EquipmentCategory | null>(null);
   const { toast } = useToast();
 
   // Carregar categorias
@@ -56,11 +95,11 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
       setCategories(data);
       setFilteredCategories(data);
     } catch (error) {
-      console.error("Erro ao carregar categorias:", error);
+      console.error('Erro ao carregar categorias:', error);
       toast({
-        title: "Erro ao carregar categorias",
-        description: "Não foi possível carregar as categorias de equipamentos.",
-        variant: "destructive",
+        title: 'Erro ao carregar categorias',
+        description: 'Não foi possível carregar as categorias de equipamentos.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -73,12 +112,16 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
 
   // Filtrar categorias
   useEffect(() => {
-    if (searchTerm.trim() === "") {
+    if (searchTerm.trim() === '') {
       setFilteredCategories(categories);
     } else {
-      const filtered = categories.filter(category =>
-        category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      const filtered = categories.filter(
+        category =>
+          category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (category.description &&
+            category.description
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()))
       );
       setFilteredCategories(filtered);
     }
@@ -88,8 +131,8 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
   // Resetar formulário
   const resetForm = () => {
     setFormData({
-      name: "",
-      description: "",
+      name: '',
+      description: '',
       isActive: true,
     });
     setEditingCategory(null);
@@ -101,7 +144,7 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
       setEditingCategory(category);
       setFormData({
         name: category.name,
-        description: category.description || "",
+        description: category.description || '',
         isActive: category.isActive,
       });
     } else {
@@ -114,16 +157,16 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
   const handleSave = async () => {
     if (!formData.name.trim()) {
       toast({
-        title: "Nome obrigatório",
-        description: "O nome da categoria é obrigatório.",
-        variant: "destructive",
+        title: 'Nome obrigatório',
+        description: 'O nome da categoria é obrigatório.',
+        variant: 'destructive',
       });
       return;
     }
 
     try {
       setIsSaving(true);
-      
+
       if (editingCategory) {
         await updateEquipmentCategory(editingCategory.id, {
           name: formData.name,
@@ -131,8 +174,8 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
           isActive: formData.isActive,
         });
         toast({
-          title: "Categoria atualizada",
-          description: "A categoria foi atualizada com sucesso.",
+          title: 'Categoria atualizada',
+          description: 'A categoria foi atualizada com sucesso.',
         });
       } else {
         await createEquipmentCategory({
@@ -140,8 +183,8 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
           description: formData.description,
         });
         toast({
-          title: "Categoria criada",
-          description: "A categoria foi criada com sucesso.",
+          title: 'Categoria criada',
+          description: 'A categoria foi criada com sucesso.',
         });
       }
 
@@ -150,11 +193,11 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
       await loadCategories();
       onCategoriesChange?.();
     } catch (error: any) {
-      console.error("Erro ao salvar categoria:", error);
+      console.error('Erro ao salvar categoria:', error);
       toast({
-        title: "Erro ao salvar",
-        description: error.message || "Não foi possível salvar a categoria.",
-        variant: "destructive",
+        title: 'Erro ao salvar',
+        description: error.message || 'Não foi possível salvar a categoria.',
+        variant: 'destructive',
       });
     } finally {
       setIsSaving(false);
@@ -173,25 +216,23 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
     try {
       await deleteEquipmentCategory(categoryToDelete.id);
       toast({
-        title: "Categoria deletada",
-        description: "A categoria foi deletada com sucesso.",
+        title: 'Categoria deletada',
+        description: 'A categoria foi deletada com sucesso.',
       });
       await loadCategories();
       onCategoriesChange?.();
     } catch (error: any) {
-      console.error("Erro ao deletar categoria:", error);
+      console.error('Erro ao deletar categoria:', error);
       toast({
-        title: "Erro ao deletar",
-        description: error.message || "Não foi possível deletar a categoria.",
-        variant: "destructive",
+        title: 'Erro ao deletar',
+        description: error.message || 'Não foi possível deletar a categoria.',
+        variant: 'destructive',
       });
     } finally {
       setDeleteDialogOpen(false);
       setCategoryToDelete(null);
     }
   };
-
-
 
   // Paginação
   const totalPages = Math.ceil(filteredCategories.length / ITEMS_PER_PAGE);
@@ -217,13 +258,12 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
-              {editingCategory ? "Editar Categoria" : "Nova Categoria"}
+              {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
             </DialogTitle>
             <DialogDescription>
-              {editingCategory 
-                ? "Altere as informações da categoria de equipamentos."
-                : "Crie uma nova categoria para organizar seus equipamentos."
-              }
+              {editingCategory
+                ? 'Altere as informações da categoria de equipamentos.'
+                : 'Crie uma nova categoria para organizar seus equipamentos.'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -232,7 +272,9 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="Ex: Som e Áudio"
               />
             </div>
@@ -241,7 +283,9 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Descreva os tipos de equipamentos desta categoria"
                 rows={3}
               />
@@ -252,7 +296,9 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
                 <Switch
                   id="isActive"
                   checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                  onCheckedChange={checked =>
+                    setFormData({ ...formData, isActive: checked })
+                  }
                 />
               </div>
             )}
@@ -262,7 +308,11 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? "Salvando..." : editingCategory ? "Atualizar" : "Criar"}
+              {isSaving
+                ? 'Salvando...'
+                : editingCategory
+                  ? 'Atualizar'
+                  : 'Criar'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -279,7 +329,7 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
           <Input
             placeholder="Buscar categorias..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -293,10 +343,18 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="font-semibold text-gray-900 bg-gray-50">Categoria</TableHead>
-              <TableHead className="font-semibold text-gray-900 bg-gray-50">Descrição</TableHead>
-              <TableHead className="font-semibold text-gray-900 bg-gray-50">Status</TableHead>
-              <TableHead className="font-semibold text-right text-gray-900 bg-gray-50">Ações</TableHead>
+              <TableHead className="font-semibold text-gray-900 bg-gray-50">
+                Categoria
+              </TableHead>
+              <TableHead className="font-semibold text-gray-900 bg-gray-50">
+                Descrição
+              </TableHead>
+              <TableHead className="font-semibold text-gray-900 bg-gray-50">
+                Status
+              </TableHead>
+              <TableHead className="font-semibold text-right text-gray-900 bg-gray-50">
+                Ações
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -305,41 +363,51 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
                 <TableCell colSpan={4} className="text-center py-8">
                   <div className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                    <span className="ml-2 text-text-secondary">Carregando categorias...</span>
+                    <span className="ml-2 text-text-secondary">
+                      Carregando categorias...
+                    </span>
                   </div>
                 </TableCell>
               </TableRow>
             ) : paginatedCategories.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-text-secondary">
-                  {searchTerm ? "Nenhuma categoria encontrada com os filtros aplicados." : "Nenhuma categoria cadastrada ainda."}
+                <TableCell
+                  colSpan={4}
+                  className="text-center py-8 text-text-secondary"
+                >
+                  {searchTerm
+                    ? 'Nenhuma categoria encontrada com os filtros aplicados.'
+                    : 'Nenhuma categoria cadastrada ainda.'}
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedCategories.map((category) => (
+              paginatedCategories.map(category => (
                 <TableRow key={category.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <Palette className="h-5 w-5" />
                       </div>
-                      <div className="font-medium text-foreground">{category.name}</div>
+                      <div className="font-medium text-foreground">
+                        {category.name}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm text-text-secondary">
-                      {category.description || "Sem descrição"}
+                      {category.description || 'Sem descrição'}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge 
+                    <Badge
                       variant="outline"
-                      className={category.isActive 
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 font-medium" 
-                        : "bg-slate-50 text-slate-500 border-slate-200"
+                      className={
+                        category.isActive
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-medium'
+                          : 'bg-slate-50 text-slate-500 border-slate-200'
                       }
                     >
-                      {category.isActive ? "Ativa" : "Inativa"}
+                      {category.isActive ? 'Ativa' : 'Inativa'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -377,20 +445,22 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
           <Pagination>
             <PaginationContent>
               <PaginationItem>
-                <PaginationPrevious 
+                <PaginationPrevious
                   href="#"
-                  onClick={(e) => {
+                  onClick={e => {
                     e.preventDefault();
                     handlePageChange(currentPage - 1);
                   }}
-                  className={currentPage === 1 ? "pointer-events-none text-gray-400" : ""}
+                  className={
+                    currentPage === 1 ? 'pointer-events-none text-gray-400' : ''
+                  }
                 />
               </PaginationItem>
               {[...Array(totalPages)].map((_, i) => (
                 <PaginationItem key={i}>
-                  <PaginationLink 
+                  <PaginationLink
                     href="#"
-                    onClick={(e) => {
+                    onClick={e => {
                       e.preventDefault();
                       handlePageChange(i + 1);
                     }}
@@ -401,13 +471,17 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
                 </PaginationItem>
               ))}
               <PaginationItem>
-                <PaginationNext 
+                <PaginationNext
                   href="#"
-                  onClick={(e) => {
+                  onClick={e => {
                     e.preventDefault();
                     handlePageChange(currentPage + 1);
                   }}
-                  className={currentPage === totalPages ? "pointer-events-none text-gray-400" : ""}
+                  className={
+                    currentPage === totalPages
+                      ? 'pointer-events-none text-gray-400'
+                      : ''
+                  }
                 />
               </PaginationItem>
             </PaginationContent>
@@ -415,20 +489,24 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
         </div>
       )}
 
-
-
       {/* Dialog de Confirmação de Exclusão */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground">
+              Confirmar Exclusão
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir a categoria "{categoryToDelete?.name}"? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir a categoria &quot;
+              {categoryToDelete?.name}&quot;? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -436,4 +514,4 @@ export function EquipmentCategoriesManager({ onCategoriesChange, headerOnly = fa
       </AlertDialog>
     </div>
   );
-} 
+}

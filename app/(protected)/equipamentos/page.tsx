@@ -1,38 +1,8 @@
-"use client"
+'use client';
 
-import { useState, useEffect, useMemo, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Package,
-  DollarSign,
-  Calendar,
-  Filter,
-  X,
-  Eye,
-  EyeOff,
-} from "lucide-react"
-import { PageHeader } from "@/components/page-header"
-import { EquipmentForm } from "@/components/equipment-form"
-import { useEquipments } from "@/lib/hooks/use-optimized-data"
-import { transformEquipmentFromDB } from "@/lib/utils/data-transformers"
-import type { Equipment } from "@/lib/utils/data-transformers"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CardDescription } from "@/components/ui/card"
-import { Suspense, lazy } from "react"
+import { AppSidebar } from '@/components/app-sidebar';
+import { EquipmentForm } from '@/components/equipment-form';
+import { PageHeader } from '@/components/page-header';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,26 +12,56 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { useEquipments } from '@/lib/hooks/use-optimized-data';
+import type { Equipment } from '@/lib/utils/data-transformers';
+import { transformEquipmentFromDB } from '@/lib/utils/data-transformers';
+import { Edit, Package, Plus, Search, Trash2 } from 'lucide-react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 
-import { 
-  getEquipments, 
-  createEquipment, 
-  updateEquipment, 
-  deleteEquipment 
-} from "../../../lib/database/equipments"
-import { transformEquipmentToDB } from "../../../lib/utils/data-transformers"
-import { useEquipmentCategories } from "../../../hooks/useEquipmentCategories"
-import { useToast } from "../../../hooks/use-toast"
-import { 
-  Pagination, 
-  PaginationContent, 
-  PaginationItem, 
-  PaginationLink, 
-  PaginationNext, 
-  PaginationPrevious, 
-  PaginationEllipsis 
-} from "@/components/ui/pagination"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import { useToast } from '../../../hooks/use-toast';
+import { useEquipmentCategories } from '../../../hooks/useEquipmentCategories';
+import {
+  createEquipment,
+  deleteEquipment,
+  getEquipments,
+  updateEquipment,
+} from '../../../lib/database/equipments';
+import { transformEquipmentToDB } from '../../../lib/utils/data-transformers';
 
 // Hook para debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -81,56 +81,72 @@ const LoadingSpinner = () => (
 );
 
 export default function EquipmentsPage() {
-  const { categories: equipmentCategories, refreshCategories } = useEquipmentCategories();
+  const { categories: equipmentCategories, refreshCategories } =
+    useEquipmentCategories();
   const { toast } = useToast();
-  
+
   // Estados para dados
-  const [equipments, setEquipments] = useState<Equipment[]>([])
-  const [loading, setLoading] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("Todas")
-  const [statusFilter, setStatusFilter] = useState("Todos")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingEquipment, setEditingEquipment] = useState<Equipment | undefined>(undefined)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [equipmentToDelete, setEquipmentToDelete] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
+  const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('Todas');
+  const [statusFilter, setStatusFilter] = useState('Todos');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingEquipment, setEditingEquipment] = useState<
+    Equipment | undefined
+  >(undefined);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [equipmentToDelete, setEquipmentToDelete] = useState<string | null>(
+    null
+  );
+  const [saving, setSaving] = useState(false);
 
   // Constantes
-  const ITEMS_PER_PAGE = 10
+  const ITEMS_PER_PAGE = 10;
 
   // Debounce do termo de busca
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // Usar hooks otimizados para dados
-  const { data: dbEquipments, loading: equipmentsLoading, error: equipmentsError, refresh: refreshEquipments } = useEquipments()
+  const {
+    data: dbEquipments,
+    loading: equipmentsLoading,
+    error: equipmentsError,
+    refresh: refreshEquipments,
+  } = useEquipments();
 
   // Atualizar estados locais quando dados são carregados
   useEffect(() => {
     if (dbEquipments && Array.isArray(dbEquipments)) {
-      const transformedEquipments = dbEquipments.map(transformEquipmentFromDB)
-      setEquipments(transformedEquipments)
+      const transformedEquipments = dbEquipments.map(transformEquipmentFromDB);
+      setEquipments(transformedEquipments);
     }
-  }, [dbEquipments])
+  }, [dbEquipments]);
 
   // Calcular loading geral
   useEffect(() => {
-    setLoading(equipmentsLoading)
-  }, [equipmentsLoading])
+    setLoading(equipmentsLoading);
+  }, [equipmentsLoading]);
 
   // Tratar erros
   useEffect(() => {
     if (equipmentsError) {
-      console.error('Erro ao carregar equipamentos:', equipmentsError)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao carregar equipamentos:', equipmentsError);
+      }
       // Remover alert para melhor UX
     }
-  }, [equipmentsError])
+  }, [equipmentsError]);
 
   // Carregar dados apenas uma vez na montagem
   useEffect(() => {
-    console.log('📦 Equipamentos: Dados sendo carregados pelos hooks otimizados')
-  }, [])
+    if (process.env.NODE_ENV === 'development') {
+      console.log(
+        '📦 Equipamentos: Dados sendo carregados pelos hooks otimizados'
+      );
+    }
+  }, []);
 
   // Memoização dos filtros aplicados
   const filteredEquipments = useMemo(() => {
@@ -139,21 +155,26 @@ export default function EquipmentsPage() {
     // Filtrar por termo de busca
     if (debouncedSearchTerm.trim()) {
       const searchLower = debouncedSearchTerm.toLowerCase();
-      filtered = filtered.filter((equipment: Equipment) =>
-        equipment.name.toLowerCase().includes(searchLower) ||
-        equipment.category.toLowerCase().includes(searchLower) ||
-        equipment.description?.toLowerCase().includes(searchLower)
+      filtered = filtered.filter(
+        (equipment: Equipment) =>
+          equipment.name.toLowerCase().includes(searchLower) ||
+          equipment.category.toLowerCase().includes(searchLower) ||
+          equipment.description?.toLowerCase().includes(searchLower)
       );
     }
 
     // Filtrar por categoria
-    if (categoryFilter !== "Todas") {
-      filtered = filtered.filter((equipment: Equipment) => equipment.category === categoryFilter);
+    if (categoryFilter !== 'Todas') {
+      filtered = filtered.filter(
+        (equipment: Equipment) => equipment.category === categoryFilter
+      );
     }
 
     // Filtrar por status
-    if (statusFilter !== "Todos") {
-      filtered = filtered.filter((equipment: Equipment) => equipment.status === statusFilter);
+    if (statusFilter !== 'Todos') {
+      filtered = filtered.filter(
+        (equipment: Equipment) => equipment.status === statusFilter
+      );
     }
 
     return filtered;
@@ -161,7 +182,10 @@ export default function EquipmentsPage() {
 
   // Memoização da paginação
   const paginatedEquipments = useMemo(() => {
-    return filteredEquipments.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+    return filteredEquipments.slice(
+      (currentPage - 1) * ITEMS_PER_PAGE,
+      currentPage * ITEMS_PER_PAGE
+    );
   }, [filteredEquipments, currentPage]);
 
   const totalPages = useMemo(() => {
@@ -175,104 +199,112 @@ export default function EquipmentsPage() {
 
   const loadEquipments = async () => {
     try {
-      setLoading(true)
-      const dbEquipments = await getEquipments()
-      const transformedEquipments = dbEquipments.map(transformEquipmentFromDB)
-      setEquipments(transformedEquipments)
+      setLoading(true);
+      const dbEquipments = await getEquipments();
+      const transformedEquipments = dbEquipments.map(transformEquipmentFromDB);
+      setEquipments(transformedEquipments);
     } catch (error) {
-      console.error("Erro ao carregar equipamentos:", error)
-      alert("Erro ao carregar equipamentos")
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao carregar equipamentos:', error);
+      }
+      alert('Erro ao carregar equipamentos');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleSearch = useCallback((value: string) => {
-    setSearchTerm(value)
-  }, [])
+    setSearchTerm(value);
+  }, []);
 
   const handleCategoryFilter = useCallback((value: string) => {
-    setCategoryFilter(value)
-  }, [])
+    setCategoryFilter(value);
+  }, []);
 
   const handleStatusFilter = useCallback((value: string) => {
-    setStatusFilter(value)
-  }, [])
+    setStatusFilter(value);
+  }, []);
 
-  const handleSaveEquipment = async (equipmentData: Omit<Equipment, "id"> & { id?: string }) => {
+  const handleSaveEquipment = async (
+    equipmentData: Omit<Equipment, 'id'> & { id?: string }
+  ) => {
     try {
       setSaving(true);
-      const dbEquipmentData = transformEquipmentToDB(equipmentData)
+      const dbEquipmentData = transformEquipmentToDB(equipmentData);
 
       if (equipmentData.id) {
         // Editar equipamento existente
-        await updateEquipment(equipmentData.id, dbEquipmentData)
+        await updateEquipment(equipmentData.id, dbEquipmentData);
         toast({
-          title: "Equipamento atualizado",
-          description: "O equipamento foi atualizado com sucesso.",
+          title: 'Equipamento atualizado',
+          description: 'O equipamento foi atualizado com sucesso.',
         });
       } else {
         // Adicionar novo equipamento
-        await createEquipment(dbEquipmentData)
+        await createEquipment(dbEquipmentData);
         toast({
-          title: "Equipamento adicionado",
-          description: "O equipamento foi adicionado com sucesso.",
+          title: 'Equipamento adicionado',
+          description: 'O equipamento foi adicionado com sucesso.',
         });
       }
 
-      await refreshEquipments() // Recarregar lista
-      setEditingEquipment(undefined)
-      setIsFormOpen(false) // Fechar o modal
+      await refreshEquipments(); // Recarregar lista
+      setEditingEquipment(undefined);
+      setIsFormOpen(false); // Fechar o modal
     } catch (error) {
-      console.error("Erro ao salvar equipamento:", error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao salvar equipamento:', error);
+      }
       toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível salvar o equipamento. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar o equipamento. Tente novamente.',
+        variant: 'destructive',
       });
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   const handleEditEquipment = useCallback((equipment: Equipment) => {
-    setEditingEquipment(equipment)
-    setIsFormOpen(true)
-  }, [])
+    setEditingEquipment(equipment);
+    setIsFormOpen(true);
+  }, []);
 
   const handleDeleteEquipment = useCallback((id: string) => {
-    setEquipmentToDelete(id)
-    setDeleteDialogOpen(true)
-  }, [])
+    setEquipmentToDelete(id);
+    setDeleteDialogOpen(true);
+  }, []);
 
   const confirmDelete = async () => {
     if (equipmentToDelete) {
       try {
-        await deleteEquipment(equipmentToDelete)
-        await refreshEquipments() // Recarregar lista
+        await deleteEquipment(equipmentToDelete);
+        await refreshEquipments(); // Recarregar lista
       } catch (error) {
-        console.error("Erro ao deletar equipamento:", error)
-        alert("Erro ao deletar equipamento")
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro ao deletar equipamento:', error);
+        }
+        alert('Erro ao deletar equipamento');
       }
     }
-    setDeleteDialogOpen(false)
-    setEquipmentToDelete(null)
-  }
+    setDeleteDialogOpen(false);
+    setEquipmentToDelete(null);
+  };
 
-  const getStatusBadge = useCallback((status: Equipment["status"]) => {
+  const getStatusBadge = useCallback((status: Equipment['status']) => {
     switch (status) {
-      case "Disponível":
-        return "bg-green-100 text-green-800 border border-green-200"
-      case "Alugado":
-        return "bg-blue-100 text-blue-800 border border-blue-200"
-      case "Manutenção":
-        return "bg-yellow-100 text-yellow-800 border border-yellow-200"
+      case 'Disponível':
+        return 'bg-green-100 text-green-800 border border-green-200';
+      case 'Alugado':
+        return 'bg-blue-100 text-blue-800 border border-blue-200';
+      case 'Manutenção':
+        return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
       default:
-        return "bg-gray-100 text-gray-800 border border-gray-200"
+        return 'bg-gray-100 text-gray-800 border border-gray-200';
     }
-  }, [])
+  }, []);
 
-  const statuses = ["Todos", "Disponível", "Alugado", "Manutenção"]
+  const statuses = ['Todos', 'Disponível', 'Alugado', 'Manutenção'];
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
@@ -282,9 +314,9 @@ export default function EquipmentsPage() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <PageHeader 
-          title="Equipamentos" 
-          description="Gerencie seu inventário de equipamentos" 
+        <PageHeader
+          title="Equipamentos"
+          description="Gerencie seu inventário de equipamentos"
         />
 
         <main className="flex-1 space-y-6 p-4 sm:p-6 bg-background">
@@ -293,13 +325,17 @@ export default function EquipmentsPage() {
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <CardTitle className="text-foreground">Lista de Equipamentos</CardTitle>
-                  <CardDescription className="hidden sm:block">Todos os equipamentos cadastrados no sistema</CardDescription>
+                  <CardTitle className="text-foreground">
+                    Lista de Equipamentos
+                  </CardTitle>
+                  <CardDescription className="hidden sm:block">
+                    Todos os equipamentos cadastrados no sistema
+                  </CardDescription>
                 </div>
                 <Button
                   onClick={() => {
-                    setEditingEquipment(undefined)
-                    setIsFormOpen(true)
+                    setEditingEquipment(undefined);
+                    setIsFormOpen(true);
                   }}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
                 >
@@ -316,19 +352,24 @@ export default function EquipmentsPage() {
                   <Input
                     placeholder="Buscar equipamentos..."
                     value={searchTerm}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearch(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      handleSearch(e.target.value)
+                    }
                     className="pl-10"
                   />
                 </div>
-                <Select value={categoryFilter} onValueChange={handleCategoryFilter}>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={handleCategoryFilter}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Categoria" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Todas">Todas as categorias</SelectItem>
                     {equipmentCategories
-                      .filter((cat) => cat.isActive)
-                      .map((category) => (
+                      .filter(cat => cat.isActive)
+                      .map(category => (
                         <SelectItem key={category.id} value={category.name}>
                           {category.name}
                         </SelectItem>
@@ -340,7 +381,7 @@ export default function EquipmentsPage() {
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    {statuses.map((status) => (
+                    {statuses.map(status => (
                       <SelectItem key={status} value={status}>
                         {status}
                       </SelectItem>
@@ -351,18 +392,30 @@ export default function EquipmentsPage() {
                   {filteredEquipments.length} equipamento(s) encontrado(s)
                 </div>
               </div>
-              
+
               <div className="rounded-md border">
                 <div className="overflow-x-auto">
                   <Table className="min-w-[800px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Equipamento</TableHead>
-                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Categoria</TableHead>
-                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Quantidade</TableHead>
-                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Status</TableHead>
-                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Valor/Dia</TableHead>
-                        <TableHead className="font-semibold text-right text-gray-900 bg-gray-50">Ações</TableHead>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">
+                          Equipamento
+                        </TableHead>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">
+                          Categoria
+                        </TableHead>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">
+                          Quantidade
+                        </TableHead>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">
+                          Status
+                        </TableHead>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">
+                          Valor/Dia
+                        </TableHead>
+                        <TableHead className="font-semibold text-right text-gray-900 bg-gray-50">
+                          Ações
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -371,22 +424,33 @@ export default function EquipmentsPage() {
                           <TableCell colSpan={6} className="text-center py-8">
                             <div className="flex items-center justify-center gap-2">
                               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                              <span className="text-text-secondary">Carregando equipamentos...</span>
+                              <span className="text-text-secondary">
+                                Carregando equipamentos...
+                              </span>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ) : paginatedEquipments.length === 0 && filteredEquipments.length > 0 ? (
+                      ) : paginatedEquipments.length === 0 &&
+                        filteredEquipments.length > 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-text-secondary">
+                          <TableCell
+                            colSpan={6}
+                            className="text-center py-8 text-text-secondary"
+                          >
                             Nenhum equipamento encontrado na página atual.
                           </TableCell>
                         </TableRow>
                       ) : filteredEquipments.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-text-secondary">
-                            {searchTerm || categoryFilter !== "Todas" || statusFilter !== "Todos"
-                              ? "Nenhum equipamento encontrado com os filtros aplicados."
-                              : "Nenhum equipamento cadastrado ainda."}
+                          <TableCell
+                            colSpan={6}
+                            className="text-center py-8 text-text-secondary"
+                          >
+                            {searchTerm ||
+                            categoryFilter !== 'Todas' ||
+                            statusFilter !== 'Todos'
+                              ? 'Nenhum equipamento encontrado com os filtros aplicados.'
+                              : 'Nenhum equipamento cadastrado ainda.'}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -398,9 +462,11 @@ export default function EquipmentsPage() {
                                   <Package className="h-5 w-5" />
                                 </div>
                                 <div>
-                                  <div className="font-medium text-foreground">{equipment.name}</div>
+                                  <div className="font-medium text-foreground">
+                                    {equipment.name}
+                                  </div>
                                   <div className="text-sm text-text-secondary line-clamp-1">
-                                    {equipment.description || "Sem descrição"}
+                                    {equipment.description || 'Sem descrição'}
                                   </div>
                                 </div>
                               </div>
@@ -416,13 +482,18 @@ export default function EquipmentsPage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getStatusBadge(equipment.status)}`}>
+                              <span
+                                className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getStatusBadge(equipment.status)}`}
+                              >
                                 {equipment.status}
                               </span>
                             </TableCell>
                             <TableCell>
                               <div className="text-sm font-medium text-foreground">
-                                R$ {equipment.dailyRate.toFixed(2).replace(".", ",")}
+                                R${' '}
+                                {equipment.dailyRate
+                                  .toFixed(2)
+                                  .replace('.', ',')}
                               </div>
                             </TableCell>
                             <TableCell className="text-right">
@@ -438,7 +509,9 @@ export default function EquipmentsPage() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleDeleteEquipment(equipment.id)}
+                                  onClick={() =>
+                                    handleDeleteEquipment(equipment.id)
+                                  }
                                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                   title="Excluir"
                                 >
@@ -464,14 +537,20 @@ export default function EquipmentsPage() {
                             e.preventDefault();
                             handlePageChange(currentPage - 1);
                           }}
-                          className={currentPage === 1 ? "pointer-events-none text-gray-400" : ""}
+                          className={
+                            currentPage === 1
+                              ? 'pointer-events-none text-gray-400'
+                              : ''
+                          }
                         />
                       </PaginationItem>
                       {[...Array(totalPages)].map((_, i) => (
                         <PaginationItem key={i}>
                           <PaginationLink
                             href="#"
-                            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                            onClick={(
+                              e: React.MouseEvent<HTMLAnchorElement>
+                            ) => {
                               e.preventDefault();
                               handlePageChange(i + 1);
                             }}
@@ -488,7 +567,11 @@ export default function EquipmentsPage() {
                             e.preventDefault();
                             handlePageChange(currentPage + 1);
                           }}
-                          className={currentPage === totalPages ? "pointer-events-none text-gray-400" : ""}
+                          className={
+                            currentPage === totalPages
+                              ? 'pointer-events-none text-gray-400'
+                              : ''
+                          }
                         />
                       </PaginationItem>
                     </PaginationContent>
@@ -505,9 +588,9 @@ export default function EquipmentsPage() {
             <EquipmentForm
               open={isFormOpen}
               onOpenChange={(open: boolean) => {
-                setIsFormOpen(open)
+                setIsFormOpen(open);
                 if (!open) {
-                  setEditingEquipment(undefined)
+                  setEditingEquipment(undefined);
                 }
               }}
               equipment={editingEquipment}
@@ -521,14 +604,20 @@ export default function EquipmentsPage() {
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-foreground">Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogTitle className="text-foreground">
+                Confirmar Exclusão
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                Tem certeza que deseja excluir este equipamento? Esta ação não pode ser desfeita.
+                Tem certeza que deseja excluir este equipamento? Esta ação não
+                pode ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
                 Excluir
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -536,5 +625,5 @@ export default function EquipmentsPage() {
         </AlertDialog>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

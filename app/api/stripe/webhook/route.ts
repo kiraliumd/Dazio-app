@@ -1,7 +1,49 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { NextRequest, NextResponse } from 'next/server';
+
+// Tipos específicos para objetos do Stripe
+interface StripeSession {
+  id: string;
+  metadata?: {
+    company_id?: string;
+  } | null;
+}
+
+interface StripeSubscription {
+  id: string;
+  status: string;
+  customer?: string | { id: string } | null;
+  items?: {
+    data?: Array<{
+      price?: {
+        id?: string;
+        recurring?: {
+          interval?: string;
+        };
+      };
+    }>;
+  };
+  current_period_start?: number;
+  current_period_end?: number;
+  trial_end?: number | null;
+  cancel_at_period_end?: boolean;
+  metadata?: {
+    company_id?: string;
+    user_id?: string;
+  };
+}
+
+interface StripeCustomer {
+  id: string;
+}
+
+interface StripeInvoice {
+  subscription?: string;
+  metadata?: {
+    company_id?: string;
+  };
+}
 
 export async function POST(request: NextRequest) {
   const headers = Object.fromEntries(request.headers.entries());
@@ -11,53 +53,64 @@ export async function POST(request: NextRequest) {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
       console.error('❌ Webhook: STRIPE_WEBHOOK_SECRET não configurado');
-      return NextResponse.json({ error: 'Webhook secret não configurado' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Webhook secret não configurado' },
+        { status: 400 }
+      );
     }
 
     const signature = headers['stripe-signature'];
     if (!signature) {
       console.error('❌ Webhook: Assinatura Stripe não encontrada');
-      return NextResponse.json({ error: 'Assinatura não encontrada' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Assinatura não encontrada' },
+        { status: 400 }
+      );
     }
 
-    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    const event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      webhookSecret
+    );
 
     // Processar evento baseado no tipo
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutCompleted(event.data.object);
+        await handleCheckoutCompleted(event.data.object as StripeSession);
         break;
-        
+
       case 'customer.subscription.created':
-        await handleSubscriptionChange(event.data.object);
+        await handleSubscriptionChange(event.data.object as StripeSubscription);
         break;
-        
+
       case 'customer.subscription.updated':
-        await handleSubscriptionChange(event.data.object);
+        await handleSubscriptionChange(event.data.object as StripeSubscription);
         break;
-        
+
       case 'customer.subscription.deleted':
-        await handleSubscriptionCancellation(event.data.object);
+        await handleSubscriptionCancellation(
+          event.data.object as StripeSubscription
+        );
         break;
-        
+
       case 'invoice.payment_succeeded':
-        await handlePaymentSuccess(event.data.object);
+        await handlePaymentSuccess(event.data.object as StripeInvoice);
         break;
-        
+
       case 'invoice.payment_failed':
-        await handlePaymentFailure(event.data.object);
+        await handlePaymentFailure(event.data.object as StripeInvoice);
         break;
-        
+
       case 'customer.subscription.trial_will_end':
-        await handleTrialEnding(event.data.object);
+        await handleTrialEnding(event.data.object as StripeSubscription);
         break;
-        
+
       default:
         console.log('🔔 Webhook: Evento não tratado:', event.type);
     }
 
     return NextResponse.json({ received: true });
-
   } catch (error) {
     console.error('❌ Webhook: Erro ao processar webhook:', error);
     return NextResponse.json(
@@ -67,13 +120,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleCheckoutCompleted(session: any) {
+async function handleCheckoutCompleted(session: StripeSession) {
   try {
     const supabase = await createAdminClient();
 
     // Buscar dados da sessão no Stripe
     const stripeSession = await stripe.checkout.sessions.retrieve(session.id, {
-      expand: ['subscription', 'customer']
+      expand: ['subscription', 'customer'],
     });
 
     if (!stripeSession.subscription || !stripeSession.customer) {
@@ -81,23 +134,28 @@ async function handleCheckoutCompleted(session: any) {
       return;
     }
 
-    const subscription = stripeSession.subscription;
-    const customer = stripeSession.customer;
+    const subscription = stripeSession.subscription as StripeSubscription;
+    const customer = stripeSession.customer as StripeCustomer;
 
     // Extrair dados específicos da assinatura
-    const subscriptionItem = (subscription as any).items?.data?.[0];
+    const subscriptionItem = subscription.items?.data?.[0];
 
     // Preparar dados para inserção
     const subscriptionData = {
-      stripe_subscription_id: (subscription as any).id,
-      stripe_customer_id: (customer as any).id,
-      plan_type: subscriptionItem?.price?.recurring?.interval === 'year' ? 'annual' : 'monthly',
-      status: (subscription as any).status,
-      current_period_start: (subscription as any).current_period_start ? new Date((subscription as any).current_period_start * 1000) : null,
-      current_period_end: (subscription as any).current_period_end ? new Date((subscription as any).current_period_end * 1000) : null,
-      trial_end: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000) : null,
-      cancel_at_period_end: (subscription as any).cancel_at_period_end,
-      user_id: session.metadata?.user_id,
+      stripe_subscription_id: subscription.id,
+      stripe_customer_id: customer.id,
+      price_id: subscriptionItem?.price?.id || null,
+      status: subscription.status,
+      current_period_start: subscription.current_period_start
+        ? new Date(subscription.current_period_start * 1000)
+        : null,
+      current_period_end: subscription.current_period_end
+        ? new Date(subscription.current_period_end * 1000)
+        : null,
+      trial_end: subscription.trial_end
+        ? new Date(subscription.trial_end * 1000)
+        : null,
+      cancel_at_period_end: subscription.cancel_at_period_end,
       company_id: session.metadata?.company_id,
     };
 
@@ -114,9 +172,12 @@ async function handleCheckoutCompleted(session: any) {
         .from('subscriptions')
         .update(subscriptionData)
         .eq('id', existingSubscription.id);
-      
+
       if (updateError) {
-        console.error('❌ handleCheckoutCompleted: Erro ao atualizar assinatura:', updateError);
+        console.error(
+          '❌ handleCheckoutCompleted: Erro ao atualizar assinatura:',
+          updateError
+        );
         return;
       }
     } else {
@@ -126,9 +187,12 @@ async function handleCheckoutCompleted(session: any) {
         .insert(subscriptionData)
         .select()
         .single();
-        
+
       if (insertError) {
-        console.error('❌ handleCheckoutCompleted: Erro ao criar assinatura:', insertError);
+        console.error(
+          '❌ handleCheckoutCompleted: Erro ao criar assinatura:',
+          insertError
+        );
         return;
       }
     }
@@ -137,69 +201,77 @@ async function handleCheckoutCompleted(session: any) {
     if (session.metadata?.company_id) {
       const { error: companyUpdateError } = await supabase
         .from('company_profiles')
-        .update({ 
+        .update({
           status: 'active',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', session.metadata.company_id);
-      
+
       if (companyUpdateError) {
-        console.error('❌ handleCheckoutCompleted: Erro ao atualizar empresa:', companyUpdateError);
+        console.error(
+          '❌ handleCheckoutCompleted: Erro ao atualizar empresa:',
+          companyUpdateError
+        );
         return;
       }
     }
-    
   } catch (error) {
-    console.error('❌ handleCheckoutCompleted: Erro ao processar checkout completado:', error);
+    console.error(
+      '❌ handleCheckoutCompleted: Erro ao processar checkout completado:',
+      error
+    );
   }
 }
 
-async function handleSubscriptionChange(subscription: any) {
-  const supabase = await createAdminClient();
-  
+async function handleSubscriptionChange(subscription: StripeSubscription) {
   try {
-    // Se é uma nova assinatura (customer.subscription.created), buscar metadados da sessão
-    let user_id: string | undefined;
+    const supabase = await createAdminClient();
+
+    // Buscar a sessão mais recente para obter company_id
     let company_id: string | undefined;
-    
-    if (subscription.status === 'active' && !subscription.metadata?.user_id) {
-      try {
-        // Buscar a sessão de checkout mais recente para este customer
-        const sessions = await stripe.checkout.sessions.list({
-          customer: subscription.customer,
-          limit: 1,
-          status: 'complete'
-        });
-        
-        if (sessions.data.length > 0) {
-          const latestSession = sessions.data[0];
-          user_id = latestSession.metadata?.user_id;
-          company_id = latestSession.metadata?.company_id;
-        }
-      } catch (sessionError) {
-        console.error('❌ handleSubscriptionChange: Erro ao buscar sessão:', sessionError);
-      }
-    } else {
-      user_id = subscription.metadata?.user_id;
+
+    // Tentar obter company_id da sessão mais recente
+    const { data: latestSessions } = await supabase
+      .from('stripe_sessions')
+      .select('metadata')
+      .eq('stripe_subscription_id', subscription.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (latestSessions && latestSessions.length > 0) {
+      company_id = latestSessions[0].metadata?.company_id;
+    }
+
+    // Se não encontrou na sessão, tentar na assinatura
+    if (!company_id) {
       company_id = subscription.metadata?.company_id;
     }
 
-    // Validar se temos os dados necessários
-    if (!user_id || !company_id) {
-      console.error('❌ handleSubscriptionChange: user_id ou company_id não encontrados');
+    // Verificar se temos os dados necessários
+    if (!company_id) {
+      console.error('❌ handleSubscriptionChange: company_id não encontrado');
       return;
     }
 
     const subscriptionData = {
       stripe_subscription_id: subscription.id,
       stripe_customer_id: subscription.customer,
-      plan_type: subscription.items.data[0].price.recurring?.interval === 'year' ? 'annual' : 'monthly',
+      plan_type:
+        subscription.items?.data?.[0]?.price?.recurring?.interval === 'year'
+          ? 'annual'
+          : 'monthly',
       status: subscription.status,
-      current_period_start: subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null,
-      current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null,
-      trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+      current_period_start: subscription.current_period_start
+        ? new Date(subscription.current_period_start * 1000)
+        : null,
+      current_period_end: subscription.current_period_end
+        ? new Date(subscription.current_period_end * 1000)
+        : null,
+      trial_end: subscription.trial_end
+        ? new Date(subscription.trial_end * 1000)
+        : null,
       cancel_at_period_end: subscription.cancel_at_period_end,
-      user_id: user_id,
+      user_id: subscription.metadata?.user_id, // Assuming user_id is in metadata
       company_id: company_id,
       updated_at: new Date().toISOString(),
     };
@@ -219,7 +291,10 @@ async function handleSubscriptionChange(subscription: any) {
         .eq('id', existingSubscription.id);
 
       if (updateError) {
-        console.error('❌ handleSubscriptionChange: Erro ao atualizar assinatura:', updateError);
+        console.error(
+          '❌ handleSubscriptionChange: Erro ao atualizar assinatura:',
+          updateError
+        );
         return;
       }
     } else {
@@ -232,11 +307,17 @@ async function handleSubscriptionChange(subscription: any) {
           .single();
 
         if (insertError) {
-          console.error('❌ handleSubscriptionChange: Erro ao criar assinatura:', insertError);
+          console.error(
+            '❌ handleSubscriptionChange: Erro ao criar assinatura:',
+            insertError
+          );
           return;
         }
       } catch (insertException) {
-        console.error('❌ handleSubscriptionChange: Exceção ao inserir assinatura:', insertException);
+        console.error(
+          '❌ handleSubscriptionChange: Exceção ao inserir assinatura:',
+          insertException
+        );
         return;
       }
     }
@@ -247,143 +328,154 @@ async function handleSubscriptionChange(subscription: any) {
         .from('company_profiles')
         .update({
           status: 'active',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', company_id);
 
       if (companyUpdateError) {
-        console.error('❌ handleSubscriptionChange: Erro ao atualizar empresa:', companyUpdateError);
+        console.error(
+          '❌ handleSubscriptionChange: Erro ao atualizar empresa:',
+          companyUpdateError
+        );
         return;
       }
     }
-    
   } catch (error) {
-    console.error('❌ handleSubscriptionChange: Erro ao processar mudança na assinatura:', error);
+    console.error(
+      '❌ handleSubscriptionChange: Erro ao processar mudança na assinatura:',
+      error
+    );
   }
 }
 
-async function handleSubscriptionCancellation(subscription: any) {
-  console.log('❌ handleSubscriptionCancellation: Assinatura cancelada:', subscription.id);
-
-  const supabase = await createClient();
-
+async function handleSubscriptionCancellation(
+  subscription: StripeSubscription
+) {
   try {
-    await supabase
-      .from('subscriptions')
-      .update({
-        status: 'canceled',
-        cancel_at_period_end: true,
-        updated_at: new Date().toISOString()
-      })
-      .eq('stripe_subscription_id', subscription.id);
-
-    console.log('✅ handleSubscriptionCancellation: Status da assinatura atualizado para canceled');
+    const supabase = await createAdminClient();
 
     // Buscar company_id da assinatura cancelada
     const { data: canceledSubscription } = await supabase
-      .from('subscriptions')
+      .from('stripe_subscriptions')
       .select('company_id')
       .eq('stripe_subscription_id', subscription.id)
       .single();
 
     if (canceledSubscription?.company_id) {
       // Atualizar status da empresa para 'cancelled'
-      await supabase
+      const { error: companyUpdateError } = await supabase
         .from('company_profiles')
-        .update({
-          status: 'cancelled',
-          updated_at: new Date().toISOString()
-        })
+        .update({ status: 'cancelled' })
         .eq('id', canceledSubscription.company_id);
 
-      console.log('✅ handleSubscriptionCancellation: Status da empresa atualizado para cancelled');
-    }
-  } catch (error) {
-    console.error('❌ handleSubscriptionCancellation: Erro ao processar cancelamento da assinatura:', error);
-  }
-}
-
-async function handlePaymentSuccess(invoice: any) {
-  const supabase = await createClient();
-
-  try {
-    if (invoice.subscription) {
-      const { data: subscription } = await supabase
-        .from('subscriptions')
-        .select('id, company_id')
-        .eq('stripe_subscription_id', invoice.subscription)
-        .single();
-
-      if (subscription) {
-        // Registrar pagamento
-        await supabase
-          .from('subscription_payments')
-          .insert({
-            subscription_id: subscription.id,
-            company_id: subscription.company_id,
-            stripe_payment_intent_id: invoice.payment_intent,
-            stripe_invoice_id: invoice.id,
-            amount: invoice.amount_paid,
-            currency: invoice.currency,
-            status: 'succeeded',
-            payment_method: invoice.payment_method_types?.[0],
-          });
+      if (companyUpdateError) {
+        console.error(
+          '❌ handleSubscriptionCancellation: Erro ao atualizar empresa:',
+          companyUpdateError
+        );
       }
     }
   } catch (error) {
-    console.error('❌ handlePaymentSuccess: Erro ao processar pagamento bem-sucedido:', error);
+    console.error('❌ handleSubscriptionCancellation: Erro:', error);
   }
 }
 
-async function handlePaymentFailure(invoice: any) {
-  const supabase = await createClient();
-
+async function handlePaymentSuccess(invoice: StripeInvoice) {
   try {
-    if (invoice.subscription) {
-      await supabase
-        .from('subscriptions')
-        .update({
-          status: 'past_due',
-          updated_at: new Date().toISOString()
-        })
-        .eq('stripe_subscription_id', invoice.subscription);
+    const supabase = await createAdminClient();
+
+    if (!invoice.subscription) {
+      console.error('❌ handlePaymentSuccess: Invoice sem subscription');
+      return;
+    }
+
+    // Buscar dados da assinatura
+    const { data: subscription } = await supabase
+      .from('stripe_subscriptions')
+      .select('id, company_id')
+      .eq('stripe_subscription_id', invoice.subscription)
+      .single();
+
+    if (subscription?.company_id) {
+      // Atualizar status da empresa para 'active'
+      const { error: companyUpdateError } = await supabase
+        .from('company_profiles')
+        .update({ status: 'active' })
+        .eq('id', subscription.company_id);
+
+      if (companyUpdateError) {
+        console.error(
+          '❌ handlePaymentSuccess: Erro ao atualizar empresa:',
+          companyUpdateError
+        );
+      }
     }
   } catch (error) {
-    console.error('❌ handlePaymentFailure: Erro ao processar falha no pagamento:', error);
+    console.error('❌ handlePaymentSuccess: Erro:', error);
   }
 }
 
-async function handleTrialEnding(subscription: any) {
-  const supabase = await createClient();
-
+async function handlePaymentFailure(invoice: StripeInvoice) {
   try {
-    // Atualizar status da assinatura
-    await supabase
-      .from('subscriptions')
-      .update({
-        status: 'active',
-        updated_at: new Date().toISOString()
-      })
-      .eq('stripe_subscription_id', subscription.id);
+    const supabase = await createAdminClient();
+
+    if (!invoice.subscription) {
+      console.error('❌ handlePaymentFailure: Invoice sem subscription');
+      return;
+    }
+
+    // Buscar dados da assinatura
+    const { data: subscription } = await supabase
+      .from('stripe_subscriptions')
+      .select('id, company_id')
+      .eq('stripe_subscription_id', invoice.subscription)
+      .single();
+
+    if (subscription?.company_id) {
+      // Atualizar status da empresa para 'past_due'
+      const { error: companyUpdateError } = await supabase
+        .from('company_profiles')
+        .update({ status: 'past_due' })
+        .eq('id', subscription.company_id);
+
+      if (companyUpdateError) {
+        console.error(
+          '❌ handlePaymentFailure: Erro ao atualizar empresa:',
+          companyUpdateError
+        );
+      }
+    }
+  } catch (error) {
+    console.error('❌ handlePaymentFailure: Erro:', error);
+  }
+}
+
+async function handleTrialEnding(subscription: StripeSubscription) {
+  try {
+    const supabase = await createAdminClient();
 
     // Buscar company_id da assinatura
     const { data: subscriptionData } = await supabase
-      .from('subscriptions')
+      .from('stripe_subscriptions')
       .select('company_id')
       .eq('stripe_subscription_id', subscription.id)
       .single();
 
     if (subscriptionData?.company_id) {
-      // Atualizar status da empresa para 'active'
-      await supabase
+      // Atualizar status da empresa para 'trial_ending'
+      const { error: companyUpdateError } = await supabase
         .from('company_profiles')
-        .update({
-          status: 'active',
-          updated_at: new Date().toISOString()
-        })
+        .update({ status: 'trial_ending' })
         .eq('id', subscriptionData.company_id);
+
+      if (companyUpdateError) {
+        console.error(
+          '❌ handleTrialEnding: Erro ao atualizar empresa:',
+          companyUpdateError
+        );
+      }
     }
   } catch (error) {
-    console.error('❌ handleTrialEnding: Erro ao processar fim do trial:', error);
+    console.error('❌ handleTrialEnding: Erro:', error);
   }
-} 
+}

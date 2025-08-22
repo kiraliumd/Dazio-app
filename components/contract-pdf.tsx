@@ -1,5 +1,12 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  Font,
+} from '@react-pdf/renderer';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -7,9 +14,15 @@ import { ptBR } from 'date-fns/locale';
 Font.register({
   family: 'Helvetica',
   fonts: [
-    { src: 'https://fonts.gstatic.com/s/helveticaneue/v70/1Ptsg8zYS_SKggPNyC0IT4ttDfA.ttf', fontWeight: 'normal' },
-    { src: 'https://fonts.gstatic.com/s/helveticaneue/v70/1Ptsg8zYS_SKggPNyC0IT4ttDfB.ttf', fontWeight: 'bold' },
-  ]
+    {
+      src: 'https://fonts.gstatic.com/s/helveticaneue/v70/1Ptsg8zYS_SKggPNyC0IT4ttDfA.ttf',
+      fontWeight: 'normal',
+    },
+    {
+      src: 'https://fonts.gstatic.com/s/helveticaneue/v70/1Ptsg8zYS_SKggPNyC0IT4ttDfB.ttf',
+      fontWeight: 'bold',
+    },
+  ],
 });
 
 // Estilos do PDF
@@ -22,7 +35,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 1.4,
   },
-  
+
   // Cabeçalho
   header: {
     marginBottom: 30,
@@ -42,7 +55,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#666',
   },
-  
+
   // Seções
   section: {
     marginBottom: 20,
@@ -56,7 +69,7 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     paddingBottom: 5,
   },
-  
+
   // Layout de duas colunas
   twoColumns: {
     flexDirection: 'row',
@@ -66,7 +79,7 @@ const styles = StyleSheet.create({
   column: {
     width: '48%',
   },
-  
+
   // Campos de dados
   fieldGroup: {
     marginBottom: 8,
@@ -82,7 +95,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     paddingLeft: 5,
   },
-  
+
   // Período de locação
   periodSection: {
     backgroundColor: '#f8f9fa',
@@ -101,7 +114,7 @@ const styles = StyleSheet.create({
   periodItem: {
     width: '48%',
   },
-  
+
   // Tabela de equipamentos
   equipmentTable: {
     marginBottom: 20,
@@ -130,7 +143,7 @@ const styles = StyleSheet.create({
   colRate: { width: '20%', textAlign: 'right' },
   colDays: { width: '10%', textAlign: 'center' },
   colTotal: { width: '25%', textAlign: 'right' },
-  
+
   // Resumo financeiro
   financialSummary: {
     marginTop: 20,
@@ -157,7 +170,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     marginTop: 8,
   },
-  
+
   // Condições gerais
   conditionsSection: {
     marginBottom: 30,
@@ -176,7 +189,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     flex: 1,
   },
-  
+
   // Assinaturas
   signatures: {
     flexDirection: 'row',
@@ -202,7 +215,7 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 2,
   },
-  
+
   // Data do contrato
   contractDate: {
     textAlign: 'center',
@@ -289,10 +302,18 @@ export function ContractPDF({ data }: ContractPDFProps) {
               <Text style={styles.fieldLabel}>CONTRATANTE:</Text>
               <View style={styles.fieldGroup}>
                 <Text style={styles.fieldValue}>{data.client.name}</Text>
-                <Text style={styles.fieldValue}>Documento: {data.client.document}</Text>
-                <Text style={styles.fieldValue}>Endereço: {data.client.address}</Text>
-                <Text style={styles.fieldValue}>Telefone: {data.client.phone}</Text>
-                <Text style={styles.fieldValue}>E-mail: {data.client.email}</Text>
+                <Text style={styles.fieldValue}>
+                  Documento: {data.client.document}
+                </Text>
+                <Text style={styles.fieldValue}>
+                  Endereço: {data.client.address}
+                </Text>
+                <Text style={styles.fieldValue}>
+                  Telefone: {data.client.phone}
+                </Text>
+                <Text style={styles.fieldValue}>
+                  E-mail: {data.client.email}
+                </Text>
               </View>
             </View>
 
@@ -302,9 +323,15 @@ export function ContractPDF({ data }: ContractPDFProps) {
               <View style={styles.fieldGroup}>
                 <Text style={styles.fieldValue}>{data.company.name}</Text>
                 <Text style={styles.fieldValue}>CNPJ: {data.company.cnpj}</Text>
-                <Text style={styles.fieldValue}>Endereço: {data.company.address}</Text>
-                <Text style={styles.fieldValue}>Telefone: {data.company.phone}</Text>
-                <Text style={styles.fieldValue}>E-mail: {data.company.email}</Text>
+                <Text style={styles.fieldValue}>
+                  Endereço: {data.company.address}
+                </Text>
+                <Text style={styles.fieldValue}>
+                  Telefone: {data.company.phone}
+                </Text>
+                <Text style={styles.fieldValue}>
+                  E-mail: {data.company.email}
+                </Text>
               </View>
             </View>
           </View>
@@ -318,19 +345,27 @@ export function ContractPDF({ data }: ContractPDFProps) {
               <View style={styles.periodItem}>
                 <Text style={styles.fieldLabel}>Data de Início:</Text>
                 <Text style={styles.fieldValue}>
-                  {format(new Date(data.contract.startDate), 'dd/MM/yyyy', { locale: ptBR })} às {data.contract.installationTime}
+                  {format(new Date(data.contract.startDate), 'dd/MM/yyyy', {
+                    locale: ptBR,
+                  })}{' '}
+                  às {data.contract.installationTime}
                 </Text>
               </View>
               <View style={styles.periodItem}>
                 <Text style={styles.fieldLabel}>Data de Término:</Text>
                 <Text style={styles.fieldValue}>
-                  {format(new Date(data.contract.endDate), 'dd/MM/yyyy', { locale: ptBR })} às {data.contract.removalTime}
+                  {format(new Date(data.contract.endDate), 'dd/MM/yyyy', {
+                    locale: ptBR,
+                  })}{' '}
+                  às {data.contract.removalTime}
                 </Text>
               </View>
             </View>
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Local de Instalação:</Text>
-              <Text style={styles.fieldValue}>{data.contract.installationLocation}</Text>
+              <Text style={styles.fieldValue}>
+                {data.contract.installationLocation}
+              </Text>
             </View>
           </View>
         </View>
@@ -341,7 +376,9 @@ export function ContractPDF({ data }: ContractPDFProps) {
           <View style={styles.equipmentTable}>
             {/* Cabeçalho da Tabela */}
             <View style={styles.tableHeader}>
-              <Text style={[styles.tableCell, styles.colName]}>EQUIPAMENTO</Text>
+              <Text style={[styles.tableCell, styles.colName]}>
+                EQUIPAMENTO
+              </Text>
               <Text style={[styles.tableCell, styles.colQty]}>QTD</Text>
               <Text style={[styles.tableCell, styles.colRate]}>VALOR/DIA</Text>
               <Text style={[styles.tableCell, styles.colDays]}>DIAS</Text>
@@ -351,12 +388,18 @@ export function ContractPDF({ data }: ContractPDFProps) {
             {/* Linhas dos Equipamentos */}
             {data.contract.items.map((item, index) => (
               <View key={index} style={styles.tableRow}>
-                <Text style={[styles.tableCell, styles.colName]}>{item.equipmentName}</Text>
-                <Text style={[styles.tableCell, styles.colQty]}>{item.quantity}</Text>
+                <Text style={[styles.tableCell, styles.colName]}>
+                  {item.equipmentName}
+                </Text>
+                <Text style={[styles.tableCell, styles.colQty]}>
+                  {item.quantity}
+                </Text>
                 <Text style={[styles.tableCell, styles.colRate]}>
                   R$ {item.dailyRate.toFixed(2).replace('.', ',')}
                 </Text>
-                <Text style={[styles.tableCell, styles.colDays]}>{item.days}</Text>
+                <Text style={[styles.tableCell, styles.colDays]}>
+                  {item.days}
+                </Text>
                 <Text style={[styles.tableCell, styles.colTotal]}>
                   R$ {item.total.toFixed(2).replace('.', ',')}
                 </Text>
@@ -369,15 +412,21 @@ export function ContractPDF({ data }: ContractPDFProps) {
         <View style={styles.financialSummary}>
           <View style={styles.financialRow}>
             <Text style={styles.financialLabel}>Valor Total:</Text>
-            <Text style={styles.financialValue}>R$ {data.contract.totalValue.toFixed(2).replace('.', ',')}</Text>
+            <Text style={styles.financialValue}>
+              R$ {data.contract.totalValue.toFixed(2).replace('.', ',')}
+            </Text>
           </View>
           <View style={styles.financialRow}>
             <Text style={styles.financialLabel}>Desconto:</Text>
-            <Text style={styles.financialValue}>R$ {data.contract.discount.toFixed(2).replace('.', ',')}</Text>
+            <Text style={styles.financialValue}>
+              R$ {data.contract.discount.toFixed(2).replace('.', ',')}
+            </Text>
           </View>
           <View style={[styles.financialRow, styles.totalRow]}>
             <Text style={styles.financialLabel}>VALOR FINAL:</Text>
-            <Text style={styles.financialValue}>R$ {data.contract.finalValue.toFixed(2).replace('.', ',')}</Text>
+            <Text style={styles.financialValue}>
+              R$ {data.contract.finalValue.toFixed(2).replace('.', ',')}
+            </Text>
           </View>
         </View>
 
@@ -387,29 +436,30 @@ export function ContractPDF({ data }: ContractPDFProps) {
           <View style={styles.conditionItem}>
             <Text style={styles.conditionNumber}>1.</Text>
             <Text style={styles.conditionText}>
-              O contratante se compromete a devolver os equipamentos no estado em que foram recebidos, 
-              responsabilizando-se por qualquer dano ou perda durante o período de locação.
+              O contratante se compromete a devolver os equipamentos no estado
+              em que foram recebidos, responsabilizando-se por qualquer dano ou
+              perda durante o período de locação.
             </Text>
           </View>
           <View style={styles.conditionItem}>
             <Text style={styles.conditionNumber}>2.</Text>
             <Text style={styles.conditionText}>
-              O pagamento deve ser realizado conforme acordado entre as partes, sendo obrigatório 
-              o cumprimento dos prazos estabelecidos.
+              O pagamento deve ser realizado conforme acordado entre as partes,
+              sendo obrigatório o cumprimento dos prazos estabelecidos.
             </Text>
           </View>
           <View style={styles.conditionItem}>
             <Text style={styles.conditionNumber}>3.</Text>
             <Text style={styles.conditionText}>
-              Em caso de atraso na devolução dos equipamentos, será cobrada multa diária 
-              equivalente a 10% do valor da diária por equipamento.
+              Em caso de atraso na devolução dos equipamentos, será cobrada
+              multa diária equivalente a 10% do valor da diária por equipamento.
             </Text>
           </View>
           <View style={styles.conditionItem}>
             <Text style={styles.conditionNumber}>4.</Text>
             <Text style={styles.conditionText}>
-              O contratado não se responsabiliza por danos causados por mau uso ou 
-              condições inadequadas de instalação dos equipamentos.
+              O contratado não se responsabiliza por danos causados por mau uso
+              ou condições inadequadas de instalação dos equipamentos.
             </Text>
           </View>
         </View>
@@ -435,4 +485,4 @@ export function ContractPDF({ data }: ContractPDFProps) {
       </Page>
     </Document>
   );
-} 
+}

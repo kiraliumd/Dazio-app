@@ -19,12 +19,12 @@ Ou execute diretamente no seu cliente SQL:
 
 ```sql
 -- Alterar colunas na tabela budgets
-ALTER TABLE budgets 
+ALTER TABLE budgets
 ALTER COLUMN start_date TYPE TIMESTAMP WITH TIME ZONE USING start_date::TIMESTAMP WITH TIME ZONE,
 ALTER COLUMN end_date TYPE TIMESTAMP WITH TIME ZONE USING end_date::TIMESTAMP WITH TIME ZONE;
 
 -- Alterar colunas na tabela rentals
-ALTER TABLE rentals 
+ALTER TABLE rentals
 ALTER COLUMN start_date TYPE TIMESTAMP WITH TIME ZONE USING start_date::TIMESTAMP WITH TIME ZONE,
 ALTER COLUMN end_date TYPE TIMESTAMP WITH TIME ZONE USING end_date::TIMESTAMP WITH TIME ZONE;
 ```
@@ -55,4 +55,4 @@ Após a migração, verifique se as colunas foram alteradas:
 \d rentals
 ```
 
-As colunas `start_date` e `end_date` devem aparecer como `timestamp with time zone`. 
+As colunas `start_date` e `end_date` devem aparecer como `timestamp with time zone`.

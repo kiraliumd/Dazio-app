@@ -6,16 +6,19 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
-    
+
     if (!email) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Email é obrigatório' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Email é obrigatório',
+        },
+        { status: 400 }
+      );
     }
-    
+
     console.log('🔍 Test Email Real: Enviando para:', email);
-    
+
     const { data, error } = await resend.emails.send({
       from: 'Dazio <transacional@dazio.com.br>',
       to: [email],
@@ -43,28 +46,33 @@ Se você recebeu este email, o sistema está funcionando corretamente! 🎉
 
     if (error) {
       console.error('❌ Test Email Real: Erro:', error);
-      return NextResponse.json({ 
-        success: false, 
-        error: error.message || 'Erro desconhecido',
-        details: error
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message || 'Erro desconhecido',
+          details: error,
+        },
+        { status: 500 }
+      );
     }
 
     console.log('✅ Test Email Real: Sucesso:', data);
-    
-    return NextResponse.json({ 
-      success: true, 
+
+    return NextResponse.json({
+      success: true,
       message: 'Email de teste enviado com sucesso!',
       emailId: data?.id,
-      sentTo: email
+      sentTo: email,
     });
-
   } catch (error) {
     console.error('❌ Test Email Real: Erro inesperado:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Erro interno do servidor',
-      details: error
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Erro interno do servidor',
+        details: error,
+      },
+      { status: 500 }
+    );
   }
-} 
+}

@@ -43,6 +43,7 @@ Sistema completo de gestão de locações de equipamentos, desenvolvido com Next
 ## 🛠️ Stack Tecnológica
 
 ### Frontend
+
 - **Next.js 15** com App Router
 - **TypeScript** para tipagem estática
 - **Tailwind CSS** para estilização
@@ -51,16 +52,19 @@ Sistema completo de gestão de locações de equipamentos, desenvolvido com Next
 - **@react-pdf/renderer** para geração de PDFs
 
 ### Backend & Banco de Dados
+
 - **Supabase** como Backend-as-a-Service
 - **PostgreSQL** para armazenamento
 - **Server Actions** para lógica de negócio no backend
 
 ### Integrações
+
 - **Stripe** para sistema de assinaturas
 - **Resend** para envio de emails transacionais
 - **Vercel** para deploy e hosting
 
 ### Ferramentas
+
 - **pnpm** como gerenciador de pacotes
 - **ESLint** para qualidade de código
 - **TypeScript** para verificação de tipos
@@ -110,6 +114,7 @@ dazio-admim-1.0-main/
 ## 🔄 Fluxo Principal do Sistema
 
 ### 1. Criação de Orçamento
+
 - Cliente selecionado da base de dados
 - Equipamentos adicionados com quantidades e taxas
 - Período de locação definido
@@ -118,6 +123,7 @@ dazio-admim-1.0-main/
 - Status inicial: "Pendente"
 
 ### 2. Aprovação e Conversão
+
 - Orçamento aprovado → Status "Aprovado"
 - Criação automática de locação
 - **Se recorrente**: Criação de locação recorrente
@@ -125,23 +131,27 @@ dazio-admim-1.0-main/
 - Instalação e retirada agendadas
 
 ### 3. Gestão de Locações
+
 - Acompanhamento de status: Instalação Pendente → Ativo → Concluído
 - Controle de datas físicas de instalação/retirada
 - Gestão de equipamentos alugados
 - **Geração de contratos em PDF**
 
 ### 4. Locações Recorrentes
+
 - **Sistema de recorrência**: Semanal, mensal, anual
 - **Cálculo automático** de próximas ocorrências
 - **Notificações** no dia da recorrência
 - **Controle de status**: Ativo, pausado, cancelado, concluído
 
 ### 5. Agenda e Logística
+
 - Visualização de eventos por data
 - Instalações e retiradas organizadas
 - Controle de status dos eventos
 
 ### 6. Gestão Financeira
+
 - **Recebíveis**: Controle de valores a receber com status e vencimentos
 - **Transações**: Registro de receitas e despesas por conta
 - **Contas**: Gestão de contas bancárias e caixa
@@ -155,18 +165,21 @@ dazio-admim-1.0-main/
 ### Funcionalidades Implementadas
 
 #### **Tipos de Recorrência**
+
 - **Diária**: A cada X dias
 - **Semanal**: A cada X semanas
 - **Mensal**: A cada X meses
 - **Anual**: A cada X anos
 
 #### **Configuração Avançada**
+
 - **Intervalo personalizável**: 1, 2, 3... períodos
 - **Data de término opcional**: Controle de quando parar
 - **Cálculo automático**: Próximas ocorrências calculadas automaticamente
 - **Status de recorrência**: Ativo, pausado, cancelado, concluído
 
 #### **Gestão Automática**
+
 - **Geração automática** de ocorrências futuras
 - **Controle de status** (ativa, pausada, cancelada)
 - **Próxima ocorrência** sempre visível
@@ -175,9 +188,10 @@ dazio-admim-1.0-main/
 ### Implementação Técnica
 
 #### **Banco de Dados**
+
 ```sql
 -- Tabela rentals (atualizada)
-ALTER TABLE rentals 
+ALTER TABLE rentals
 ADD COLUMN is_recurring BOOLEAN DEFAULT FALSE,
 ADD COLUMN recurrence_type recurrence_type DEFAULT 'none',
 ADD COLUMN recurrence_interval INTEGER DEFAULT 1,
@@ -202,11 +216,13 @@ CREATE TABLE recurring_rental_occurrences (
 ```
 
 #### **Funções SQL**
+
 - **`calculate_next_occurrence`**: Calcula próxima data baseada no tipo
 - **`generate_future_occurrences`**: Gera ocorrências futuras automaticamente
 - **Triggers**: Atualização automática de timestamps
 
 #### **Frontend**
+
 - **Componente `RecurrenceConfig`**: Interface para configuração
 - **Step dedicado** no formulário de orçamento
 - **Página de gestão** para locações recorrentes
@@ -219,6 +235,7 @@ CREATE TABLE recurring_rental_occurrences (
 ### Integração com Stripe
 
 #### **Funcionalidades**
+
 - **Planos mensais e anuais** com preços fixos
 - **Checkout integrado** do Stripe
 - **Webhooks** para sincronização automática
@@ -226,6 +243,7 @@ CREATE TABLE recurring_rental_occurrences (
 - **Status automático** (trial → active)
 
 #### **Configuração**
+
 ```env
 # Stripe Configuration
 STRIPE_SECRET_KEY=sk_test_...
@@ -236,6 +254,7 @@ STRIPE_ANNUAL_PRICE_ID=price_1RsR6sKDs9V3MH8v8HfmE83N
 ```
 
 #### **Fluxo de Assinatura**
+
 1. **Usuário seleciona plano** (mensal/anual)
 2. **Sistema cria customer** no Stripe
 3. **Checkout session** é gerada
@@ -245,6 +264,7 @@ STRIPE_ANNUAL_PRICE_ID=price_1RsR6sKDs9V3MH8v8HfmE83N
 7. **Status da empresa** atualizado para "active"
 
 #### **Webhooks Implementados**
+
 - **`checkout.session.completed`**: Processa checkout bem-sucedido
 - **`customer.subscription.created`**: Cria nova assinatura
 - **`customer.subscription.updated`**: Atualiza assinatura existente
@@ -252,6 +272,7 @@ STRIPE_ANNUAL_PRICE_ID=price_1RsR6sKDs9V3MH8v8HfmE83N
 - **`invoice.payment_succeeded`**: Confirma pagamento
 
 #### **Estrutura do Banco**
+
 ```sql
 -- Tabela subscriptions
 CREATE TABLE subscriptions (
@@ -278,37 +299,44 @@ CREATE TABLE subscriptions (
 ### Funcionalidades Implementadas
 
 #### **Cadastro Automático**
+
 - Todo novo usuário é automaticamente adicionado à audiência do Resend
 - Dados incluídos: email, nome da empresa (se disponível)
 - Status: inscrito por padrão
 
 #### **Atualização Automática**
+
 - Quando o perfil da empresa é atualizado, os dados na audiência são sincronizados
 - Mantém informações sempre atualizadas
 
 #### **Desinscrição**
+
 - Link de desinscrição em todos os emails
 - Página dedicada para gerenciar inscrição
 - Possibilidade de re-inscrição
 
 #### **Verificação de Status**
+
 - API para verificar se um email está na audiência
 - Controle de status de inscrição
 
 ### Configuração
 
 #### **1. Criar Audiência no Resend**
+
 1. Acesse o [painel do Resend](https://resend.com/audiences)
 2. Clique em "Create Audience"
 3. Dê um nome (ex: "Dazio Users")
 4. Copie o **Audience ID** gerado
 
 #### **2. Configurar Variável de Ambiente**
+
 ```env
 RESEND_AUDIENCE_ID=f07a036f-bccf-4959-a940-a025ab7fdce5
 ```
 
 #### **3. Verificar Configuração**
+
 ```bash
 curl -X POST https://app.dazio.com.br/api/check-audience \
   -H "Content-Type: application/json" \
@@ -318,6 +346,7 @@ curl -X POST https://app.dazio.com.br/api/check-audience \
 ### APIs Disponíveis
 
 #### **Adicionar Contato**
+
 ```typescript
 POST /api/auth/signup
 {
@@ -327,6 +356,7 @@ POST /api/auth/signup
 ```
 
 #### **Verificar Contato**
+
 ```typescript
 POST /api/check-audience
 {
@@ -335,6 +365,7 @@ POST /api/check-audience
 ```
 
 #### **Desinscrever**
+
 ```typescript
 POST /api/unsubscribe
 {
@@ -343,6 +374,7 @@ POST /api/unsubscribe
 ```
 
 #### **Re-inscrever**
+
 ```typescript
 POST /api/resubscribe
 {
@@ -351,6 +383,7 @@ POST /api/resubscribe
 ```
 
 ### Estrutura de Tokens
+
 ```sql
 -- Tabela email_confirmation_tokens
 CREATE TABLE email_confirmation_tokens (
@@ -372,6 +405,7 @@ CREATE TABLE email_confirmation_tokens (
 ### Tabelas Principais
 
 #### **Gestão de Negócio**
+
 - **`clients`**: Dados dos clientes
 - **`equipments`**: Catálogo de equipamentos
 - **`equipment_categories`**: Categorias de equipamentos
@@ -382,12 +416,14 @@ CREATE TABLE email_confirmation_tokens (
 - **`rental_logistics_events`**: Eventos de logística
 
 #### **Configuração e Assinaturas**
+
 - **`company_profiles`**: Perfil da empresa
 - **`company_settings`**: Configurações do sistema
 - **`subscriptions`**: Assinaturas Stripe
 - **`email_confirmation_tokens`**: Tokens de confirmação
 
 #### **Campos de Recorrência**
+
 - **`is_recurring`**: Boolean - Se é recorrente
 - **`recurrence_type`**: weekly/monthly/yearly - Tipo de recorrência
 - **`recurrence_interval`**: Integer - Intervalo da recorrência
@@ -397,6 +433,7 @@ CREATE TABLE email_confirmation_tokens (
 - **`next_occurrence_date`**: Date - Próxima ocorrência
 
 #### **Relacionamentos**
+
 - Cliente → Orçamentos → Locações
 - Orçamentos → Itens de Orçamento
 - Locações → Itens de Locação
@@ -409,6 +446,7 @@ CREATE TABLE email_confirmation_tokens (
 ## ⚙️ Configuração e Instalação
 
 ### Pré-requisitos
+
 - Node.js 18+
 - pnpm instalado
 - Conta no Supabase
@@ -419,23 +457,26 @@ CREATE TABLE email_confirmation_tokens (
 ### Instalação
 
 #### **1. Clonar o Repositório**
+
 ```bash
 git clone [url-do-repositorio]
 cd dazio-admim-1.0-main
 ```
 
 #### **2. Instalar Dependências**
+
 ```bash
 pnpm install
 ```
 
-
 #### **5. Iniciar Desenvolvimento**
+
 ```bash
 pnpm dev
 ```
 
 ### Scripts Disponíveis
+
 ```bash
 pnpm dev          # Servidor de desenvolvimento
 pnpm build        # Build de produção
@@ -448,23 +489,27 @@ pnpm lint         # Verificação de código
 ## ⚡ Otimizações de Performance Implementadas
 
 ### Dashboard Otimizado
+
 - **Consultas em Paralelo**: Todas as métricas carregadas simultaneamente
 - **Sistema de Cache**: Cache de 5 minutos para métricas
 - **Loading Progressivo**: Animações suaves e feedback visual
 - **Delay Mínimo**: 300ms para evitar flash de loading
 
 ### Sistema de Cache Inteligente
+
 - **TTL Configurável**: 5-10 minutos para diferentes tipos de dados
 - **Cache por Página**: Cada página mantém seus dados em cache
 - **Refresh Inteligente**: Só atualiza quando necessário
 - **Prevenção de Refetches**: Evita chamadas desnecessárias à API
 
 ### Limitação de Dados
+
 - **Carregamento Inteligente**: Máximo 50 registros por página inicial
 - **Paginação Otimizada**: Navegação eficiente entre páginas
 - **Filtros Rápidos**: Busca e filtros com debounce
 
 ### Configurações Avançadas
+
 - **Supabase Otimizado**: Configuração para performance máxima
 - **Componentes de Loading**: Spinners e skeletons reutilizáveis
 - **Sistema de Retry**: Preparado para melhorar confiabilidade
@@ -474,6 +519,7 @@ pnpm lint         # Verificação de código
 ## 🎨 Melhorias de UX Implementadas
 
 ### Formulário de Orçamentos (v2)
+
 - **Layout em Colunas**: Informações organizadas lado a lado
 - **Preview em Tempo Real**: Visualização instantânea do orçamento
 - **Navegação por Abas**: Interface mais intuitiva
@@ -482,12 +528,14 @@ pnpm lint         # Verificação de código
 - **Configuração de Recorrência**: Integrada no primeiro passo
 
 ### Dashboard Aprimorado
+
 - **Cards de Métricas**: Visualização clara dos KPIs
 - **Ações Rápidas**: Acesso direto às principais funcionalidades
 - **Loading Elegante**: Skeletons animados durante carregamento
 - **Responsividade**: Interface adaptável a diferentes telas
 
 ### Páginas de Listagem
+
 - **Paginação em Português**: Interface localizada
 - **Ícones Representativos**: Identificação visual rápida
 - **Filtros Avançados**: Busca por múltiplos critérios
@@ -495,12 +543,14 @@ pnpm lint         # Verificação de código
 - **Toasts Elegantes**: Notificações não intrusivas
 
 ### Relatórios Funcionais
+
 - **Dados Reais**: Conexão direta com o banco de dados
 - **Filtros por Período**: Análises temporais
 - **Métricas Calculadas**: Receita, ticket médio, top clientes
 - **Visualização Clara**: Cards informativos organizados
 
 ### Configurações Melhoradas
+
 - **Feedback Visual**: Confirmação de salvamento
 - **Botão Inteligente**: Ativo apenas quando há mudanças
 - **Limpeza Automática**: Feedback desaparece após 3 segundos
@@ -514,6 +564,7 @@ pnpm lint         # Verificação de código
 ### Versão Atual (v1.0)
 
 #### **✅ Sistema de Recorrência**
+
 - Tipos de recorrência: Semanal, mensal, anual
 - Intervalo configurável: 1, 2, 3... períodos
 - Data de término: Controle de quando parar
@@ -521,6 +572,7 @@ pnpm lint         # Verificação de código
 - Status de recorrência: Ativo, pausado, cancelado, concluído
 
 #### **✅ Sistema de Assinaturas**
+
 - Integração completa com Stripe
 - Planos mensais e anuais
 - Webhooks para sincronização automática
@@ -528,36 +580,42 @@ pnpm lint         # Verificação de código
 - Status automático (trial → active)
 
 #### **✅ Integração com Resend**
+
 - Cadastro automático na audiência
 - Emails transacionais
 - Sistema de confirmação de email
 - Gestão de inscrições
 
 #### **✅ Geração de Contratos**
+
 - PDF automático com dados da empresa
 - Template personalizável nas configurações
 - Dados completos: Cliente, empresa, equipamentos, valores
 - Download automático com nome personalizado
 
 #### **✅ Sistema de Notificações**
+
 - Notificações em tempo real para recorrências
 - Badge de contagem no header
 - Popover com lista de notificações
 - Marcação como lida
 
 #### **✅ Interface Aprimorada**
+
 - Logo da empresa no sidebar
 - Favicon personalizado
 - Toasts elegantes em vez de alerts
 - Feedback visual melhorado
 
 #### **✅ Performance e Cache**
+
 - Sistema de cache inteligente com TTL
 - Prevenção de recarregamentos desnecessários
 - Otimização de useEffect e dependências
 - Cache por página para melhor experiência
 
 ### Funcionalidades Principais
+
 - ✅ Dashboard com métricas em tempo real
 - ✅ Gestão completa de orçamentos
 - ✅ Controle de locações com recorrência
@@ -574,12 +632,14 @@ pnpm lint         # Verificação de código
 ## 🎯 Próximas Funcionalidades
 
 ### **Em Desenvolvimento**
+
 - [ ] Sistema de autenticação avançado
 - [ ] Múltiplos usuários e permissões
 - [ ] Backup automático do banco
 - [ ] Logs de auditoria completos
 
 ### **Planejadas**
+
 - [ ] Integração com gateways de pagamento brasileiros
 - [ ] App mobile nativo
 - [ ] Fluxo de caixa projetado
@@ -590,6 +650,7 @@ pnpm lint         # Verificação de código
 - [ ] Monitoramento de performance em tempo real
 
 ### **Melhorias de UX**
+
 - [ ] Modo escuro/claro
 - [ ] Personalização de temas
 - [ ] Atalhos de teclado
@@ -601,17 +662,20 @@ pnpm lint         # Verificação de código
 ## 📞 Suporte
 
 ### **Documentação Técnica**
+
 - Este README contém todas as informações necessárias
 - Scripts SQL estão organizados por funcionalidade
 - Componentes React seguem padrões estabelecidos
 
 ### **Para Desenvolvedores**
+
 - Código comentado e organizado
 - Tipos TypeScript bem definidos
 - Padrões de nomenclatura consistentes
 - Estrutura de pastas lógica
 
 ### **Para Usuários**
+
 - Interface intuitiva e responsiva
 - Feedback visual claro para todas as ações
 - Sistema de ajuda integrado
@@ -620,7 +684,7 @@ pnpm lint         # Verificação de código
 ---
 
 **Dazio - Sistema de Gestão de Locações**  
-*Versão 1.0 - 2024*
+_Versão 1.0 - 2024_
 
 **Status**: ✅ Implementado e Funcionando  
 **Última atualização**: Dezembro 2024

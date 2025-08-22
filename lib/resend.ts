@@ -14,7 +14,7 @@ export interface EmailData {
 // Função para enviar email de confirmação
 export async function sendConfirmationEmail(email: string, token: string) {
   const confirmationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?token=${token}`;
-  
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -114,7 +114,7 @@ export async function sendConfirmationEmail(email: string, token: string) {
 // Função para enviar email de redefinição de senha
 export async function sendPasswordResetEmail(email: string, token: string) {
   const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${token}`;
-  
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -209,4 +209,4 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     console.error('Erro ao enviar email de redefinição:', error);
     throw error;
   }
-} 
+}

@@ -1,6 +1,6 @@
+import { createClient as createServerSupabaseClient } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient as createServerSupabaseClient } from '@/lib/supabase/server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,84 +14,145 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type');
   const next = searchParams.get('next') ?? '/dashboard';
 
-  console.log('🔍 Auth Callback: Parâmetros recebidos:', { code, token, type, next });
-  console.log('🔍 Auth Callback: URL completa:', request.url);
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 Auth Callback: Parâmetros recebidos:', {
+      code,
+      token,
+      type,
+      next,
+    });
+    console.log('🔍 Auth Callback: URL completa:', request.url);
+  }
 
   // Se há um token de recovery (reset de senha) - PRIORIDADE ALTA
   if (token && type === 'recovery') {
-    console.log('🔍 Auth Callback: Processando token de recovery (reset de senha)');
-    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(
+        '🔍 Auth Callback: Processando token de recovery (reset de senha)'
+      );
+    }
+
     try {
       const { error } = await supabase.auth.verifyOtp({
         token_hash: token,
-        type: 'recovery'
+        type: 'recovery',
       });
 
       if (error) {
-        console.error('❌ Auth Callback: Erro na verificação de recovery:', error);
-        return NextResponse.redirect(`${origin}/auth/reset-password/confirm?error=auth_failed&message=${encodeURIComponent(error.message)}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.error(
+            '❌ Auth Callback: Erro na verificação de recovery:',
+            error
+          );
+        }
+        return NextResponse.redirect(
+          `${origin}/auth/reset-password/confirm?error=auth_failed&message=${encodeURIComponent(error.message)}`
+        );
       }
 
-      console.log('✅ Auth Callback: Token de recovery verificado com sucesso');
-      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(
+          '✅ Auth Callback: Token de recovery verificado com sucesso'
+        );
+      }
+
       // Usar o parâmetro next se disponível, senão ir para reset-password/confirm
-      const redirectUrl = next && next !== '/dashboard' ? next : '/auth/reset-password/confirm';
-      console.log('🔍 Auth Callback: Redirecionando para:', redirectUrl);
-      
-      return NextResponse.redirect(`${origin}${redirectUrl}?token=${token}&type=${type}`);
+      const redirectUrl =
+        next && next !== '/dashboard' ? next : '/auth/reset-password/confirm';
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Auth Callback: Redirecionando para:', redirectUrl);
+      }
+
+      return NextResponse.redirect(
+        `${origin}${redirectUrl}?token=${token}&type=${type}`
+      );
     } catch (error) {
-      console.error('❌ Auth Callback: Erro inesperado no recovery:', error);
-      return NextResponse.redirect(`${origin}/auth/reset-password/confirm?error=auth_failed&message=Erro inesperado`);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Auth Callback: Erro inesperado no recovery:', error);
+      }
+      return NextResponse.redirect(
+        `${origin}/auth/reset-password/confirm?error=auth_failed&message=Erro inesperado`
+      );
     }
   }
 
   // Se há um token de confirmação de email
   if (token && type === 'signup') {
-    console.log('🔍 Auth Callback: Processando confirmação de email');
-    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Auth Callback: Processando confirmação de email');
+    }
+
     try {
       const { error } = await supabase.auth.verifyOtp({
         token_hash: token,
-        type: 'signup'
+        type: 'signup',
       });
 
       if (error) {
-        console.error('❌ Auth Callback: Erro na verificação:', error);
-        return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed&message=${encodeURIComponent(error.message)}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ Auth Callback: Erro na verificação:', error);
+        }
+        return NextResponse.redirect(
+          `${origin}/cadastro/confirmacao?error=auth_failed&message=${encodeURIComponent(error.message)}`
+        );
       }
 
-      console.log('✅ Auth Callback: Email confirmado com sucesso');
-      return NextResponse.redirect(`${origin}/cadastro/confirmacao?success=true&token=${token}&type=${type}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Auth Callback: Email confirmado com sucesso');
+      }
+      return NextResponse.redirect(
+        `${origin}/cadastro/confirmacao?success=true&token=${token}&type=${type}`
+      );
     } catch (error) {
-      console.error('❌ Auth Callback: Erro inesperado:', error);
-      return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed&message=Erro inesperado`);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Auth Callback: Erro inesperado:', error);
+      }
+      return NextResponse.redirect(
+        `${origin}/cadastro/confirmacao?error=auth_failed&message=Erro inesperado`
+      );
     }
   }
 
   // Se há um código de autorização (fluxo OAuth)
   if (code) {
-    console.log('🔍 Auth Callback: Processando código de autorização');
-    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Auth Callback: Processando código de autorização');
+    }
+
     try {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
-      
+
       if (error) {
-        console.error('❌ Auth Callback: Erro no exchange:', error);
-        return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed&message=${encodeURIComponent(error.message)}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ Auth Callback: Erro no exchange:', error);
+        }
+        return NextResponse.redirect(
+          `${origin}/cadastro/confirmacao?error=auth_failed&message=${encodeURIComponent(error.message)}`
+        );
       }
 
-      console.log('✅ Auth Callback: Sessão criada com sucesso');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Auth Callback: Sessão criada com sucesso');
+      }
       return NextResponse.redirect(`${origin}${next}`);
     } catch (error) {
-      console.error('❌ Auth Callback: Erro inesperado no exchange:', error);
-      return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed&message=Erro inesperado`);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Auth Callback: Erro inesperado no exchange:', error);
+      }
+      return NextResponse.redirect(
+        `${origin}/cadastro/confirmacao?error=auth_failed&message=Erro inesperado`
+      );
     }
   }
 
   // Se não há nem token nem code
-  console.log('❌ Auth Callback: Nenhum token ou código encontrado');
-  return NextResponse.redirect(`${origin}/cadastro/confirmacao?error=auth_failed&message=Parâmetros inválidos`);
-} 
+  if (process.env.NODE_ENV === 'development') {
+    console.log('❌ Auth Callback: Nenhum token ou código encontrado');
+  }
+  return NextResponse.redirect(
+    `${origin}/cadastro/confirmacao?error=auth_failed&message=Parâmetros inválidos`
+  );
+}
 
 // Sincroniza os eventos de autenticação do cliente com o servidor (cookies)
 export async function POST(request: NextRequest) {
@@ -101,7 +162,11 @@ export async function POST(request: NextRequest) {
     // Cria cliente do servidor com suporte a cookies (setAll)
     const supabase = await createServerSupabaseClient();
 
-    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+    if (
+      event === 'SIGNED_IN' ||
+      event === 'TOKEN_REFRESHED' ||
+      event === 'INITIAL_SESSION'
+    ) {
       if (session) {
         await supabase.auth.setSession(session);
       }
@@ -113,7 +178,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('❌ Auth Callback (POST): Erro inesperado:', error);
-    return NextResponse.json({ ok: false, error: 'Erro inesperado' }, { status: 500 });
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ Auth Callback (POST): Erro inesperado:', error);
+    }
+    return NextResponse.json(
+      { ok: false, error: 'Erro inesperado' },
+      { status: 500 }
+    );
   }
 }

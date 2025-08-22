@@ -1,60 +1,60 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '../lib/auth-context'
+import { useState, useEffect } from 'react';
+import { useAuth } from '../lib/auth-context';
 
 interface TrialStatus {
-  isActive: boolean
-  isExpired: boolean
-  daysLeft: number
-  trialEnd: string | null
-  status: 'trial' | 'active' | 'expired' | 'cancelled'
-  totalTrialDays: number
-  usedTrialDays: number
+  isActive: boolean;
+  isExpired: boolean;
+  daysLeft: number;
+  trialEnd: string | null;
+  status: 'trial' | 'active' | 'expired' | 'cancelled';
+  totalTrialDays: number;
+  usedTrialDays: number;
 }
 
 export function useTrialStatus() {
-  const { user } = useAuth()
-  const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth();
+  const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
-      checkTrialStatus()
+      checkTrialStatus();
     } else {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [user]) // Apenas user como dependência
+  }, [user]); // Apenas user como dependência
 
   const checkTrialStatus = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      
-      const response = await fetch('/api/trial/status')
-      const { data, error: apiError } = await response.json()
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch('/api/trial/status');
+      const { data, error: apiError } = await response.json();
 
       if (apiError) {
-        setError(apiError)
-        return
+        setError(apiError);
+        return;
       }
 
-      setTrialStatus(data)
+      setTrialStatus(data);
     } catch (err) {
-      console.error('Erro ao verificar status do trial:', err)
-      setError('Erro ao verificar status do trial')
+      console.error('Erro ao verificar status do trial:', err);
+      setError('Erro ao verificar status do trial');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const refreshTrialStatus = () => {
-    checkTrialStatus()
-  }
+    checkTrialStatus();
+  };
 
   return {
     trialStatus,
     loading,
     error,
-    refreshTrialStatus
-  }
+    refreshTrialStatus,
+  };
 }

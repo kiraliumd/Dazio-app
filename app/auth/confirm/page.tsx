@@ -2,7 +2,13 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
@@ -12,14 +18,16 @@ import { toast } from 'sonner';
 
 function ConfirmContent() {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>(
+    'loading'
+  );
   const [message, setMessage] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
     const token = searchParams.get('token');
-    
+
     if (token) {
       handleEmailConfirmation(token);
     } else {
@@ -36,7 +44,7 @@ function ConfirmContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token })
+        body: JSON.stringify({ token }),
       });
 
       const result = await response.json();
@@ -47,7 +55,9 @@ function ConfirmContent() {
         toast.error(result.error || 'Erro ao confirmar email');
       } else {
         setStatus('success');
-        setMessage('Email confirmado com sucesso! Redirecionando para completar seu cadastro...');
+        setMessage(
+          'Email confirmado com sucesso! Redirecionando para completar seu cadastro...'
+        );
         toast.success('Email confirmado com sucesso!');
 
         // Tentativa de auto login com credenciais pendentes (se existirem)
@@ -55,10 +65,11 @@ function ConfirmContent() {
           const pendingEmail = localStorage.getItem('pendingEmail') || '';
           const pendingPassword = localStorage.getItem('pendingPassword') || '';
           if (pendingEmail && pendingPassword) {
-            const { error: signInError } = await supabase.auth.signInWithPassword({
-              email: pendingEmail,
-              password: pendingPassword,
-            });
+            const { error: signInError } =
+              await supabase.auth.signInWithPassword({
+                email: pendingEmail,
+                password: pendingPassword,
+              });
             if (!signInError) {
               localStorage.removeItem('pendingEmail');
               localStorage.removeItem('pendingPassword');
@@ -91,21 +102,25 @@ function ConfirmContent() {
         {/* Card de Confirmação */}
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Confirmação de Email</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              Confirmação de Email
+            </CardTitle>
             <CardDescription className="text-center">
               Processando sua confirmação
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             {status === 'loading' && (
               <div className="text-center space-y-4">
                 <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
                   <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Confirmando email...</h3>
+                  <h3 className="text-lg font-semibold">
+                    Confirmando email...
+                  </h3>
                   <p className="text-gray-600 text-sm">
                     Aguarde enquanto processamos sua confirmação.
                   </p>
@@ -118,11 +133,14 @@ function ConfirmContent() {
                 <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                   <CheckCircle className="w-8 h-8 text-green-600" />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-green-600">Email confirmado!</h3>
+                  <h3 className="text-lg font-semibold text-green-600">
+                    Email confirmado!
+                  </h3>
                   <p className="text-gray-600 text-sm">
-                    Sua conta foi ativada com sucesso. Você será redirecionado para configurar seu perfil.
+                    Sua conta foi ativada com sucesso. Você será redirecionado
+                    para configurar seu perfil.
                   </p>
                 </div>
 
@@ -138,18 +156,19 @@ function ConfirmContent() {
                 <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
                   <AlertCircle className="w-8 h-8 text-red-600" />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-red-600">Erro na confirmação</h3>
-                  <p className="text-gray-600 text-sm">
-                    {message}
-                  </p>
+                  <h3 className="text-lg font-semibold text-red-600">
+                    Erro na confirmação
+                  </h3>
+                  <p className="text-gray-600 text-sm">{message}</p>
                 </div>
 
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Se você acredita que isso é um erro, entre em contato com nosso suporte.
+                    Se você acredita que isso é um erro, entre em contato com
+                    nosso suporte.
                   </AlertDescription>
                 </Alert>
 
@@ -160,7 +179,7 @@ function ConfirmContent() {
                   >
                     Ir para login
                   </Button>
-                  
+
                   <Button
                     onClick={() => router.push('/cadastro')}
                     variant="outline"
@@ -207,4 +226,4 @@ export default function ConfirmPage() {
       <ConfirmContent />
     </Suspense>
   );
-} 
+}

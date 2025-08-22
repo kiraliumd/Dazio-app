@@ -2,7 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +31,7 @@ export default function CadastroPage() {
   const [data, setData] = useState<CadastroData>({
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
 
   const router = useRouter();
@@ -39,27 +45,27 @@ export default function CadastroPage() {
       toast.error('Preencha todos os campos');
       return false;
     }
-    
+
     if (data.password !== data.confirmPassword) {
       toast.error('As senhas não coincidem');
       return false;
     }
-    
+
     if (data.password.length < 6) {
       toast.error('A senha deve ter pelo menos 6 caracteres');
       return false;
     }
-    
+
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setLoading(true);
-    
+
     try {
       console.log('🔍 Cadastro: Iniciando criação de conta...');
       console.log('🔍 Cadastro: Email:', data.email);
@@ -72,8 +78,8 @@ export default function CadastroPage() {
         },
         body: JSON.stringify({
           email: data.email,
-          password: data.password
-        })
+          password: data.password,
+        }),
       });
 
       const result = await response.json();
@@ -94,9 +100,12 @@ export default function CadastroPage() {
       localStorage.setItem('pendingEmail', data.email);
       localStorage.setItem('pendingPassword', data.password);
       // Salvar dados do perfil temporariamente (incluindo email)
-      localStorage.setItem('pendingProfileData', JSON.stringify({
-        email: data.email
-      }));
+      localStorage.setItem(
+        'pendingProfileData',
+        JSON.stringify({
+          email: data.email,
+        })
+      );
 
       // Verificar se o email foi confirmado
       if (result.user.emailConfirmed) {
@@ -105,10 +114,11 @@ export default function CadastroPage() {
         router.push('/create-profile');
       } else {
         console.log('📧 Cadastro: Email de confirmação enviado');
-        toast.success('Conta criada com sucesso! Verifique seu email para confirmar o cadastro.');
+        toast.success(
+          'Conta criada com sucesso! Verifique seu email para confirmar o cadastro.'
+        );
         router.push('/cadastro/confirmacao');
       }
-
     } catch (error) {
       console.error('❌ Cadastro: Erro inesperado:', error);
       toast.error('Erro ao realizar cadastro. Tente novamente.');
@@ -128,12 +138,14 @@ export default function CadastroPage() {
         {/* Card de Cadastro */}
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Comece seu teste gratuito</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              Comece seu teste gratuito
+            </CardTitle>
             <CardDescription className="text-center">
               7 dias grátis • Sem cartão de crédito • Cancele quando quiser
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -144,7 +156,7 @@ export default function CadastroPage() {
                     id="email"
                     type="email"
                     value={data.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    onChange={e => handleInputChange('email', e.target.value)}
                     placeholder="seu@email.com"
                     className="pl-10"
                     required
@@ -153,16 +165,18 @@ export default function CadastroPage() {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="password">Senha</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     value={data.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    onChange={e =>
+                      handleInputChange('password', e.target.value)
+                    }
                     placeholder="Mínimo 6 caracteres"
                     className="pl-10 pr-10"
                     required
@@ -183,16 +197,18 @@ export default function CadastroPage() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirmar senha</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
+                    type={showConfirmPassword ? 'text' : 'password'}
                     value={data.confirmPassword}
-                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    onChange={e =>
+                      handleInputChange('confirmPassword', e.target.value)
+                    }
                     placeholder="Digite a senha novamente"
                     className="pl-10 pr-10"
                     required
@@ -214,11 +230,7 @@ export default function CadastroPage() {
                 </div>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading}
-              >
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -233,7 +245,10 @@ export default function CadastroPage() {
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 Já tem uma conta?{' '}
-                <a href="/login" className="text-primary hover:underline font-medium">
+                <a
+                  href="/login"
+                  className="text-primary hover:underline font-medium"
+                >
                   Fazer login
                 </a>
               </p>
@@ -242,7 +257,8 @@ export default function CadastroPage() {
             <Alert>
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                Após criar sua conta, você será direcionado para configurar os dados da sua empresa.
+                Após criar sua conta, você será direcionado para configurar os
+                dados da sua empresa.
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -250,4 +266,4 @@ export default function CadastroPage() {
       </div>
     </div>
   );
-} 
+}

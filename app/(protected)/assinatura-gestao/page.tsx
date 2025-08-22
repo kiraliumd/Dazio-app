@@ -1,23 +1,35 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
 import { AppSidebar } from '@/components/app-sidebar';
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { Clock, CreditCard, AlertTriangle, CheckCircle, ExternalLink } from 'lucide-react';
-import { format, differenceInDays, isAfter } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { toast } from 'sonner';
 import { AuthGuard } from '@/components/auth-guard';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { createSubscription } from '@/lib/subscription/actions';
+import { differenceInDays, format, isAfter } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import {
+    AlertTriangle,
+    CheckCircle,
+    Clock,
+    CreditCard,
+    ExternalLink,
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 interface CompanyProfile {
   id: string;
@@ -30,7 +42,13 @@ interface CompanyProfile {
 interface Subscription {
   id: string;
   plan_type: 'monthly' | 'annual';
-  status: 'active' | 'canceled' | 'past_due' | 'unpaid' | 'trialing' | undefined;
+  status:
+    | 'active'
+    | 'canceled'
+    | 'past_due'
+    | 'unpaid'
+    | 'trialing'
+    | undefined;
   current_period_end: string;
   trial_end: string;
   stripe_subscription_id: string;
@@ -48,7 +66,9 @@ const dataCache = {
 export default function AssinaturaGestaoPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(
+    null
+  );
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [monthlyLoading, setMonthlyLoading] = useState(false);
@@ -61,50 +81,59 @@ export default function AssinaturaGestaoPage() {
   }, []);
 
   // Carregar dados apenas se necessário
-  const loadSubscriptionData = useCallback(async (forceRefresh = false) => {
-    // Se não for refresh forçado e o cache for válido, usar dados em cache
-    if (!forceRefresh && isCacheValid && dataCache.companyProfile && dataCache.subscription) {
-      setCompanyProfile(dataCache.companyProfile);
-      setSubscription(dataCache.subscription);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      
-      const [profileResponse, subscriptionResponse] = await Promise.all([
-        fetch('/api/company/profile'),
-        fetch('/api/subscription')
-      ]);
-      
-      let newCompanyProfile = null;
-      let newSubscription = null;
-
-      if (profileResponse.ok) {
-        const profileResult = await profileResponse.json();
-        newCompanyProfile = profileResult.data;
-        setCompanyProfile(newCompanyProfile);
+  const loadSubscriptionData = useCallback(
+    async (forceRefresh = false) => {
+      // Se não for refresh forçado e o cache for válido, usar dados em cache
+      if (
+        !forceRefresh &&
+        isCacheValid &&
+        dataCache.companyProfile &&
+        dataCache.subscription
+      ) {
+        setCompanyProfile(dataCache.companyProfile);
+        setSubscription(dataCache.subscription);
+        setLoading(false);
+        return;
       }
 
-      if (subscriptionResponse.ok) {
-        const subscriptionResult = await subscriptionResponse.json();
-        newSubscription = subscriptionResult.data;
-        setSubscription(newSubscription);
+      try {
+        setLoading(true);
+
+        const [profileResponse, subscriptionResponse] = await Promise.all([
+          fetch('/api/company/profile'),
+          fetch('/api/subscription'),
+        ]);
+
+        let newCompanyProfile = null;
+        let newSubscription = null;
+
+        if (profileResponse.ok) {
+          const profileResult = await profileResponse.json();
+          newCompanyProfile = profileResult.data;
+          setCompanyProfile(newCompanyProfile);
+        }
+
+        if (subscriptionResponse.ok) {
+          const subscriptionResult = await subscriptionResponse.json();
+          newSubscription = subscriptionResult.data;
+          setSubscription(newSubscription);
+        }
+
+        // Atualizar cache
+        dataCache.companyProfile = newCompanyProfile;
+        dataCache.subscription = newSubscription;
+        dataCache.lastFetch = Date.now();
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro ao carregar dados da assinatura:', error);
+        }
+        toast.error('Erro ao carregar dados da assinatura');
+      } finally {
+        setLoading(false);
       }
-
-      // Atualizar cache
-      dataCache.companyProfile = newCompanyProfile;
-      dataCache.subscription = newSubscription;
-      dataCache.lastFetch = Date.now();
-
-    } catch (error) {
-      console.error('Erro ao carregar dados da assinatura:', error);
-      toast.error('Erro ao carregar dados da assinatura');
-    } finally {
-      setLoading(false);
-    }
-  }, [isCacheValid]);
+    },
+    [isCacheValid]
+  );
 
   // Carregar dados apenas uma vez quando o usuário estiver disponível
   useEffect(() => {
@@ -135,8 +164,12 @@ export default function AssinaturaGestaoPage() {
         toast.error(result.error || 'Erro ao criar sessão de checkout');
       }
     } catch (error) {
-      console.error('Erro ao iniciar assinatura:', error);
-      toast.error(error instanceof Error ? error.message : 'Erro ao iniciar assinatura');
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao iniciar assinatura:', error);
+      }
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao iniciar assinatura'
+      );
     } finally {
       // Limpar loading específico para o plano
       if (planType === 'monthly') {
@@ -160,7 +193,9 @@ export default function AssinaturaGestaoPage() {
         toast.error('Erro ao acessar portal do cliente');
       }
     } catch (error) {
-      console.error('Erro ao acessar portal:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao acessar portal:', error);
+      }
       toast.error('Erro ao acessar portal do cliente');
     } finally {
       setPortalLoading(false);
@@ -205,8 +240,8 @@ export default function AssinaturaGestaoPage() {
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
-            <PageHeader 
-              title="Gestão da Assinatura" 
+            <PageHeader
+              title="Gestão da Assinatura"
               description="Carregando dados da assinatura..."
             />
             <div className="flex-1 space-y-6 p-6">
@@ -225,252 +260,298 @@ export default function AssinaturaGestaoPage() {
     );
   }
 
-  const trialEndDate = companyProfile?.trial_end ? new Date(companyProfile.trial_end) : null;
-  const isTrialExpired = trialEndDate ? isAfter(new Date(), trialEndDate) : false;
-  const trialDaysLeft = trialEndDate ? differenceInDays(trialEndDate, new Date()) : 0;
-  const trialProgress = companyProfile?.trial_start && trialEndDate 
-    ? Math.max(0, Math.min(100, ((7 - trialDaysLeft) / 7) * 100))
+  const trialEndDate = companyProfile?.trial_end
+    ? new Date(companyProfile.trial_end)
+    : null;
+  const isTrialExpired = trialEndDate
+    ? isAfter(new Date(), trialEndDate)
+    : false;
+  const trialDaysLeft = trialEndDate
+    ? differenceInDays(trialEndDate, new Date())
     : 0;
+  const trialProgress =
+    companyProfile?.trial_start && trialEndDate
+      ? Math.max(0, Math.min(100, ((7 - trialDaysLeft) / 7) * 100))
+      : 0;
 
   // Labels dinâmicos do plano
-  const planLabel = subscription?.plan_type === 'annual' ? 'Plano Anual' : 'Plano Mensal';
-  const planPriceAmount = subscription?.plan_type === 'annual' ? 'R$ 979,00' : 'R$ 97,90';
-  const planPriceSuffix = subscription?.plan_type === 'annual' ? '/ano' : '/mês';
+  const planLabel =
+    subscription?.plan_type === 'annual' ? 'Plano Anual' : 'Plano Mensal';
+  const planPriceAmount =
+    subscription?.plan_type === 'annual' ? 'R$ 979,00' : 'R$ 97,90';
+  const planPriceSuffix =
+    subscription?.plan_type === 'annual' ? '/ano' : '/mês';
 
   return (
     <AuthGuard>
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <PageHeader 
-            title="Gestão da Assinatura" 
+          <PageHeader
+            title="Gestão da Assinatura"
             description="Gerencie sua assinatura e veja o status do seu período de teste"
-          >
-          </PageHeader>
-          
-            <div className="flex-1 space-y-6 p-6">
-              {/* Card Principal - Status da Assinatura */}
-              <Card className="border-2 overflow-hidden">
-                <div className="bg-[linear-gradient(135deg,#ff6b35,#f7931e)] p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-white/20 rounded-lg">
-                        <CreditCard className="h-6 w-6 text-white" />
-                      </div>
-                      <h3 className="text-white text-xl font-semibold">Status da Assinatura</h3>
-                    </div>
-                    <Badge className="bg-green-100 text-green-800 border-green-300" variant="outline">
-                      {subscription ? getStatusText(subscription.status || '') : 'Trial'}
-                    </Badge>
-                  </div>
+          ></PageHeader>
 
-                  <div className="mt-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-                    <div className="text-white">
-                      <div className="flex items-end gap-2">
-                        <span className="text-[48px] leading-none font-extrabold">{planPriceAmount}</span>
-                        <span className="text-white/90 text-lg mb-1">{planPriceSuffix}</span>
-                      </div>
-                      <div className="text-white/90 text-sm mt-1">{planLabel}</div>
+          <div className="flex-1 space-y-6 p-6">
+            {/* Card Principal - Status da Assinatura */}
+            <Card className="border-2 overflow-hidden">
+              <div className="bg-[linear-gradient(135deg,#ff6b35,#f7931e)] p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <CreditCard className="h-6 w-6 text-white" />
                     </div>
-
-                    {/* Ações removidas deste card para manter o portal apenas no card de Gerenciar Assinatura */}
+                    <h3 className="text-white text-xl font-semibold">
+                      Status da Assinatura
+                    </h3>
                   </div>
+                  <Badge
+                    className="bg-green-100 text-green-800 border-green-300"
+                    variant="outline"
+                  >
+                    {subscription
+                      ? getStatusText(subscription.status || '')
+                      : 'Trial'}
+                  </Badge>
                 </div>
-              </Card>
 
-              {/* Card - Período de Teste (quando aplicável) */}
-              {companyProfile?.status === 'trial' && (
-                <Card className="border-2">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-primary" /> Período de Teste
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4 sm:grid-cols-3">
-                      <div className="space-y-2">
-                        <p className="text-sm text-gray-600">Dias Restantes</p>
-                        <div className="flex items-center gap-2">
-                          <Badge 
-                            className={`px-3 py-1 text-sm font-medium ${
-                              trialDaysLeft > 3 
-                                ? 'bg-green-100 text-green-800 border-green-300'
-                                : trialDaysLeft > 1
+                <div className="mt-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                  <div className="text-white">
+                    <div className="flex items-end gap-2">
+                      <span className="text-[48px] leading-none font-extrabold">
+                        {planPriceAmount}
+                      </span>
+                      <span className="text-white/90 text-lg mb-1">
+                        {planPriceSuffix}
+                      </span>
+                    </div>
+                    <div className="text-white/90 text-sm mt-1">
+                      {planLabel}
+                    </div>
+                  </div>
+
+                  {/* Ações removidas deste card para manter o portal apenas no card de Gerenciar Assinatura */}
+                </div>
+              </div>
+            </Card>
+
+            {/* Card - Período de Teste (quando aplicável) */}
+            {companyProfile?.status === 'trial' && (
+              <Card className="border-2">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-primary" /> Período de Teste
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600">Dias Restantes</p>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          className={`px-3 py-1 text-sm font-medium ${
+                            trialDaysLeft > 3
+                              ? 'bg-green-100 text-green-800 border-green-300'
+                              : trialDaysLeft > 1
                                 ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
                                 : 'bg-red-100 text-red-800 border-red-300'
-                            }`} 
-                            variant="outline"
-                          >
-                            {trialDaysLeft} dias
-                          </Badge>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            trialDaysLeft > 3 
+                          }`}
+                          variant="outline"
+                        >
+                          {trialDaysLeft} dias
+                        </Badge>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            trialDaysLeft > 3
                               ? 'bg-green-50 text-green-700'
                               : trialDaysLeft > 1
-                              ? 'bg-yellow-50 text-yellow-700'
-                              : 'bg-red-50 text-red-700'
-                          }`}>
-                            {isTrialExpired ? 'Expirado' : 'Restantes'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <p className="text-sm text-gray-600 mb-2">Progresso do Teste</p>
-                        <Progress value={trialProgress} className="h-2" />
-                        <div className="flex justify-between text-xs text-gray-500 mt-1">
-                          <span>Início: {format(new Date(companyProfile.trial_start), 'dd/MM', { locale: ptBR })}</span>
-                          <span>Fim: {format(new Date(companyProfile.trial_end), 'dd/MM', { locale: ptBR })}</span>
-                        </div>
+                                ? 'bg-yellow-50 text-yellow-700'
+                                : 'bg-red-50 text-red-700'
+                          }`}
+                        >
+                          {isTrialExpired ? 'Expirado' : 'Restantes'}
+                        </span>
                       </div>
                     </div>
 
-                    {isTrialExpired && (
-                      <div className="mt-4">
-                        <Alert className="border-red-200 bg-red-50">
-                          <AlertTriangle className="h-4 w-4 text-red-600" />
-                          <AlertDescription className="text-red-800">
-                            Seu período de teste expirou. Faça upgrade para continuar usando o sistema.
-                          </AlertDescription>
-                        </Alert>
+                    <div className="sm:col-span-2">
+                      <p className="text-sm text-gray-600 mb-2">
+                        Progresso do Teste
+                      </p>
+                      <Progress value={trialProgress} className="h-2" />
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>
+                          Início:{' '}
+                          {format(
+                            new Date(companyProfile.trial_start),
+                            'dd/MM',
+                            { locale: ptBR }
+                          )}
+                        </span>
+                        <span>
+                          Fim:{' '}
+                          {format(new Date(companyProfile.trial_end), 'dd/MM', {
+                            locale: ptBR,
+                          })}
+                        </span>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Planos de Assinatura */}
-              {(!subscription || subscription.status === 'canceled' || subscription.status === 'unpaid') && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  {/* Plano Mensal */}
-                  <Card className="border-2 hover:border-primary transition-colors">
-                    <CardHeader>
-                      <CardTitle className="text-center">Plano Mensal</CardTitle>
-                      <CardDescription className="text-center">
-                        Ideal para começar
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-center">
-                      <div className="mb-4">
-                        <span className="text-3xl font-bold">R$ 97,90</span>
-                        <span className="text-gray-600">/mês</span>
-                      </div>
-                      
-                      <ul className="text-sm text-gray-600 mb-6 space-y-2">
-                        <li className="flex items-center justify-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          Todos os recursos
-                        </li>
-                        <li className="flex items-center justify-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          Suporte por email
-                        </li>
-                        <li className="flex items-center justify-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          Cancelamento a qualquer momento
-                        </li>
-                      </ul>
-                      
-                      <Button 
-                        onClick={() => {
-                          console.log('🖱️ Botão Assinar Mensal clicado!');
-                          handleSubscribe('monthly');
-                        }}
-                        disabled={monthlyLoading}
-                        className="w-full"
-                      >
-                        {monthlyLoading ? 'Carregando...' : 'Assinar Mensal'}
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  {/* Plano Anual */}
-                  <Card className="border-2 border-primary relative">
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <Badge className="bg-primary text-primary-foreground">
-                        Mais Popular
-                      </Badge>
                     </div>
-                    <CardHeader>
-                      <CardTitle className="text-center">Plano Anual</CardTitle>
-                      <CardDescription className="text-center">
-                        Economia de 2 meses
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-center">
-                      <div className="mb-4">
-                        <span className="text-3xl font-bold">R$ 979,00</span>
-                        <span className="text-gray-600">/ano</span>
-                        <div className="text-sm text-green-600 font-medium">
-                          Economia de R$ 195,80
-                        </div>
-                      </div>
-                      
-                      <ul className="text-sm text-gray-600 mb-6 space-y-2">
-                        <li className="flex items-center justify-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          Todos os recursos
-                        </li>
-                        <li className="flex items-center justify-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          Suporte prioritário
-                        </li>
-                        <li className="flex items-center justify-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          2 meses grátis
-                        </li>
-                      </ul>
-                      
-                      <Button 
-                        onClick={() => {
-                          console.log('🖱️ Botão Assinar Anual clicado!');
-                          handleSubscribe('annual');
-                        }}
-                        disabled={annualLoading}
-                        className="w-full"
-                        variant="default"
-                      >
-                        {annualLoading ? 'Carregando...' : 'Assinar Anual'}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+                  </div>
 
-              {/* Gerenciar Assinatura */}
-              {subscription && (
-                <Card>
+                  {isTrialExpired && (
+                    <div className="mt-4">
+                      <Alert className="border-red-200 bg-red-50">
+                        <AlertTriangle className="h-4 w-4 text-red-600" />
+                        <AlertDescription className="text-red-800">
+                          Seu período de teste expirou. Faça upgrade para
+                          continuar usando o sistema.
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Planos de Assinatura */}
+            {(!subscription ||
+              subscription.status === 'canceled' ||
+              subscription.status === 'unpaid') && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* Plano Mensal */}
+                <Card className="border-2 hover:border-primary transition-colors">
                   <CardHeader>
-                    <CardTitle>Gerenciar Assinatura</CardTitle>
-                    <CardDescription>
-                      Acesse o portal do Stripe para gerenciar pagamentos, cancelamentos e métodos de pagamento
+                    <CardTitle className="text-center">Plano Mensal</CardTitle>
+                    <CardDescription className="text-center">
+                      Ideal para começar
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <Button 
-                      onClick={handleManageSubscription}
-                      disabled={portalLoading}
+                  <CardContent className="text-center">
+                    <div className="mb-4">
+                      <span className="text-3xl font-bold">R$ 97,90</span>
+                      <span className="text-gray-600">/mês</span>
+                    </div>
+
+                    <ul className="text-sm text-gray-600 mb-6 space-y-2">
+                      <li className="flex items-center justify-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        Todos os recursos
+                      </li>
+                      <li className="flex items-center justify-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        Suporte por email
+                      </li>
+                      <li className="flex items-center justify-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        Cancelamento a qualquer momento
+                      </li>
+                    </ul>
+
+                    <Button
+                      onClick={() => {
+                        if (process.env.NODE_ENV === 'development') {
+                          console.log('🖱️ Botão Assinar Mensal clicado!');
+                        }
+                        handleSubscribe('monthly');
+                      }}
+                      disabled={monthlyLoading}
                       className="w-full"
-                      variant="outline"
                     >
-                      {portalLoading ? (
-                        <>
-                          <ExternalLink className="mr-2 h-4 w-4 animate-spin" />
-                          Carregando...
-                        </>
-                      ) : (
-                        <>
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          Acessar Portal do Cliente
-                        </>
-                      )}
+                      {monthlyLoading ? 'Carregando...' : 'Assinar Mensal'}
                     </Button>
                   </CardContent>
                 </Card>
-              )}
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
-      </AuthGuard>
-    );
-  } 
+
+                {/* Plano Anual */}
+                <Card className="border-2 border-primary relative">
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-primary text-primary-foreground">
+                      Mais Popular
+                    </Badge>
+                  </div>
+                  <CardHeader>
+                    <CardTitle className="text-center">Plano Anual</CardTitle>
+                    <CardDescription className="text-center">
+                      Economia de 2 meses
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <div className="mb-4">
+                      <span className="text-3xl font-bold">R$ 979,00</span>
+                      <span className="text-gray-600">/ano</span>
+                      <div className="text-sm text-green-600 font-medium">
+                        Economia de R$ 195,80
+                      </div>
+                    </div>
+
+                    <ul className="text-sm text-gray-600 mb-6 space-y-2">
+                      <li className="flex items-center justify-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        Todos os recursos
+                      </li>
+                      <li className="flex items-center justify-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        Suporte prioritário
+                      </li>
+                      <li className="flex items-center justify-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />2
+                        meses grátis
+                      </li>
+                    </ul>
+
+                    <Button
+                      onClick={() => {
+                        if (process.env.NODE_ENV === 'development') {
+                          console.log('🖱️ Botão Assinar Anual clicado!');
+                        }
+                        handleSubscribe('annual');
+                      }}
+                      disabled={annualLoading}
+                      className="w-full"
+                      variant="default"
+                    >
+                      {annualLoading ? 'Carregando...' : 'Assinar Anual'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Gerenciar Assinatura */}
+            {subscription && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gerenciar Assinatura</CardTitle>
+                  <CardDescription>
+                    Acesse o portal do Stripe para gerenciar pagamentos,
+                    cancelamentos e métodos de pagamento
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={handleManageSubscription}
+                    disabled={portalLoading}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    {portalLoading ? (
+                      <>
+                        <ExternalLink className="mr-2 h-4 w-4 animate-spin" />
+                        Carregando...
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Acessar Portal do Cliente
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </AuthGuard>
+  );
+}

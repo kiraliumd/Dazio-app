@@ -1,9 +1,9 @@
-"use client"
+'use client';
 
-import type React from "react"
+import type React from 'react';
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -11,167 +11,197 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Trash2, Search, MapPin } from "lucide-react"
-import { Separator } from "@/components/ui/separator"
-import { useClients, useEquipments } from "../lib/hooks/use-optimized-data"
-import { transformClientFromDB, transformEquipmentFromDB } from "../lib/utils/data-transformers"
-import type { Client, Equipment, RecurrenceType } from "../lib/utils/data-transformers"
-import { RecurrenceConfig } from "./recurrence-config"
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { MapPin, Plus, Search, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useClients, useEquipments } from '../lib/hooks/use-optimized-data';
+import type {
+  Client,
+  Equipment,
+  RecurrenceType,
+} from '../lib/utils/data-transformers';
+import {
+  transformClientFromDB,
+  transformEquipmentFromDB,
+} from '../lib/utils/data-transformers';
+import { RecurrenceConfig } from './recurrence-config';
 
 export interface RentalItem {
-  id: string
-  equipmentName: string
-  quantity: number
-  dailyRate: number
-  days: number
-  total: number
+  id: string;
+  equipmentName: string;
+  quantity: number;
+  dailyRate: number;
+  days: number;
+  total: number;
 }
 
 export interface Rental {
-  id: string
-  clientId: string
-  clientName: string
-  startDate: string
-  endDate: string
-  installationDate?: string
-  removalDate?: string
-  installationTime: string
-  removalTime: string
-  installationLocation?: string
-  items: RentalItem[]
-  totalValue: number
-  discount: number
-  finalValue: number
-  observations: string
-  budgetId?: string
-  
+  id: string;
+  clientId: string;
+  clientName: string;
+  startDate: string;
+  endDate: string;
+  installationDate?: string;
+  removalDate?: string;
+  installationTime: string;
+  removalTime: string;
+  installationLocation?: string;
+  items: RentalItem[];
+  totalValue: number;
+  discount: number;
+  finalValue: number;
+  observations: string;
+  budgetId?: string;
+
   // Novos campos para recorrência
-  isRecurring?: boolean
-  recurrenceType?: RecurrenceType
-  recurrenceInterval?: number
-  recurrenceEndDate?: string
-  recurrenceStatus?: "active" | "paused" | "cancelled" | "completed"
-  parentRentalId?: string
-  nextOccurrenceDate?: string
+  isRecurring?: boolean;
+  recurrenceType?: RecurrenceType;
+  recurrenceInterval?: number;
+  recurrenceEndDate?: string;
+  recurrenceStatus?: 'active' | 'paused' | 'cancelled' | 'completed';
+  parentRentalId?: string;
+  nextOccurrenceDate?: string;
 }
 
 interface RentalFormProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  rental?: Rental
-  onSave: (rental: Omit<Rental, "id"> & { id?: string }) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  rental?: Rental;
+  onSave: (rental: Omit<Rental, 'id'> & { id?: string }) => void;
   budgetData?: {
-    clientId: string
-    clientName: string
-    items: RentalItem[]
-    totalValue: number
-    budgetId: string
-  }
-  saving?: boolean
+    clientId: string;
+    clientName: string;
+    items: RentalItem[];
+    totalValue: number;
+    budgetId: string;
+  };
+  saving?: boolean;
 }
 
-export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, saving = false }: RentalFormProps) {
+export function RentalForm({
+  open,
+  onOpenChange,
+  rental,
+  onSave,
+  budgetData,
+  saving = false,
+}: RentalFormProps) {
   const [formData, setFormData] = useState({
-    clientId: "",
-    clientName: "",
-    startDate: "",
-    endDate: "",
-    installationTime: "08:00",
-    removalTime: "18:00",
-    installationLocation: "",
+    clientId: '',
+    clientName: '',
+    startDate: '',
+    endDate: '',
+    installationTime: '08:00',
+    removalTime: '18:00',
+    installationLocation: '',
     items: [] as RentalItem[],
     discount: 0,
-    observations: "",
-    
+    observations: '',
+
     // Novos campos para recorrência
     isRecurring: false,
-    recurrenceType: "none" as RecurrenceType,
+    recurrenceType: 'none' as RecurrenceType,
     recurrenceInterval: 1,
-    recurrenceEndDate: "",
-  })
+    recurrenceEndDate: '',
+  });
 
-  const [selectedEquipment, setSelectedEquipment] = useState("")
-  const [quantity, setQuantity] = useState(1)
-  const [equipmentSearch, setEquipmentSearch] = useState("")
-  const [clients, setClients] = useState<Client[]>([])
-  const [equipments, setEquipments] = useState<Equipment[]>([])
-  const [loadingClients, setLoadingClients] = useState(false)
-  const [loadingEquipments, setLoadingEquipments] = useState(false)
+  const [selectedEquipment, setSelectedEquipment] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [equipmentSearch, setEquipmentSearch] = useState('');
+  const [clients, setClients] = useState<Client[]>([]);
+  const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [loadingEquipments, setLoadingEquipments] = useState(false);
 
   // Usar hooks otimizados para dados
-  const { data: dbClients, loading: clientsLoading, error: clientsError } = useClients()
-  const { data: dbEquipments, loading: equipmentsLoading, error: equipmentsError } = useEquipments()
+  const {
+    data: dbClients,
+    loading: clientsLoading,
+    error: clientsError,
+  } = useClients();
+  const {
+    data: dbEquipments,
+    loading: equipmentsLoading,
+    error: equipmentsError,
+  } = useEquipments();
 
   // Atualizar estados locais quando dados são carregados
   useEffect(() => {
     if (dbClients && Array.isArray(dbClients)) {
-      const transformedClients = dbClients.map(transformClientFromDB)
-      setClients(transformedClients)
+      const transformedClients = dbClients.map(transformClientFromDB);
+      setClients(transformedClients);
     }
-  }, [dbClients])
+  }, [dbClients]);
 
   useEffect(() => {
     if (dbEquipments && Array.isArray(dbEquipments)) {
       const transformedEquipments = dbEquipments
-        .filter((eq: any) => eq.status === "Disponível")
-        .map(transformEquipmentFromDB)
-      setEquipments(transformedEquipments)
+        .filter((eq: { status: string }) => eq.status === 'Disponível')
+        .map(transformEquipmentFromDB);
+      setEquipments(transformedEquipments);
     }
-  }, [dbEquipments])
+  }, [dbEquipments]);
 
   // Calcular loading geral
   useEffect(() => {
-    setLoadingClients(clientsLoading)
-    setLoadingEquipments(equipmentsLoading)
-  }, [clientsLoading, equipmentsLoading])
+    setLoadingClients(clientsLoading);
+    setLoadingEquipments(equipmentsLoading);
+  }, [clientsLoading, equipmentsLoading]);
 
   // Tratar erros
   useEffect(() => {
     if (clientsError) {
-      console.error('Erro ao carregar clientes:', clientsError)
+      console.error('Erro ao carregar clientes:', clientsError);
     }
     if (equipmentsError) {
-      console.error('Erro ao carregar equipamentos:', equipmentsError)
+      console.error('Erro ao carregar equipamentos:', equipmentsError);
     }
-  }, [clientsError, equipmentsError])
+  }, [clientsError, equipmentsError]);
 
   // Carregar dados quando o dialog abrir
   useEffect(() => {
     if (open) {
-      console.log('📦 RentalForm: Dados sendo carregados pelos hooks otimizados')
+      console.log(
+        '📦 RentalForm: Dados sendo carregados pelos hooks otimizados'
+      );
     }
-  }, [open])
+  }, [open]);
 
   // Reset form when dialog opens/closes
   useEffect(() => {
     if (open && !rental && !budgetData) {
       setFormData({
-        clientId: "",
-        clientName: "",
-        startDate: "",
-        endDate: "",
-        installationTime: "08:00",
-        removalTime: "18:00",
-        installationLocation: "",
+        clientId: '',
+        clientName: '',
+        startDate: '',
+        endDate: '',
+        installationTime: '08:00',
+        removalTime: '18:00',
+        installationLocation: '',
         items: [],
         discount: 0,
-        observations: "",
-        
+        observations: '',
+
         // Novos campos para recorrência
         isRecurring: false,
-        recurrenceType: "none" as RecurrenceType,
+        recurrenceType: 'none' as RecurrenceType,
         recurrenceInterval: 1,
-        recurrenceEndDate: "",
-      })
-      setSelectedEquipment("")
-      setQuantity(1)
-      setEquipmentSearch("")
+        recurrenceEndDate: '',
+      });
+      setSelectedEquipment('');
+      setQuantity(1);
+      setEquipmentSearch('');
     } else if (open && rental) {
       setFormData({
         clientId: rental.clientId,
@@ -180,88 +210,91 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
         endDate: rental.endDate,
         installationTime: rental.installationTime,
         removalTime: rental.removalTime,
-        installationLocation: rental.installationLocation || "",
+        installationLocation: rental.installationLocation || '',
         items: rental.items,
         discount: rental.discount,
         observations: rental.observations,
-        
+
         // Novos campos para recorrência
         isRecurring: rental.isRecurring || false,
-        recurrenceType: rental.recurrenceType || "none" as RecurrenceType,
+        recurrenceType: rental.recurrenceType || ('none' as RecurrenceType),
         recurrenceInterval: rental.recurrenceInterval || 1,
-        recurrenceEndDate: rental.recurrenceEndDate || "",
-      })
-      setEquipmentSearch("")
+        recurrenceEndDate: rental.recurrenceEndDate || '',
+      });
+      setEquipmentSearch('');
     } else if (open && budgetData) {
       setFormData({
         clientId: budgetData.clientId,
         clientName: budgetData.clientName,
-        startDate: "",
-        endDate: "",
-        installationTime: "08:00",
-        removalTime: "18:00",
-        installationLocation: "",
+        startDate: '',
+        endDate: '',
+        installationTime: '08:00',
+        removalTime: '18:00',
+        installationLocation: '',
         items: budgetData.items,
         discount: 0,
-        observations: "",
-        
+        observations: '',
+
         // Novos campos para recorrência
         isRecurring: false,
-        recurrenceType: "none" as RecurrenceType,
+        recurrenceType: 'none' as RecurrenceType,
         recurrenceInterval: 1,
-        recurrenceEndDate: "",
-      })
-      setEquipmentSearch("")
+        recurrenceEndDate: '',
+      });
+      setEquipmentSearch('');
     }
-  }, [open, rental, budgetData])
+  }, [open, rental, budgetData]);
 
   const calculateDays = () => {
     if (formData.startDate && formData.endDate) {
-      const start = new Date(formData.startDate)
-      const end = new Date(formData.endDate)
-      const diffTime = Math.abs(end.getTime() - start.getTime())
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
-      return diffDays
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.endDate);
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      return diffDays;
     }
-    return 1
-  }
+    return 1;
+  };
 
-  const days = calculateDays()
+  const days = calculateDays();
 
   // Filtrar equipamentos baseado na busca
   const filteredEquipments = equipments.filter(
-    (equipment) =>
+    equipment =>
       equipment.name.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
-      equipment.category?.toLowerCase().includes(equipmentSearch.toLowerCase()),
-  )
+      equipment.category?.toLowerCase().includes(equipmentSearch.toLowerCase())
+  );
 
   // Atualizar totais dos itens quando as datas mudarem
   useEffect(() => {
     if (formData.items.length > 0) {
-      const updatedItems = formData.items.map((item) => ({
+      const updatedItems = formData.items.map(item => ({
         ...item,
         days,
         total: item.quantity * item.dailyRate * days,
-      }))
-      setFormData((prev) => ({ ...prev, items: updatedItems }))
+      }));
+      setFormData(prev => ({ ...prev, items: updatedItems }));
     }
-  }, [formData.startDate, formData.endDate])
+  }, [formData.startDate, formData.endDate]);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (formData.items.length === 0) {
-      alert("Adicione pelo menos um equipamento ao contrato")
-      return
+      alert('Adicione pelo menos um equipamento ao contrato');
+      return;
     }
 
     if (!formData.clientId) {
-      alert("Selecione um cliente")
-      return
+      alert('Selecione um cliente');
+      return;
     }
 
-    const totalValue = formData.items.reduce((sum, item) => sum + item.total, 0)
-    const finalValue = totalValue - formData.discount
+    const totalValue = formData.items.reduce(
+      (sum, item) => sum + item.total,
+      0
+    );
+    const finalValue = totalValue - formData.discount;
 
     onSave({
       ...formData,
@@ -270,24 +303,24 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
       observations: formData.observations,
       ...(rental && { id: rental.id }),
       ...(budgetData && { budgetId: budgetData.budgetId }),
-    })
-    onOpenChange(false)
-  }
+    });
+    onOpenChange(false);
+  };
 
   const handleClientChange = (clientId: string) => {
-    const client = clients.find((c) => c.id === clientId)
+    const client = clients.find(c => c.id === clientId);
     setFormData({
       ...formData,
       clientId,
-      clientName: client?.name || "",
-    })
-  }
+      clientName: client?.name || '',
+    });
+  };
 
   const addEquipment = () => {
     if (selectedEquipment && quantity > 0) {
-      const equipment = equipments.find((e) => e.name === selectedEquipment)
+      const equipment = equipments.find(e => e.name === selectedEquipment);
       if (equipment) {
-        const total = quantity * equipment.dailyRate * days
+        const total = quantity * equipment.dailyRate * days;
         const newItem: RentalItem = {
           id: Date.now().toString(),
           equipmentName: equipment.name,
@@ -295,58 +328,62 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
           dailyRate: equipment.dailyRate,
           days,
           total,
-        }
+        };
 
         setFormData({
           ...formData,
           items: [...formData.items, newItem],
-        })
+        });
 
         // Reset selection
-        setSelectedEquipment("")
-        setQuantity(1)
+        setSelectedEquipment('');
+        setQuantity(1);
       }
     }
-  }
+  };
 
   const removeItem = (itemId: string) => {
     setFormData({
       ...formData,
-      items: formData.items.filter((item) => item.id !== itemId),
-    })
-  }
+      items: formData.items.filter(item => item.id !== itemId),
+    });
+  };
 
   const updateItemQuantity = (itemId: string, newQuantity: number) => {
     setFormData({
       ...formData,
-      items: formData.items.map((item) =>
+      items: formData.items.map(item =>
         item.id === itemId
           ? {
               ...item,
               quantity: newQuantity,
               total: newQuantity * item.dailyRate * days,
             }
-          : item,
+          : item
       ),
-    })
-  }
+    });
+  };
 
-  const totalValue = formData.items.reduce((sum, item) => sum + item.total, 0)
-  const finalValue = totalValue - formData.discount
+  const totalValue = formData.items.reduce((sum, item) => sum + item.total, 0);
+  const finalValue = totalValue - formData.discount;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">
-            {rental ? "Editar Contrato" : budgetData ? "Novo Contrato (Orçamento Aprovado)" : "Novo Contrato"}
+            {rental
+              ? 'Editar Contrato'
+              : budgetData
+                ? 'Novo Contrato (Orçamento Aprovado)'
+                : 'Novo Contrato'}
           </DialogTitle>
           <DialogDescription>
             {rental
-              ? "Faça as alterações necessárias no contrato."
+              ? 'Faça as alterações necessárias no contrato.'
               : budgetData
-                ? "Contrato criado automaticamente a partir do orçamento aprovado."
-                : "Crie um novo contrato de locação."}
+                ? 'Contrato criado automaticamente a partir do orçamento aprovado.'
+                : 'Crie um novo contrato de locação.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -355,7 +392,9 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
             {/* Informações do Cliente */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Informações do Cliente</CardTitle>
+                <CardTitle className="text-lg">
+                  Informações do Cliente
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-2">
@@ -367,10 +406,16 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                     disabled={!!budgetData || loadingClients}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={loadingClients ? "Carregando clientes..." : "Selecione um cliente"} />
+                      <SelectValue
+                        placeholder={
+                          loadingClients
+                            ? 'Carregando clientes...'
+                            : 'Selecione um cliente'
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {clients.map((client) => (
+                      {clients.map(client => (
                         <SelectItem key={client.id} value={client.id}>
                           {client.name}
                         </SelectItem>
@@ -389,7 +434,12 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                   <Input
                     id="installationLocation"
                     value={formData.installationLocation}
-                    onChange={(e) => setFormData({ ...formData, installationLocation: e.target.value })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        installationLocation: e.target.value,
+                      })
+                    }
                     placeholder="Ex: Salão de Festas Villa Real, Rua das Flores, 123"
                   />
                 </div>
@@ -409,7 +459,9 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                       id="startDate"
                       type="date"
                       value={formData.startDate}
-                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      onChange={e =>
+                        setFormData({ ...formData, startDate: e.target.value })
+                      }
                       required
                     />
                   </div>
@@ -419,7 +471,9 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                       id="endDate"
                       type="date"
                       value={formData.endDate}
-                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      onChange={e =>
+                        setFormData({ ...formData, endDate: e.target.value })
+                      }
                       min={formData.startDate}
                       required
                     />
@@ -428,12 +482,19 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="installationTime">Horário de Instalação *</Label>
+                    <Label htmlFor="installationTime">
+                      Horário de Instalação *
+                    </Label>
                     <Input
                       id="installationTime"
                       type="time"
                       value={formData.installationTime}
-                      onChange={(e) => setFormData({ ...formData, installationTime: e.target.value })}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          installationTime: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -443,7 +504,12 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                       id="removalTime"
                       type="time"
                       value={formData.removalTime}
-                      onChange={(e) => setFormData({ ...formData, removalTime: e.target.value })}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          removalTime: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -466,14 +532,14 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                 recurrenceType={formData.recurrenceType}
                 recurrenceInterval={formData.recurrenceInterval}
                 recurrenceEndDate={formData.recurrenceEndDate || undefined}
-                onConfigChange={(config) => {
+                onConfigChange={config => {
                   setFormData({
                     ...formData,
                     isRecurring: config.isRecurring,
                     recurrenceType: config.recurrenceType,
                     recurrenceInterval: config.recurrenceInterval,
-                    recurrenceEndDate: config.recurrenceEndDate || "",
-                  })
+                    recurrenceEndDate: config.recurrenceEndDate || '',
+                  });
                 }}
               />
             )}
@@ -482,7 +548,9 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
             {!budgetData && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Adicionar Equipamentos</CardTitle>
+                  <CardTitle className="text-lg">
+                    Adicionar Equipamentos
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4">
@@ -493,7 +561,7 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                         <Input
                           placeholder="Digite o nome do equipamento ou categoria..."
                           value={equipmentSearch}
-                          onChange={(e) => setEquipmentSearch(e.target.value)}
+                          onChange={e => setEquipmentSearch(e.target.value)}
                           className="pl-10"
                         />
                       </div>
@@ -510,14 +578,19 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                           <SelectTrigger>
                             <SelectValue
                               placeholder={
-                                loadingEquipments ? "Carregando equipamentos..." : "Selecione um equipamento"
+                                loadingEquipments
+                                  ? 'Carregando equipamentos...'
+                                  : 'Selecione um equipamento'
                               }
                             />
                           </SelectTrigger>
                           <SelectContent>
                             {filteredEquipments.length > 0 ? (
-                              filteredEquipments.map((equipment) => (
-                                <SelectItem key={equipment.id} value={equipment.name}>
+                              filteredEquipments.map(equipment => (
+                                <SelectItem
+                                  key={equipment.id}
+                                  value={equipment.name}
+                                >
                                   <div className="flex items-center justify-between w-full">
                                     <span>{equipment.name}</span>
                                     <span className="text-sm text-gray-500 ml-2">
@@ -535,7 +608,8 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                         </Select>
                         {equipmentSearch && (
                           <p className="text-sm text-gray-600">
-                            {filteredEquipments.length} equipamento(s) encontrado(s)
+                            {filteredEquipments.length} equipamento(s)
+                            encontrado(s)
                           </p>
                         )}
                       </div>
@@ -545,21 +619,24 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                           type="number"
                           min="1"
                           value={quantity}
-                          onChange={(e) => setQuantity(Number.parseInt(e.target.value) || 1)}
+                          onChange={e =>
+                            setQuantity(Number.parseInt(e.target.value) || 1)
+                          }
                         />
                       </div>
                     </div>
                   </div>
 
-                  {selectedEquipment && selectedEquipment !== "no-results" && (
+                  {selectedEquipment && selectedEquipment !== 'no-results' && (
                     <div className="bg-gray-50 p-3 rounded-lg">
                       <div className="flex justify-between items-center">
                         <span>Total do item:</span>
                         <span className="font-semibold">
-                          R${" "}
+                          R${' '}
                           {(
                             quantity *
-                            (equipments.find((e) => e.name === selectedEquipment)?.dailyRate || 0) *
+                            (equipments.find(e => e.name === selectedEquipment)
+                              ?.dailyRate || 0) *
                             days
                           ).toFixed(2)}
                         </span>
@@ -570,7 +647,9 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                   <Button
                     type="button"
                     onClick={addEquipment}
-                    disabled={!selectedEquipment || selectedEquipment === "no-results"}
+                    disabled={
+                      !selectedEquipment || selectedEquipment === 'no-results'
+                    }
                     className="w-full bg-transparent"
                     variant="outline"
                   >
@@ -585,16 +664,24 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
             {formData.items.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Equipamentos Selecionados ({formData.items.length})</CardTitle>
+                  <CardTitle className="text-lg">
+                    Equipamentos Selecionados ({formData.items.length})
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {formData.items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    {formData.items.map(item => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
                         <div className="flex-1">
-                          <p className="font-medium text-foreground">{item.equipmentName}</p>
+                          <p className="font-medium text-foreground">
+                            {item.equipmentName}
+                          </p>
                           <p className="text-sm text-gray-600">
-                            R$ {item.dailyRate.toFixed(2)}/dia • {item.days} dia(s)
+                            R$ {item.dailyRate.toFixed(2)}/dia • {item.days}{' '}
+                            dia(s)
                           </p>
                         </div>
                         <div className="flex items-center gap-3">
@@ -604,12 +691,19 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                               type="number"
                               min="1"
                               value={item.quantity}
-                              onChange={(e) => updateItemQuantity(item.id, Number.parseInt(e.target.value) || 1)}
+                              onChange={e =>
+                                updateItemQuantity(
+                                  item.id,
+                                  Number.parseInt(e.target.value) || 1
+                                )
+                              }
                               className="w-16 h-8"
                             />
                           </div>
                           <div className="text-right min-w-0">
-                            <p className="font-semibold">R$ {item.total.toFixed(2)}</p>
+                            <p className="font-semibold">
+                              R$ {item.total.toFixed(2)}
+                            </p>
                           </div>
                           {!budgetData && (
                             <Button
@@ -641,8 +735,11 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                           min="0"
                           max={totalValue}
                           value={formData.discount}
-                          onChange={(e) =>
-                            setFormData({ ...formData, discount: Number.parseFloat(e.target.value) || 0 })
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              discount: Number.parseFloat(e.target.value) || 0,
+                            })
                           }
                           className="w-32"
                         />
@@ -650,7 +747,9 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
                       <Separator />
                       <div className="flex justify-between items-center font-semibold text-lg">
                         <span>Total Final:</span>
-                        <span className="text-primary">R$ {finalValue.toFixed(2)}</span>
+                        <span className="text-primary">
+                          R$ {finalValue.toFixed(2)}
+                        </span>
                       </div>
                       {formData.discount > 0 && (
                         <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
@@ -671,7 +770,9 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
               <CardContent>
                 <Textarea
                   value={formData.observations}
-                  onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, observations: e.target.value })
+                  }
                   placeholder="Informações adicionais sobre o contrato..."
                   rows={4}
                   className="resize-none"
@@ -681,7 +782,12 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={saving}
+            >
               Cancelar
             </Button>
             <Button
@@ -689,11 +795,15 @@ export function RentalForm({ open, onOpenChange, rental, onSave, budgetData, sav
               className="bg-primary hover:bg-primary/90"
               disabled={formData.items.length === 0 || saving}
             >
-              {saving ? "Salvando..." : rental ? "Salvar Alterações" : "Criar Contrato"}
+              {saving
+                ? 'Salvando...'
+                : rental
+                  ? 'Salvar Alterações'
+                  : 'Criar Contrato'}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

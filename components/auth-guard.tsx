@@ -1,26 +1,28 @@
-"use client"
+'use client';
 
-import React, { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '../lib/auth-context'
-import { Skeleton } from '@/components/ui/skeleton'
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../lib/auth-context';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface AuthGuardProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { user, loading } = useAuth()
-  const router = useRouter()
-  const [hasCheckedOnce, setHasCheckedOnce] = React.useState(false)
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const [hasCheckedOnce, setHasCheckedOnce] = React.useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
-      console.log('AuthGuard: Usuário não autenticado, redirecionando para login')
-      router.replace('/login')
+      console.log(
+        'AuthGuard: Usuário não autenticado, redirecionando para login'
+      );
+      router.replace('/login');
     }
-    if (!loading) setHasCheckedOnce(true)
-  }, [user, loading])
+    if (!loading) setHasCheckedOnce(true);
+  }, [user, loading]);
 
   if (loading && !hasCheckedOnce) {
     return (
@@ -33,7 +35,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (!user) {
@@ -44,8 +46,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
           <Skeleton className="h-10 w-1/2 mx-auto" />
         </div>
       </div>
-    )
+    );
   }
 
-  return <>{children}</>
-} 
+  return <>{children}</>;
+}

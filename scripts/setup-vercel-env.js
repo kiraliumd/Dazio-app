@@ -16,7 +16,7 @@ const envPath = path.join(process.cwd(), '.env.local');
 if (!fs.existsSync(envPath)) {
   console.log('❌ Arquivo .env.local não encontrado!');
   console.log('📝 Crie o arquivo .env.local com as seguintes variáveis:\n');
-  
+
   const envTemplate = `# Supabase
 NEXT_PUBLIC_SUPABASE_URL=sua_url_do_supabase
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima
@@ -50,7 +50,8 @@ envContent.split('\n').forEach(line => {
 console.log('📋 Variáveis encontradas no .env.local:');
 Object.keys(envVars).forEach(key => {
   const value = envVars[key];
-  const maskedValue = value.length > 10 ? value.substring(0, 10) + '...' : value;
+  const maskedValue =
+    value.length > 10 ? value.substring(0, 10) + '...' : value;
   console.log(`   ${key}: ${maskedValue}`);
 });
 
@@ -72,4 +73,4 @@ console.log('3. Selecione "Supabase"');
 console.log('4. Use a URL do DATABASE_URL acima');
 
 console.log('\n✅ Configuração concluída!');
-console.log('🔄 Faça um novo deploy após configurar as variáveis.'); 
+console.log('🔄 Faça um novo deploy após configurar as variáveis.');

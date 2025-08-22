@@ -1,18 +1,27 @@
-"use client"
+'use client';
 
-import { LogOut } from 'lucide-react'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { LogOut } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface LogoutConfirmationModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onConfirm: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
 }
 
-export function LogoutConfirmationModal({ 
-  open, 
-  onOpenChange, 
-  onConfirm 
+export function LogoutConfirmationModal({
+  open,
+  onOpenChange,
+  onConfirm,
 }: LogoutConfirmationModalProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -22,7 +31,7 @@ export function LogoutConfirmationModal({
             Confirmar Saída
           </AlertDialogTitle>
           <AlertDialogDescription className="text-base text-muted-foreground leading-relaxed">
-            Tem certeza que deseja sair do sistema? 
+            Tem certeza que deseja sair do sistema?
             <br />
             <span className="text-sm text-text-secondary">
               Você será redirecionado para a página de login.
@@ -30,13 +39,11 @@ export function LogoutConfirmationModal({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-col sm:flex-row gap-3">
-          <AlertDialogCancel 
-            className="w-full sm:w-auto order-2 sm:order-1 bg-muted hover:bg-muted/80 text-muted-foreground border-0"
-          >
+          <AlertDialogCancel className="w-full sm:w-auto order-2 sm:order-1 bg-muted hover:bg-muted/80 text-muted-foreground border-0">
             Cancelar
           </AlertDialogCancel>
-          <AlertDialogAction 
-            onClick={onConfirm} 
+          <AlertDialogAction
+            onClick={onConfirm}
             className="w-full sm:w-auto order-1 sm:order-2 bg-orange-600 hover:bg-orange-700 text-white border-0 shadow-sm transition-all duration-200 hover:shadow-md"
           >
             <LogOut className="h-4 w-4 mr-2" />
@@ -45,5 +52,5 @@ export function LogoutConfirmationModal({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  )
+  );
 }

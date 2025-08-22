@@ -9,7 +9,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 async function setupStripePrices() {
   try {
     console.log('🔄 Configurando preços do Stripe para assinaturas...');
-    console.log('🔑 Stripe Key configurada:', process.env.STRIPE_SECRET_KEY ? 'Sim' : 'Não');
+    console.log(
+      '🔑 Stripe Key configurada:',
+      process.env.STRIPE_SECRET_KEY ? 'Sim' : 'Não'
+    );
 
     // Produtos já criados
     const monthlyProductId = 'prod_SrUYOa3o1QVx5R';
@@ -44,7 +47,7 @@ async function setupStripePrices() {
       monthlyProductId: monthlyProductId,
       annualProductId: annualProductId,
       monthlyPriceId: monthlyPrice.id,
-      annualPriceId: annualPrice.id
+      annualPriceId: annualPrice.id,
     };
 
     console.log('\n🎯 Configuração atualizada:');
@@ -57,7 +60,6 @@ async function setupStripePrices() {
     console.log(JSON.stringify(config, null, 2));
 
     return config;
-
   } catch (error) {
     console.error('❌ Erro ao configurar preços:', error);
     throw error;
@@ -71,10 +73,10 @@ if (require.main === module) {
       console.log('\n✅ Script executado com sucesso!');
       process.exit(0);
     })
-    .catch((error) => {
+    .catch(error => {
       console.error('\n❌ Script falhou:', error);
       process.exit(1);
     });
 }
 
-module.exports = { setupStripePrices }; 
+module.exports = { setupStripePrices };

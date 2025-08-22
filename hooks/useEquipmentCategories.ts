@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getActiveEquipmentCategories, type EquipmentCategory } from '@/lib/database/equipment-categories';
+import {
+  getActiveEquipmentCategories,
+  type EquipmentCategory,
+} from '@/lib/database/equipment-categories';
 
 export function useEquipmentCategories() {
   const [categories, setCategories] = useState<EquipmentCategory[]>([]);
@@ -12,24 +15,24 @@ export function useEquipmentCategories() {
     try {
       // Cancelar requisição anterior se existir
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
+        abortControllerRef.current.abort();
       }
 
       // Criar novo controller para esta requisição
-      abortControllerRef.current = new AbortController()
+      abortControllerRef.current = new AbortController();
 
       setLoading(true);
       setError(null);
       const data = await getActiveEquipmentCategories();
-      
-      if (abortControllerRef.current.signal.aborted) return
-      
+
+      if (abortControllerRef.current.signal.aborted) return;
+
       setCategories(data);
       setHasLoaded(true);
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
-        console.error("Erro ao carregar categorias:", err);
-        setError("Erro ao carregar categorias");
+        console.error('Erro ao carregar categorias:', err);
+        setError('Erro ao carregar categorias');
       }
     } finally {
       if (!abortControllerRef.current?.signal.aborted) {
@@ -65,9 +68,9 @@ export function useEquipmentCategories() {
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
+        abortControllerRef.current.abort();
       }
-    }
+    };
   }, []);
 
   return {
@@ -76,4 +79,4 @@ export function useEquipmentCategories() {
     error,
     refreshCategories,
   };
-} 
+}

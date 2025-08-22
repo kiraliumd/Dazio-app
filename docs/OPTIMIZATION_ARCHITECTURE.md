@@ -7,6 +7,7 @@ Este documento descreve a implementação de uma arquitetura otimizada para redu
 ## 🎯 Problemas Identificados
 
 ### ❌ **Antes da Otimização:**
+
 - **Chamadas desnecessárias**: Cada interação do usuário gerava novas consultas ao banco
 - **Sem cache**: Dados eram buscados repetidamente mesmo quando não haviam mudado
 - **Performance degradada**: Sobrecarga no banco de dados e latência na interface
@@ -18,6 +19,7 @@ Este documento descreve a implementação de uma arquitetura otimizada para redu
 ### 1. **Sistema de Cache em Múltiplas Camadas com Invalidação Automática**
 
 #### **Camada 1: Cache em Memória (DataService)**
+
 - Cache em memória usando `Map` para dados frequentemente acessados
 - TTL (Time To Live) configurável por tipo de dados
 - Invalidação automática baseada em tempo
@@ -25,6 +27,7 @@ Este documento descreve a implementação de uma arquitetura otimizada para redu
 - **NOVO**: Sistema de notificações para mudanças de dados
 
 #### **Camada 2: Cache de Contexto (DataCacheContext)**
+
 - Cache persistente no `localStorage`
 - Sincronização entre abas do navegador
 - TTL específicos por tipo de dados
@@ -32,6 +35,7 @@ Este documento descreve a implementação de uma arquitetura otimizada para redu
 - **NOVO**: Sistema de notificações em tempo real para mudanças
 
 #### **Camada 3: Cache de Hooks (useOptimizedData)**
+
 - Cache local por componente
 - Cancelamento de requisições duplicadas
 - Auto-refresh configurável
@@ -45,11 +49,11 @@ Este documento descreve a implementação de uma arquitetura otimizada para redu
 export class DataService {
   notifyDataChange(dataType: 'budgets', operation: 'create') {
     // Invalidar cache local
-    this.invalidateCacheByType(dataType)
-    
+    this.invalidateCacheByType(dataType);
+
     // Notificar contexto para sincronização global
     if (this.cacheContext?.notifyDataChange) {
-      this.cacheContext.notifyDataChange(dataType, operation)
+      this.cacheContext.notifyDataChange(dataType, operation);
     }
   }
 }
@@ -57,11 +61,11 @@ export class DataService {
 // DataCacheContext - Sistema de subscribers
 const notifyDataChange = (dataType, operation) => {
   // Invalidar cache imediatamente
-  invalidateCache(dataType)
-  
+  invalidateCache(dataType);
+
   // Notificar todos os subscribers
-  changeSubscribers.forEach(callback => callback(dataType, operation))
-}
+  changeSubscribers.forEach(callback => callback(dataType, operation));
+};
 ```
 
 ### 3. **Hooks Otimizados com Atualização Automática**
@@ -70,18 +74,18 @@ const notifyDataChange = (dataType, operation) => {
 // Hook com inscrição automática em mudanças
 export function useBudgets(limit?: number, options?: UseOptimizedDataOptions) {
   // ... lógica existente ...
-  
+
   // Inscrever-se nas mudanças de dados
   useEffect(() => {
     const unsubscribe = subscribeToChanges((changedDataType, operation) => {
       if (changedDataType === 'budgets') {
-        console.log('🔄 Orçamentos mudaram, atualizando automaticamente')
-        fetchData(true) // Forçar refresh
+        console.log('🔄 Orçamentos mudaram, atualizando automaticamente');
+        fetchData(true); // Forçar refresh
       }
-    })
-    
-    return unsubscribe
-  }, [])
+    });
+
+    return unsubscribe;
+  }, []);
 }
 ```
 
@@ -91,10 +95,10 @@ export function useBudgets(limit?: number, options?: UseOptimizedDataOptions) {
 // Funções de banco com notificações automáticas
 export async function createBudget(budget, items) {
   // ... lógica de criação ...
-  
+
   // Notificar mudança para invalidar cache
   dataService.notifyDataChange('budgets', 'create')
-  
+
   return result
 }
 
@@ -105,7 +109,7 @@ export function useBudgetsWithCRUD() {
     // Cache invalidado automaticamente!
     return result
   }
-  
+
   return { createBudget, updateBudget, deleteBudget, ... }
 }
 ```
@@ -134,16 +138,17 @@ export function useBudgetsWithCRUD() {
 
 ## ⚡ **Configurações de TTL (Time To Live)**
 
-| Tipo de Dados | TTL Padrão | Justificativa |
-|---------------|------------|---------------|
-| **Clientes** | 10 minutos | Dados relativamente estáticos |
+| Tipo de Dados    | TTL Padrão | Justificativa                          |
+| ---------------- | ---------- | -------------------------------------- |
+| **Clientes**     | 10 minutos | Dados relativamente estáticos          |
 | **Equipamentos** | 15 minutos | Catálogo que muda com menos frequência |
-| **Orçamentos** | 2 minutos | Dados que podem mudar rapidamente |
-| **Locações** | 2 minutos | Status pode mudar frequentemente |
+| **Orçamentos**   | 2 minutos  | Dados que podem mudar rapidamente      |
+| **Locações**     | 2 minutos  | Status pode mudar frequentemente       |
 
 ## 🔧 **Funcionalidades Implementadas**
 
 ### **Cache Inteligente com Invalidação Automática**
+
 - ✅ Verificação automática de validade
 - ✅ Invalidação seletiva por categoria
 - ✅ Persistência entre sessões
@@ -152,6 +157,7 @@ export function useBudgetsWithCRUD() {
 - ✅ **NOVO**: Sistema de notificações em tempo real
 
 ### **Otimizações de Performance**
+
 - ✅ Cancelamento de requisições duplicadas
 - ✅ Debounce automático para operações repetitivas
 - ✅ Lazy loading de dados
@@ -159,6 +165,7 @@ export function useBudgetsWithCRUD() {
 - ✅ **NOVO**: Atualização automática quando dados mudam
 
 ### **Gerenciamento de Estado**
+
 - ✅ Estados de loading centralizados
 - ✅ Tratamento de erros consistente
 - ✅ Refresh forçado quando necessário
@@ -168,68 +175,74 @@ export function useBudgetsWithCRUD() {
 ## 📊 **Impacto na Performance**
 
 ### **Redução de Chamadas ao Banco**
+
 - **Antes**: 3-5 chamadas por interação do usuário
 - **Depois**: 0-1 chamada por interação (dados em cache)
 
 ### **Melhoria na Latência**
+
 - **Antes**: 200-500ms por operação
 - **Depois**: 10-50ms para dados em cache
 
 ### **Redução na Carga do Banco**
+
 - **Antes**: 100% das consultas iam para o banco
 - **Depois**: ~20% das consultas vão para o banco
 
 ### **Atualização em Tempo Real**
+
 - **Antes**: Dados só apareciam após refresh manual
 - **Depois**: Dados aparecem imediatamente após operações CRUD
 
 ## 🎯 **Exemplo Prático: Sistema de Orçamentos**
 
 ### **Antes (Problema Original):**
+
 ```typescript
 // ❌ PROBLEMA: Usuário cria orçamento, mas não aparece na lista
 function BudgetsPage() {
-  const [budgets, setBudgets] = useState([])
-  
+  const [budgets, setBudgets] = useState([]);
+
   const handleCreateBudget = async () => {
-    await createBudget(data, items)
+    await createBudget(data, items);
     // ❌ Cache não é invalidado
     // ❌ Lista não é atualizada
     // ❌ Usuário precisa dar refresh na página
-  }
+  };
 }
 ```
 
 ### **Depois (Solução Implementada):**
+
 ```typescript
 // ✅ SOLUÇÃO: Hook especializado com invalidação automática
 function BudgetsPage() {
-  const { 
-    data: budgets, 
-    loading, 
-    createBudget, 
-    updateBudget, 
-    deleteBudget 
-  } = useBudgetsWithCRUD(50)
-  
+  const {
+    data: budgets,
+    loading,
+    createBudget,
+    updateBudget,
+    deleteBudget,
+  } = useBudgetsWithCRUD(50);
+
   const handleCreateBudget = async () => {
-    await createBudget(data, items)
+    await createBudget(data, items);
     // ✅ Cache invalidado automaticamente
     // ✅ Lista atualizada em tempo real
     // ✅ Novo orçamento aparece imediatamente
-  }
-  
+  };
+
   const handleUpdateBudget = async (id, data, items) => {
-    await updateBudget(id, data, items)
+    await updateBudget(id, data, items);
     // ✅ Cache invalidado automaticamente
     // ✅ Alterações refletidas imediatamente
-  }
-  
-  const handleDeleteBudget = async (id) => {
-    await deleteBudget(id)
+  };
+
+  const handleDeleteBudget = async id => {
+    await deleteBudget(id);
     // ✅ Cache invalidado automaticamente
     // ✅ Orçamento removido da lista imediatamente
-  }
+  };
 }
 ```
 
@@ -245,6 +258,7 @@ function BudgetsPage() {
 8. **Lista é atualizada** → Novo orçamento aparece imediatamente
 
 ### **Logs de Debug:**
+
 ```
 🔄 DataService: Notificando mudança em budgets (create)
 🗑️ DataService: Cache de budgets invalidado localmente
@@ -259,6 +273,7 @@ function BudgetsPage() {
 ## 🚀 **Como Usar**
 
 ### **1. Configuração Básica**
+
 ```typescript
 // O provider já está configurado no layout raiz
 import { DataCacheProvider } from '@/lib/contexts/data-cache-context'
@@ -270,34 +285,36 @@ import { DataCacheProvider } from '@/lib/contexts/data-cache-context'
 ```
 
 ### **2. Uso nos Componentes com Hook Especializado**
+
 ```typescript
-import { useBudgetsWithCRUD } from '@/lib/hooks/use-optimized-data'
+import { useBudgetsWithCRUD } from '@/lib/hooks/use-optimized-data';
 
 function BudgetsPage() {
-  const { 
-    data: budgets, 
-    loading, 
-    error, 
-    createBudget, 
-    updateBudget, 
-    deleteBudget 
-  } = useBudgetsWithCRUD(50)
-  
+  const {
+    data: budgets,
+    loading,
+    error,
+    createBudget,
+    updateBudget,
+    deleteBudget,
+  } = useBudgetsWithCRUD(50);
+
   const handleCreate = async () => {
-    await createBudget(budgetData, items)
+    await createBudget(budgetData, items);
     // Cache invalidado automaticamente!
     // Dados aparecem imediatamente na lista
-  }
+  };
 }
 ```
 
 ### **3. Uso Tradicional com Atualização Automática**
+
 ```typescript
-import { useBudgets } from '@/lib/hooks/use-optimized-data'
+import { useBudgets } from '@/lib/hooks/use-optimized-data';
 
 function MyComponent() {
-  const { data, loading } = useBudgets(50)
-  
+  const { data, loading } = useBudgets(50);
+
   // Dados são carregados automaticamente e cacheados
   // Quando outros componentes criam/editam/excluem orçamentos,
   // esta lista é atualizada automaticamente
@@ -305,19 +322,21 @@ function MyComponent() {
 ```
 
 ### **4. Opções Avançadas**
+
 ```typescript
 const { data, loading } = useBudgets(50, {
-  useCache: true,           // Habilitar cache (padrão)
-  forceRefresh: false,      // Forçar refresh
-  ttl: 5 * 60 * 1000,      // TTL personalizado (5 min)
-  autoRefresh: true,        // Auto-refresh
-  refreshInterval: 30000,   // A cada 30 segundos
-})
+  useCache: true, // Habilitar cache (padrão)
+  forceRefresh: false, // Forçar refresh
+  ttl: 5 * 60 * 1000, // TTL personalizado (5 min)
+  autoRefresh: true, // Auto-refresh
+  refreshInterval: 30000, // A cada 30 segundos
+});
 ```
 
 ## 🔄 **Invalidação de Cache**
 
 ### **Automática (NOVO)**
+
 - Por tempo (TTL)
 - Por mudança de empresa/usuário
 - Por logout
@@ -325,20 +344,22 @@ const { data, loading } = useBudgets(50, {
 - **Por notificações do DataService**
 
 ### **Manual**
+
 ```typescript
-import { dataService } from '@/lib/services/data-service'
+import { dataService } from '@/lib/services/data-service';
 
 // Invalidar cache específico
-dataService.invalidateBudgetsCache()
-dataService.invalidateClientsCache()
+dataService.invalidateBudgetsCache();
+dataService.invalidateClientsCache();
 
 // Limpar todo o cache
-dataService.clearCache()
+dataService.clearCache();
 ```
 
 ## 📈 **Benefícios da Arquitetura Atualizada**
 
 ### **Escalabilidade**
+
 - ✅ Reduz carga no banco de dados
 - ✅ Melhora performance com mais usuários
 - ✅ Cache distribuído por empresa/usuário
@@ -346,6 +367,7 @@ dataService.clearCache()
 - ✅ **Sincronização automática entre usuários**
 
 ### **Manutenibilidade**
+
 - ✅ Separação clara de responsabilidades
 - ✅ Código reutilizável e testável
 - ✅ Padrões consistentes em todo o sistema
@@ -353,6 +375,7 @@ dataService.clearCache()
 - ✅ **Sistema de notificações centralizado**
 
 ### **Performance**
+
 - ✅ Interface mais responsiva
 - ✅ Menos tempo de espera para o usuário
 - ✅ Redução de custos de infraestrutura
@@ -360,6 +383,7 @@ dataService.clearCache()
 - ✅ **Dados sempre atualizados em tempo real**
 
 ### **Experiência do Usuário**
+
 - ✅ **Novos orçamentos aparecem imediatamente**
 - ✅ **Edições são refletidas em tempo real**
 - ✅ **Exclusões são sincronizadas automaticamente**
@@ -368,26 +392,31 @@ dataService.clearCache()
 ## 🧪 **Testes e Monitoramento**
 
 ### **Logs de Performance e Notificações**
+
 ```typescript
 // Logs automáticos para monitoramento
-console.log('📦 DataService: Orçamentos carregados do cache')
-console.log('🗄️ DataService: Orçamentos carregados do banco')
-console.log('🗑️ DataService: Cache de orçamentos invalidado')
-console.log('🔄 DataService: Notificando mudança em budgets (create)')
-console.log('🔄 DataCacheContext: Recebendo notificação do DataService')
-console.log('🔄 useOptimizedData: budgets mudou (create), atualizando automaticamente')
+console.log('📦 DataService: Orçamentos carregados do cache');
+console.log('🗄️ DataService: Orçamentos carregados do banco');
+console.log('🗑️ DataService: Cache de orçamentos invalidado');
+console.log('🔄 DataService: Notificando mudança em budgets (create)');
+console.log('🔄 DataCacheContext: Recebendo notificação do DataService');
+console.log(
+  '🔄 useOptimizedData: budgets mudou (create), atualizando automaticamente'
+);
 ```
 
 ### **Estatísticas do Cache**
+
 ```typescript
-const stats = dataService.getCacheStats()
-console.log('Cache size:', stats.size)
-console.log('Cache keys:', stats.keys)
+const stats = dataService.getCacheStats();
+console.log('Cache size:', stats.size);
+console.log('Cache keys:', stats.keys);
 ```
 
 ## 🔮 **Próximos Passos**
 
 ### **Curto Prazo**
+
 - [x] ✅ Implementar sistema de notificações em tempo real
 - [x] ✅ Adicionar invalidação automática após operações CRUD
 - [x] ✅ Criar hooks especializados com operações integradas
@@ -395,12 +424,14 @@ console.log('Cache keys:', stats.keys)
 - [ ] Adicionar métricas de performance
 
 ### **Médio Prazo**
+
 - [ ] Implementar cache distribuído (Redis)
 - [ ] Adicionar invalidação por eventos de banco
 - [ ] Implementar prefetching inteligente
 - [ ] Sistema de websockets para atualizações em tempo real
 
 ### **Longo Prazo**
+
 - [ ] Cache híbrido (memória + Redis + CDN)
 - [ ] Machine learning para otimização de TTL
 - [ ] Cache adaptativo baseado no comportamento do usuário
@@ -428,8 +459,9 @@ A implementação desta arquitetura de otimização com sistema de notificaçõe
 - **Cache sempre atualizado** sem necessidade de refresh manual
 
 ### **Problema Resolvido:**
+
 ✅ **Antes**: Novos orçamentos só apareciam após refresh da página  
-✅ **Depois**: Novos orçamentos aparecem imediatamente na lista  
+✅ **Depois**: Novos orçamentos aparecem imediatamente na lista
 
 Esta solução segue as melhores práticas de arquitetura de software, implementa um sistema de cache inteligente com invalidação automática, e estabelece uma base sólida para futuras otimizações e expansões do sistema.
 
@@ -440,6 +472,7 @@ Esta solução segue as melhores práticas de arquitetura de software, implement
 ### Problema Identificado
 
 O projeto estava apresentando um loop infinito de chamadas para `getCurrentUserCompanyId`, causando:
+
 - Sobrecarga no console com logs repetitivos
 - Performance degradada
 - Possível travamento da aplicação
@@ -458,20 +491,26 @@ O projeto estava apresentando um loop infinito de chamadas para `getCurrentUserC
 ```typescript
 // Cache para evitar chamadas repetidas
 let companyIdCache: {
-  id: string | null
-  timestamp: number
-  ttl: number
-} | null = null
+  id: string | null;
+  timestamp: number;
+  ttl: number;
+} | null = null;
 
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutos
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
 export async function getCurrentUserCompanyId(): Promise<string | null> {
   // Verificar cache primeiro
-  if (companyIdCache && Date.now() - companyIdCache.timestamp < companyIdCache.ttl) {
-    console.log('🔍 getCurrentUserCompanyId: Usando cache, ID:', companyIdCache.id)
-    return companyIdCache.id
+  if (
+    companyIdCache &&
+    Date.now() - companyIdCache.timestamp < companyIdCache.ttl
+  ) {
+    console.log(
+      '🔍 getCurrentUserCompanyId: Usando cache, ID:',
+      companyIdCache.id
+    );
+    return companyIdCache.id;
   }
-  
+
   // ... resto da lógica
 }
 ```
@@ -480,47 +519,49 @@ export async function getCurrentUserCompanyId(): Promise<string | null> {
 
 ```typescript
 const signOut = async () => {
-  console.log('AuthContext: Fazendo logout')
-  
+  console.log('AuthContext: Fazendo logout');
+
   // Limpar cache do company_id antes do logout
-  clearCompanyIdCache()
-  
-  await supabase.auth.signOut()
+  clearCompanyIdCache();
+
+  await supabase.auth.signOut();
   // ... resto da lógica
-}
+};
 ```
 
 #### 3. Correção de Dependências em Hooks
 
 **Antes (problemático):**
+
 ```typescript
 useEffect(() => {
   if (!companyName && user) {
-    refreshCompanyName()
+    refreshCompanyName();
   }
-}, [companyName, user, refreshCompanyName]) // Dependências causavam loops
+}, [companyName, user, refreshCompanyName]); // Dependências causavam loops
 ```
 
 **Depois (corrigido):**
+
 ```typescript
 useEffect(() => {
   if (!companyName && user) {
-    refreshCompanyName()
+    refreshCompanyName();
   }
-}, [user]) // Apenas user como dependência
+}, [user]); // Apenas user como dependência
 ```
 
 #### 4. Prevenção de Carregamentos Múltiplos
 
 ```typescript
-const [hasLoadedCompanyInfo, setHasLoadedCompanyInfo] = useState(false)
+const [hasLoadedCompanyInfo, setHasLoadedCompanyInfo] = useState(false);
 
 useEffect(() => {
   if (user && !hasLoadedCompanyInfo) {
-    loadCompanyInfo()
-    setHasLoadedCompanyInfo(true)
+    loadCompanyInfo();
+    setHasLoadedCompanyInfo(true);
   }
-}, [user, hasLoadedCompanyInfo])
+}, [user, hasLoadedCompanyInfo]);
 ```
 
 ### Arquivos Modificados
@@ -577,9 +618,9 @@ Para verificar se as correções funcionaram:
 
 ```typescript
 interface CompanyIdCache {
-  id: string | null
-  timestamp: number
-  ttl: number
+  id: string | null;
+  timestamp: number;
+  ttl: number;
 }
 
 // TTL: 5 minutos para resultados positivos
@@ -590,9 +631,9 @@ interface CompanyIdCache {
 
 ```typescript
 interface CompanyNameCache {
-  name: string
-  lastFetch: number
-  ttl: number // 10 minutos
+  name: string;
+  lastFetch: number;
+  ttl: number; // 10 minutos
 }
 ```
 
@@ -617,21 +658,22 @@ interface CompanyNameCache {
 
 ```typescript
 export function useOptimizedHook() {
-  const [data, setData] = useState(null)
-  const [hasLoaded, setHasLoaded] = useState(false)
+  const [data, setData] = useState(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
     if (!hasLoaded) {
-      loadData()
-      setHasLoaded(true)
+      loadData();
+      setHasLoaded(true);
     }
-  }, [hasLoaded])
+  }, [hasLoaded]);
 
   // ... resto da lógica
 }
 ```
 
 Esta abordagem garante que:
+
 - Os dados sejam carregados apenas uma vez
 - Não haja loops infinitos
 - O hook seja eficiente e previsível

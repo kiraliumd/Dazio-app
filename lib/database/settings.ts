@@ -1,5 +1,5 @@
-import { supabase } from "../supabase";
-import { getCurrentUserCompanyId } from "./client-utils";
+import { supabase } from '../supabase';
+import { getCurrentUserCompanyId } from './client-utils';
 
 // Define a interface para os dados de configuração da empresa
 export interface CompanySettings {
@@ -25,26 +25,29 @@ export async function getCompanySettings(): Promise<CompanySettings> {
   }
 
   const { data, error } = await supabase
-    .from("company_profiles")
-    .select("company_name, cnpj, address, phone, email, website, contract_template")
+    .from('company_profiles')
+    .select(
+      'company_name, cnpj, address, phone, email, website, contract_template'
+    )
     .eq('id', companyId)
     .single();
 
-  if (error && error.code !== "PGRST116") { // PGRST116: a consulta não retornou linhas
-    console.error("Erro ao buscar configurações da empresa:", error);
+  if (error && error.code !== 'PGRST116') {
+    // PGRST116: a consulta não retornou linhas
+    console.error('Erro ao buscar configurações da empresa:', error);
     throw error;
   }
 
   // Se não houver dados (tabela vazia), retorna um objeto padrão
   if (!data) {
     return {
-      company_name: "",
-      cnpj: "",
-      address: "",
-      phone: "",
-      email: "",
-      website: "",
-      contract_template: "",
+      company_name: '',
+      cnpj: '',
+      address: '',
+      phone: '',
+      email: '',
+      website: '',
+      contract_template: '',
     };
   }
 
@@ -57,7 +60,7 @@ export async function getCompanySettings(): Promise<CompanySettings> {
  * @returns {Promise<CompanySettings>}
  */
 export async function updateCompanySettings(
-  settings: Omit<CompanySettings, "id" | "updated_at">
+  settings: Omit<CompanySettings, 'id' | 'updated_at'>
 ): Promise<CompanySettings> {
   const companyId = await getCurrentUserCompanyId();
   if (!companyId) {
@@ -65,14 +68,16 @@ export async function updateCompanySettings(
   }
 
   const { data, error } = await supabase
-    .from("company_profiles")
+    .from('company_profiles')
     .update(settings)
     .eq('id', companyId)
-    .select("company_name, cnpj, address, phone, email, website, contract_template")
+    .select(
+      'company_name, cnpj, address, phone, email, website, contract_template'
+    )
     .single();
 
   if (error) {
-    console.error("Erro ao atualizar configurações da empresa:", error);
+    console.error('Erro ao atualizar configurações da empresa:', error);
     throw error;
   }
 

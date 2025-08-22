@@ -1,4 +1,4 @@
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -8,8 +8,11 @@ import { NextResponse } from 'next/server';
 export async function POST() {
   try {
     const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
@@ -37,13 +40,14 @@ export async function POST() {
 
       if (userProfile?.company_id) {
         // Buscar assinatura por company_id
-        const { data: companySubscription, error: companySubError } = await adminSupabase
-          .from('subscriptions')
-          .select('stripe_customer_id, stripe_subscription_id, status')
-          .eq('company_id', userProfile.company_id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+        const { data: companySubscription, error: companySubError } =
+          await adminSupabase
+            .from('subscriptions')
+            .select('stripe_customer_id, stripe_subscription_id, status')
+            .eq('company_id', userProfile.company_id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
 
         if (companySubscription?.stripe_customer_id) {
           subscription = companySubscription;
@@ -53,7 +57,10 @@ export async function POST() {
     }
 
     if (subError || !subscription?.stripe_customer_id) {
-      return NextResponse.json({ error: 'Assinatura não encontrada' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Assinatura não encontrada' },
+        { status: 404 }
+      );
     }
 
     // Criar sessão do portal do cliente
@@ -62,12 +69,15 @@ export async function POST() {
       `${process.env.NEXT_PUBLIC_APP_URL}/assinatura-gestao`
     );
 
-    return NextResponse.json({ 
-      success: true, 
-      url: session.url 
+    return NextResponse.json({
+      success: true,
+      url: session.url,
     });
   } catch (error) {
     console.error('Erro ao criar portal do cliente:', error);
-    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500 }
+    );
   }
-} 
+}

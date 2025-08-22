@@ -36,4 +36,4 @@ export async function createClient() {
     console.error('Erro ao criar cliente Supabase do servidor:', error);
     throw error;
   }
-} 
+}

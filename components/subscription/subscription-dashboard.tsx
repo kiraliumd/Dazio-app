@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import { Subscription } from '@/lib/subscription/types';
-import { cancelSubscription, getCustomerPortalUrl } from '@/lib/subscription/actions';
+import {
+  cancelSubscription,
+  getCustomerPortalUrl,
+} from '@/lib/subscription/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +18,9 @@ interface SubscriptionDashboardProps {
   subscription: Subscription;
 }
 
-export function SubscriptionDashboard({ subscription }: SubscriptionDashboardProps) {
+export function SubscriptionDashboard({
+  subscription,
+}: SubscriptionDashboardProps) {
   const [loading, setLoading] = useState(false);
 
   const handleCancel = async () => {
@@ -26,7 +31,9 @@ export function SubscriptionDashboard({ subscription }: SubscriptionDashboardPro
     try {
       setLoading(true);
       await cancelSubscription();
-      toast.success('Assinatura cancelada com sucesso. Você terá acesso até o final do período atual.');
+      toast.success(
+        'Assinatura cancelada com sucesso. Você terá acesso até o final do período atual.'
+      );
       window.location.reload();
     } catch (error) {
       console.error('Erro ao cancelar assinatura:', error);
@@ -82,7 +89,7 @@ export function SubscriptionDashboard({ subscription }: SubscriptionDashboardPro
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'BRL'
+      currency: 'BRL',
     }).format(amount / 100);
   };
 
@@ -113,18 +120,20 @@ export function SubscriptionDashboard({ subscription }: SubscriptionDashboardPro
                     {getStatusText(subscription.status)}
                   </Badge>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Plano:</span>
                   <span className="font-medium">
                     {subscription.plan_type === 'monthly' ? 'Mensal' : 'Anual'}
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Valor:</span>
                   <span className="font-medium">
-                    {subscription.plan_type === 'monthly' ? 'R$ 97,90' : 'R$ 979,00'}
+                    {subscription.plan_type === 'monthly'
+                      ? 'R$ 97,90'
+                      : 'R$ 979,00'}
                   </span>
                 </div>
               </div>
@@ -141,22 +150,33 @@ export function SubscriptionDashboard({ subscription }: SubscriptionDashboardPro
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {subscription.trial_end && new Date(subscription.trial_end) > new Date() ? (
+                {subscription.trial_end &&
+                new Date(subscription.trial_end) > new Date() ? (
                   <div>
-                    <p className="text-sm text-gray-600 mb-2">Período de teste termina em:</p>
+                    <p className="text-sm text-gray-600 mb-2">
+                      Período de teste termina em:
+                    </p>
                     <p className="font-medium text-lg">
-                      {format(new Date(subscription.trial_end), 'dd/MM/yyyy', { locale: ptBR })}
+                      {format(new Date(subscription.trial_end), 'dd/MM/yyyy', {
+                        locale: ptBR,
+                      })}
                     </p>
                   </div>
                 ) : (
                   <div>
-                    <p className="text-sm text-gray-600 mb-2">Próxima cobrança:</p>
+                    <p className="text-sm text-gray-600 mb-2">
+                      Próxima cobrança:
+                    </p>
                     <p className="font-medium text-lg">
-                      {format(new Date(subscription.current_period_end), 'dd/MM/yyyy', { locale: ptBR })}
+                      {format(
+                        new Date(subscription.current_period_end),
+                        'dd/MM/yyyy',
+                        { locale: ptBR }
+                      )}
                     </p>
                   </div>
                 )}
-                
+
                 {subscription.cancel_at_period_end && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                     <div className="flex items-center">
@@ -181,7 +201,7 @@ export function SubscriptionDashboard({ subscription }: SubscriptionDashboardPro
           >
             Gerenciar Pagamentos
           </Button>
-          
+
           {!subscription.cancel_at_period_end && (
             <Button
               onClick={handleCancel}
@@ -199,12 +219,16 @@ export function SubscriptionDashboard({ subscription }: SubscriptionDashboardPro
           <h3 className="font-semibold mb-4">Informações Importantes</h3>
           <ul className="space-y-2 text-sm text-gray-600">
             <li>• Você pode cancelar sua assinatura a qualquer momento</li>
-            <li>• O acesso ao sistema será mantido até o final do período atual</li>
+            <li>
+              • O acesso ao sistema será mantido até o final do período atual
+            </li>
             <li>• Para dúvidas sobre pagamentos, entre em contato conosco</li>
-            <li>• Todas as atualizações do sistema estão incluídas no seu plano</li>
+            <li>
+              • Todas as atualizações do sistema estão incluídas no seu plano
+            </li>
           </ul>
         </div>
       </div>
     </div>
   );
-} 
+}

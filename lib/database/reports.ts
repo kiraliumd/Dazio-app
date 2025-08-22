@@ -1,84 +1,88 @@
-import { supabase } from "../supabase"
-import { getCurrentUserCompanyId } from "./client-utils"
+import { supabase } from '../supabase';
+import { getCurrentUserCompanyId } from './client-utils';
 
 interface RentalItem {
-  equipment_name: string
-  quantity: number
+  equipment_name: string;
+  quantity: number;
 }
 
 interface RentalData {
-  id: string
-  client_name: string
-  start_date: string
-  end_date: string
-  event_start_date?: string
-  event_end_date?: string
-  final_value: number
-  status: string
-  rental_items: RentalItem[]
+  id: string;
+  client_name: string;
+  start_date: string;
+  end_date: string;
+  event_start_date?: string;
+  event_end_date?: string;
+  final_value: number;
+  status: string;
+  rental_items: RentalItem[];
 }
 
 interface BudgetData {
-  id: string
-  client_name: string
-  created_at: string
-  total_value: number
-  status: string
+  id: string;
+  client_name: string;
+  created_at: string;
+  total_value: number;
+  status: string;
 }
 
 export interface ReportFilters {
-  startDate: string
-  endDate: string
-  status?: string
+  startDate: string;
+  endDate: string;
+  status?: string;
 }
 
 export interface RentalReport {
-  id: string
-  clientName: string
-  startDate: string
-  endDate: string
-  finalValue: number
-  status: string
+  id: string;
+  clientName: string;
+  startDate: string;
+  endDate: string;
+  finalValue: number;
+  status: string;
   items: {
-    equipmentName: string
-    quantity: number
-  }[]
+    equipmentName: string;
+    quantity: number;
+  }[];
 }
 
 export interface BudgetReport {
-  id: string
-  number: string
-  clientName: string
-  createdAt: string
-  totalValue: number
-  status: string
+  id: string;
+  number: string;
+  clientName: string;
+  createdAt: string;
+  totalValue: number;
+  status: string;
 }
 
 // Buscar locações para relatórios
-export async function getRentalsForReports(filters: ReportFilters): Promise<RentalReport[]> {
+export async function getRentalsForReports(
+  filters: ReportFilters
+): Promise<RentalReport[]> {
   try {
-    const companyId = await getCurrentUserCompanyId()
-    
+    const companyId = await getCurrentUserCompanyId();
+
     if (!companyId) {
-      console.error('❌ getRentalsForReports: Company ID não encontrado')
-      throw new Error('Usuário não autenticado ou empresa não encontrada')
+      console.error('❌ getRentalsForReports: Company ID não encontrado');
+      throw new Error('Usuário não autenticado ou empresa não encontrada');
     }
 
     const { data, error } = await supabase
-      .from("rentals")
-      .select(`
+      .from('rentals')
+      .select(
+        `
         *,
         rental_items (*)
-      `)
-      .eq("company_id", companyId)
-      .gte("created_at", filters.startDate)
-      .lte("created_at", filters.endDate)
-      .in("status", ["Instalação Pendente", "Concluído"])
-      .order("created_at", { ascending: false })
+      `
+      )
+      .eq('company_id', companyId)
+      .gte('created_at', filters.startDate)
+      .lte('created_at', filters.endDate)
+      .in('status', ['Instalação Pendente', 'Concluído'])
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("Erro ao buscar locações para relatórios:", error)
-      throw error
+      console.error('Erro ao buscar locações para relatórios:', error);
+      throw error;
     }
 
     // Transformar dados para o formato do relatório
@@ -91,38 +95,40 @@ export async function getRentalsForReports(filters: ReportFilters): Promise<Rent
       status: rental.status,
       items: (rental.rental_items || []).map((item: RentalItem) => ({
         equipmentName: item.equipment_name,
-        quantity: item.quantity
-      }))
-    }))
+        quantity: item.quantity,
+      })),
+    }));
 
-    return rentals
+    return rentals;
   } catch (error) {
-    console.error("Erro ao buscar locações para relatórios:", error)
-    return []
+    console.error('Erro ao buscar locações para relatórios:', error);
+    return [];
   }
 }
 
 // Buscar orçamentos para relatórios
-export async function getBudgetsForReports(filters: ReportFilters): Promise<BudgetReport[]> {
+export async function getBudgetsForReports(
+  filters: ReportFilters
+): Promise<BudgetReport[]> {
   try {
-    const companyId = await getCurrentUserCompanyId()
-    
+    const companyId = await getCurrentUserCompanyId();
+
     if (!companyId) {
-      console.error('❌ getBudgetsForReports: Company ID não encontrado')
-      throw new Error('Usuário não autenticado ou empresa não encontrada')
+      console.error('❌ getBudgetsForReports: Company ID não encontrado');
+      throw new Error('Usuário não autenticado ou empresa não encontrada');
     }
 
     const { data, error } = await supabase
-      .from("budgets")
-      .select("*")
-      .eq("company_id", companyId)
-      .gte("created_at", filters.startDate)
-      .lte("created_at", filters.endDate)
-      .order("created_at", { ascending: false })
+      .from('budgets')
+      .select('*')
+      .eq('company_id', companyId)
+      .gte('created_at', filters.startDate)
+      .lte('created_at', filters.endDate)
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("Erro ao buscar orçamentos para relatórios:", error)
-      throw error
+      console.error('Erro ao buscar orçamentos para relatórios:', error);
+      throw error;
     }
 
     // Transformar dados para o formato do relatório
@@ -132,13 +138,13 @@ export async function getBudgetsForReports(filters: ReportFilters): Promise<Budg
       clientName: budget.client_name,
       createdAt: budget.created_at,
       totalValue: budget.total_value,
-      status: budget.status
-    }))
+      status: budget.status,
+    }));
 
-    return budgets
+    return budgets;
   } catch (error) {
-    console.error("Erro ao buscar orçamentos para relatórios:", error)
-    return []
+    console.error('Erro ao buscar orçamentos para relatórios:', error);
+    return [];
   }
 }
 
@@ -146,17 +152,19 @@ export async function getBudgetsForReports(filters: ReportFilters): Promise<Budg
 export async function getAllRentalsForReports(): Promise<RentalReport[]> {
   try {
     const { data, error } = await supabase
-      .from("rentals")
-      .select(`
+      .from('rentals')
+      .select(
+        `
         *,
         rental_items (*)
-      `)
-      .in("status", ["Instalação Pendente", "Concluído"])
-      .order("created_at", { ascending: false })
+      `
+      )
+      .in('status', ['Instalação Pendente', 'Concluído'])
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("Erro ao buscar todas as locações:", error)
-      throw error
+      console.error('Erro ao buscar todas as locações:', error);
+      throw error;
     }
 
     // Transformar dados para o formato do relatório
@@ -169,14 +177,14 @@ export async function getAllRentalsForReports(): Promise<RentalReport[]> {
       status: rental.status,
       items: (rental.rental_items || []).map((item: RentalItem) => ({
         equipmentName: item.equipment_name,
-        quantity: item.quantity
-      }))
-    }))
+        quantity: item.quantity,
+      })),
+    }));
 
-    return rentals
+    return rentals;
   } catch (error) {
-    console.error("Erro ao buscar todas as locações:", error)
-    return []
+    console.error('Erro ao buscar todas as locações:', error);
+    return [];
   }
 }
 
@@ -184,14 +192,14 @@ export async function getAllRentalsForReports(): Promise<RentalReport[]> {
 export async function getAllBudgetsForReports(): Promise<BudgetReport[]> {
   try {
     const { data, error } = await supabase
-      .from("budgets")
-      .select("*")
-      .eq("status", "Aprovado")
-      .order("created_at", { ascending: false })
+      .from('budgets')
+      .select('*')
+      .eq('status', 'Aprovado')
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("Erro ao buscar todos os orçamentos:", error)
-      throw error
+      console.error('Erro ao buscar todos os orçamentos:', error);
+      throw error;
     }
 
     // Transformar dados para o formato do relatório
@@ -200,12 +208,12 @@ export async function getAllBudgetsForReports(): Promise<BudgetReport[]> {
       clientName: budget.client_name,
       createdAt: budget.created_at,
       totalValue: budget.total_value,
-      status: budget.status
-    }))
+      status: budget.status,
+    }));
 
-    return budgets
+    return budgets;
   } catch (error) {
-    console.error("Erro ao buscar todos os orçamentos:", error)
-    return []
+    console.error('Erro ao buscar todos os orçamentos:', error);
+    return [];
   }
-} 
+}

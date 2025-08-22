@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -23,7 +29,7 @@ export default function CreateProfilePage() {
     zip_code: '',
     phone: '',
     website: '',
-    email: ''
+    email: '',
   });
   const router = useRouter();
 
@@ -32,7 +38,9 @@ export default function CreateProfilePage() {
   }, []); // Array vazio para executar apenas uma vez
 
   const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       router.push('/login');
       return;
@@ -67,26 +75,29 @@ export default function CreateProfilePage() {
       { field: 'state', label: 'Estado' },
       { field: 'zip_code', label: 'CEP' },
       { field: 'phone', label: 'Telefone' },
-      { field: 'email', label: 'Email' }
+      { field: 'email', label: 'Email' },
     ];
 
     for (const { field, label } of requiredFields) {
-      if (!formData[field as keyof typeof formData] || formData[field as keyof typeof formData].trim() === '') {
+      if (
+        !formData[field as keyof typeof formData] ||
+        formData[field as keyof typeof formData].trim() === ''
+      ) {
         toast.error(`Campo obrigatório: ${label}`);
         return false;
       }
     }
-    
+
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setLoading(true);
 
     try {
@@ -114,13 +125,25 @@ export default function CreateProfilePage() {
         employee_count: null,
         trial_start: new Date().toISOString(),
         trial_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
-        status: 'trial'
+        status: 'trial',
       };
 
       // Verificar se todos os campos obrigatórios estão preenchidos
-      const requiredFields = ['company_name', 'cnpj', 'address', 'city', 'state', 'zip_code', 'phone', 'email'];
+      const requiredFields = [
+        'company_name',
+        'cnpj',
+        'address',
+        'city',
+        'state',
+        'zip_code',
+        'phone',
+        'email',
+      ];
       for (const field of requiredFields) {
-        if (!profileData[field as keyof typeof profileData] || profileData[field as keyof typeof profileData] === '') {
+        if (
+          !profileData[field as keyof typeof profileData] ||
+          profileData[field as keyof typeof profileData] === ''
+        ) {
           console.error(`❌ Create Profile: Campo obrigatório vazio: ${field}`);
           toast.error(`Campo obrigatório não preenchido: ${field}`);
           return;
@@ -141,7 +164,10 @@ export default function CreateProfilePage() {
         return;
       }
 
-      console.log('✅ Create Profile: Perfil criado com sucesso:', profileResult);
+      console.log(
+        '✅ Create Profile: Perfil criado com sucesso:',
+        profileResult
+      );
 
       // Atualizar template padrão diretamente no profile (já migrado)
       const settingsData = {
@@ -193,7 +219,7 @@ _____________________
 {client_name}
 Contratado
 
-Data: {contract_date}`
+Data: {contract_date}`,
       };
 
       console.log('🔍 Create Profile: Atualizando template no profile...');
@@ -206,8 +232,13 @@ Data: {contract_date}`
         .single();
 
       if (settingsError) {
-        console.error('❌ Create Profile: Erro ao criar configurações:', settingsError);
-        toast.error(`Erro ao criar configurações da empresa: ${settingsError.message}`);
+        console.error(
+          '❌ Create Profile: Erro ao criar configurações:',
+          settingsError
+        );
+        toast.error(
+          `Erro ao criar configurações da empresa: ${settingsError.message}`
+        );
         return;
       }
 
@@ -215,7 +246,6 @@ Data: {contract_date}`
 
       toast.success('Perfil da empresa criado com sucesso!');
       router.push('/');
-
     } catch (error) {
       console.error('❌ Create Profile: Erro inesperado:', error);
       toast.error('Erro inesperado ao criar perfil da empresa');
@@ -249,7 +279,9 @@ Data: {contract_date}`
                 <Input
                   id="company_name"
                   value={formData.company_name}
-                  onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, company_name: e.target.value })
+                  }
                   required
                   placeholder="Digite o nome da sua empresa"
                 />
@@ -260,7 +292,9 @@ Data: {contract_date}`
                 <Input
                   id="cnpj"
                   value={formData.cnpj}
-                  onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, cnpj: e.target.value })
+                  }
                   required
                   placeholder="00.000.000/0000-00"
                 />
@@ -273,7 +307,9 @@ Data: {contract_date}`
                 <Input
                   id="phone"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
                   required
                   placeholder="(11) 99999-9999"
                 />
@@ -285,7 +321,9 @@ Data: {contract_date}`
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   required
                   placeholder="seu@email.com"
                 />
@@ -298,7 +336,9 @@ Data: {contract_date}`
                 <Input
                   id="website"
                   value={formData.website}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, website: e.target.value })
+                  }
                   placeholder="https://www.suaempresa.com.br"
                 />
               </div>
@@ -309,7 +349,9 @@ Data: {contract_date}`
               <Input
                 id="address"
                 value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
                 required
                 placeholder="Rua, número, bairro"
               />
@@ -321,7 +363,9 @@ Data: {contract_date}`
                 <Input
                   id="city"
                   value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, city: e.target.value })
+                  }
                   required
                   placeholder="São Paulo"
                 />
@@ -332,7 +376,9 @@ Data: {contract_date}`
                 <Input
                   id="state"
                   value={formData.state}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, state: e.target.value })
+                  }
                   required
                   placeholder="SP"
                 />
@@ -343,7 +389,9 @@ Data: {contract_date}`
                 <Input
                   id="zip_code"
                   value={formData.zip_code}
-                  onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, zip_code: e.target.value })
+                  }
                   required
                   placeholder="00000-000"
                 />
@@ -365,12 +413,13 @@ Data: {contract_date}`
           <Alert className="mt-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Esta página é temporária para usuários que não têm perfil de empresa.
-              Após criar o perfil, você será redirecionado para o dashboard.
+              Esta página é temporária para usuários que não têm perfil de
+              empresa. Após criar o perfil, você será redirecionado para o
+              dashboard.
             </AlertDescription>
           </Alert>
         </CardContent>
       </Card>
     </div>
   );
-} 
+}

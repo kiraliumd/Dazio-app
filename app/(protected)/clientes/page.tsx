@@ -1,65 +1,65 @@
-"use client"
+'use client';
 
-import { useState, useEffect, useMemo, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { AppSidebar } from '@/components/app-sidebar';
+import { ClientForm } from '@/components/client-form';
+import { PageHeader } from '@/components/page-header';
 import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  User,
-  Mail,
-  Phone,
-  FileText,
-  Calendar,
-  Building,
-  MapPin,
-  Filter,
-  X,
-  Eye,
-  EyeOff,
-} from "lucide-react"
-import { PageHeader } from "@/components/page-header"
-import { ClientForm } from "@/components/client-form"
-import { useClients } from "@/lib/hooks/use-optimized-data"
-import { transformClientFromDB } from "@/lib/utils/data-transformers"
-import type { Client } from "@/lib/utils/data-transformers"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CardDescription } from "@/components/ui/card"
-import { Suspense, lazy } from "react"
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { useClients } from '@/lib/hooks/use-optimized-data';
+import type { Client } from '@/lib/utils/data-transformers';
+import { transformClientFromDB } from '@/lib/utils/data-transformers';
+import { Edit, Mail, Phone, Plus, Search, Trash2, User } from 'lucide-react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-  PaginationEllipsis
-} from "@/components/ui/pagination";
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from '@/components/ui/pagination';
 
-import { getClients, createClient, updateClient, deleteClient } from "../../../lib/database/clients"
-import { transformClientToDB } from "../../../lib/utils/data-transformers"
+import {
+    createClient,
+    deleteClient,
+    getClients,
+    updateClient,
+} from '../../../lib/database/clients';
+import { transformClientToDB } from '../../../lib/utils/data-transformers';
 
 // Hook para debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -80,45 +80,56 @@ const LoadingSpinner = () => (
 
 export default function ClientsPage() {
   // Estados para dados
-  const [clients, setClients] = useState<Client[]>([])
-  const [loading, setLoading] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
-  const [documentTypeFilter, setDocumentTypeFilter] = useState("Todos")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingClient, setEditingClient] = useState<Client | undefined>(undefined)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [clientToDelete, setClientToDelete] = useState<string | null>(null)
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [documentTypeFilter, setDocumentTypeFilter] = useState('Todos');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | undefined>(
+    undefined
+  );
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<string | null>(null);
 
   // Usar hooks otimizados para dados
-  const { data: dbClients, loading: clientsLoading, error: clientsError, refresh: refreshClients } = useClients(50)
+  const {
+    data: dbClients,
+    loading: clientsLoading,
+    error: clientsError,
+    refresh: refreshClients,
+  } = useClients(50);
 
   // Atualizar estados locais quando dados são carregados
   useEffect(() => {
     if (dbClients && Array.isArray(dbClients)) {
-      const transformedClients = dbClients.map(transformClientFromDB)
-      setClients(transformedClients)
+      const transformedClients = dbClients.map(transformClientFromDB);
+      setClients(transformedClients);
     }
-  }, [dbClients])
+  }, [dbClients]);
 
   // Calcular loading geral
   useEffect(() => {
-    setLoading(clientsLoading)
-  }, [clientsLoading])
+    setLoading(clientsLoading);
+  }, [clientsLoading]);
 
   // Tratar erros
   useEffect(() => {
     if (clientsError) {
-      console.error('Erro ao carregar clientes:', clientsError)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao carregar clientes:', clientsError);
+      }
       // Remover alert para melhor UX
     }
-  }, [clientsError])
+  }, [clientsError]);
 
   // Carregar dados apenas uma vez na montagem
   useEffect(() => {
-    console.log('📦 Clientes: Dados sendo carregados pelos hooks otimizados')
-  }, [])
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📦 Clientes: Dados sendo carregados pelos hooks otimizados');
+    }
+  }, []);
 
   // Paginação
   const ITEMS_PER_PAGE = 10;
@@ -130,17 +141,20 @@ export default function ClientsPage() {
     // Filtrar por termo de busca
     if (debouncedSearchTerm.trim()) {
       const searchLower = debouncedSearchTerm.toLowerCase();
-      filtered = filtered.filter((client: Client) =>
-        client.name.toLowerCase().includes(searchLower) ||
-        client.email.toLowerCase().includes(searchLower) ||
-        client.phone.toLowerCase().includes(searchLower) ||
-        client.documentNumber.toLowerCase().includes(searchLower)
+      filtered = filtered.filter(
+        (client: Client) =>
+          client.name.toLowerCase().includes(searchLower) ||
+          client.email.toLowerCase().includes(searchLower) ||
+          client.phone.toLowerCase().includes(searchLower) ||
+          client.documentNumber.toLowerCase().includes(searchLower)
       );
     }
 
     // Filtrar por tipo de documento
-    if (documentTypeFilter !== "Todos") {
-      filtered = filtered.filter((client: Client) => client.documentType === documentTypeFilter);
+    if (documentTypeFilter !== 'Todos') {
+      filtered = filtered.filter(
+        (client: Client) => client.documentType === documentTypeFilter
+      );
     }
 
     return filtered;
@@ -148,7 +162,10 @@ export default function ClientsPage() {
 
   // Memoização da paginação
   const paginatedClients = useMemo(() => {
-    return filteredClients.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+    return filteredClients.slice(
+      (currentPage - 1) * ITEMS_PER_PAGE,
+      currentPage * ITEMS_PER_PAGE
+    );
   }, [filteredClients, currentPage]);
 
   const totalPages = useMemo(() => {
@@ -162,74 +179,84 @@ export default function ClientsPage() {
 
   const loadClients = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       // Carregar apenas os primeiros 50 clientes para melhor performance
-      const dbClients = await getClients(50)
-      const transformedClients = dbClients.map(transformClientFromDB)
-      setClients(transformedClients)
+      const dbClients = await getClients(50);
+      const transformedClients = dbClients.map(transformClientFromDB);
+      setClients(transformedClients);
     } catch (error) {
-      console.error("Erro ao carregar clientes:", error)
-      alert("Erro ao carregar clientes")
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao carregar clientes:', error);
+      }
+      alert('Erro ao carregar clientes');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleSearch = useCallback((value: string) => {
-    setSearchTerm(value)
-  }, [])
+    setSearchTerm(value);
+  }, []);
 
   const handleDocumentTypeFilter = useCallback((value: string) => {
-    setDocumentTypeFilter(value)
-  }, [])
+    setDocumentTypeFilter(value);
+  }, []);
 
-  const handleSaveClient = async (clientData: Omit<Client, "id"> & { id?: string }) => {
+  const handleSaveClient = async (
+    clientData: Omit<Client, 'id'> & { id?: string }
+  ) => {
     try {
-      const dbClientData = transformClientToDB(clientData)
+      const dbClientData = transformClientToDB(clientData);
 
       if (clientData.id) {
         // Editar cliente existente
-        await updateClient(clientData.id, dbClientData)
+        await updateClient(clientData.id, dbClientData);
       } else {
         // Adicionar novo cliente
-        await createClient(dbClientData)
+        await createClient(dbClientData);
       }
 
-      await refreshClients() // Recarregar lista
-      setEditingClient(undefined)
+      await refreshClients(); // Recarregar lista
+      setEditingClient(undefined);
     } catch (error) {
-      console.error("Erro ao salvar cliente:", error)
-      alert("Erro ao salvar cliente")
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Erro ao salvar cliente:', error);
+      }
+      alert('Erro ao salvar cliente');
     }
-  }
+  };
 
   const handleEditClient = useCallback((client: Client) => {
-    setEditingClient(client)
-    setIsFormOpen(true)
-  }, [])
+    setEditingClient(client);
+    setIsFormOpen(true);
+  }, []);
 
   const handleDeleteClient = useCallback((id: string) => {
-    setClientToDelete(id)
-    setDeleteDialogOpen(true)
-  }, [])
+    setClientToDelete(id);
+    setDeleteDialogOpen(true);
+  }, []);
 
   const confirmDelete = async () => {
     if (clientToDelete) {
       try {
-        await deleteClient(clientToDelete)
-        await refreshClients() // Recarregar lista
+        await deleteClient(clientToDelete);
+        await refreshClients(); // Recarregar lista
       } catch (error) {
-        console.error("Erro ao deletar cliente:", error)
-        alert("Erro ao deletar cliente")
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro ao deletar cliente:', error);
+        }
+        alert('Erro ao deletar cliente');
       }
     }
-    setDeleteDialogOpen(false)
-    setClientToDelete(null)
-  }
+    setDeleteDialogOpen(false);
+    setClientToDelete(null);
+  };
 
-  const getDocumentTypeBadge = useCallback((type: Client["documentType"]) => {
-    return type === "CPF" ? "bg-blue-100 text-blue-800 border border-blue-200" : "bg-purple-100 text-purple-800 border border-purple-200"
-  }, [])
+  const getDocumentTypeBadge = useCallback((type: Client['documentType']) => {
+    return type === 'CPF'
+      ? 'bg-blue-100 text-blue-800 border border-blue-200'
+      : 'bg-purple-100 text-purple-800 border border-purple-200';
+  }, []);
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
@@ -239,9 +266,9 @@ export default function ClientsPage() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <PageHeader 
-          title="Clientes" 
-          description="Gerencie sua base de clientes" 
+        <PageHeader
+          title="Clientes"
+          description="Gerencie sua base de clientes"
         />
 
         <main className="flex-1 space-y-6 p-4 sm:p-6 bg-background">
@@ -250,13 +277,17 @@ export default function ClientsPage() {
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <CardTitle className="text-foreground">Lista de Clientes</CardTitle>
-                  <CardDescription className="hidden sm:block">Todos os clientes cadastrados no sistema</CardDescription>
+                  <CardTitle className="text-foreground">
+                    Lista de Clientes
+                  </CardTitle>
+                  <CardDescription className="hidden sm:block">
+                    Todos os clientes cadastrados no sistema
+                  </CardDescription>
                 </div>
                 <Button
                   onClick={() => {
-                    setEditingClient(undefined)
-                    setIsFormOpen(true)
+                    setEditingClient(undefined);
+                    setIsFormOpen(true);
                   }}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
                 >
@@ -273,11 +304,16 @@ export default function ClientsPage() {
                   <Input
                     placeholder="Buscar clientes..."
                     value={searchTerm}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearch(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      handleSearch(e.target.value)
+                    }
                     className="pl-10"
                   />
                 </div>
-                <Select value={documentTypeFilter} onValueChange={handleDocumentTypeFilter}>
+                <Select
+                  value={documentTypeFilter}
+                  onValueChange={handleDocumentTypeFilter}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Tipo de documento" />
                   </SelectTrigger>
@@ -291,16 +327,24 @@ export default function ClientsPage() {
                   {filteredClients.length} cliente(s) encontrado(s)
                 </div>
               </div>
-              
+
               <div className="rounded-md border">
                 <div className="overflow-x-auto">
                   <Table className="min-w-[800px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Cliente</TableHead>
-                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Contato</TableHead>
-                        <TableHead className="font-semibold text-gray-900 bg-gray-50">Documento</TableHead>
-                        <TableHead className="font-semibold text-right text-gray-900 bg-gray-50">Ações</TableHead>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">
+                          Cliente
+                        </TableHead>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">
+                          Contato
+                        </TableHead>
+                        <TableHead className="font-semibold text-gray-900 bg-gray-50">
+                          Documento
+                        </TableHead>
+                        <TableHead className="font-semibold text-right text-gray-900 bg-gray-50">
+                          Ações
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -309,22 +353,31 @@ export default function ClientsPage() {
                           <TableCell colSpan={4} className="text-center py-8">
                             <div className="flex items-center justify-center gap-2">
                               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                              <span className="text-text-secondary">Carregando clientes...</span>
+                              <span className="text-text-secondary">
+                                Carregando clientes...
+                              </span>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ) : paginatedClients.length === 0 && filteredClients.length > 0 ? (
+                      ) : paginatedClients.length === 0 &&
+                        filteredClients.length > 0 ? (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-text-secondary">
+                          <TableCell
+                            colSpan={4}
+                            className="text-center py-8 text-text-secondary"
+                          >
                             Nenhum cliente encontrado na página atual.
                           </TableCell>
                         </TableRow>
                       ) : filteredClients.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-text-secondary">
-                            {searchTerm || documentTypeFilter !== "Todos"
-                              ? "Nenhum cliente encontrado com os filtros aplicados."
-                              : "Nenhum cliente cadastrado ainda."}
+                          <TableCell
+                            colSpan={4}
+                            className="text-center py-8 text-text-secondary"
+                          >
+                            {searchTerm || documentTypeFilter !== 'Todos'
+                              ? 'Nenhum cliente encontrado com os filtros aplicados.'
+                              : 'Nenhum cliente cadastrado ainda.'}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -335,27 +388,37 @@ export default function ClientsPage() {
                                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                                   <User className="h-5 w-5" />
                                 </div>
-                                <div className="font-medium text-foreground">{client.name}</div>
+                                <div className="font-medium text-foreground">
+                                  {client.name}
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                   <Mail className="h-4 w-4 text-gray-400" />
-                                  <span className="text-foreground">{client.email}</span>
+                                  <span className="text-foreground">
+                                    {client.email}
+                                  </span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Phone className="h-4 w-4 text-gray-400" />
-                                  <span className="text-foreground">{client.phone}</span>
+                                  <span className="text-foreground">
+                                    {client.phone}
+                                  </span>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>
                               <div className="space-y-1">
-                                <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getDocumentTypeBadge(client.documentType)}`}>
+                                <span
+                                  className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getDocumentTypeBadge(client.documentType)}`}
+                                >
                                   {client.documentType}
                                 </span>
-                                <div className="text-foreground">{client.documentNumber}</div>
+                                <div className="text-foreground">
+                                  {client.documentNumber}
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell className="text-right">
@@ -397,14 +460,20 @@ export default function ClientsPage() {
                             e.preventDefault();
                             handlePageChange(currentPage - 1);
                           }}
-                          className={currentPage === 1 ? "pointer-events-none text-gray-400" : ""}
+                          className={
+                            currentPage === 1
+                              ? 'pointer-events-none text-gray-400'
+                              : ''
+                          }
                         />
                       </PaginationItem>
                       {[...Array(totalPages)].map((_, i) => (
                         <PaginationItem key={i}>
                           <PaginationLink
                             href="#"
-                            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                            onClick={(
+                              e: React.MouseEvent<HTMLAnchorElement>
+                            ) => {
                               e.preventDefault();
                               handlePageChange(i + 1);
                             }}
@@ -421,7 +490,11 @@ export default function ClientsPage() {
                             e.preventDefault();
                             handlePageChange(currentPage + 1);
                           }}
-                          className={currentPage === totalPages ? "pointer-events-none text-gray-400" : ""}
+                          className={
+                            currentPage === totalPages
+                              ? 'pointer-events-none text-gray-400'
+                              : ''
+                          }
                         />
                       </PaginationItem>
                     </PaginationContent>
@@ -438,9 +511,9 @@ export default function ClientsPage() {
             <ClientForm
               open={isFormOpen}
               onOpenChange={(open: boolean) => {
-                setIsFormOpen(open)
+                setIsFormOpen(open);
                 if (!open) {
-                  setEditingClient(undefined)
+                  setEditingClient(undefined);
                 }
               }}
               client={editingClient}
@@ -453,14 +526,20 @@ export default function ClientsPage() {
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-foreground">Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogTitle className="text-foreground">
+                Confirmar Exclusão
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.
+                Tem certeza que deseja excluir este cliente? Esta ação não pode
+                ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
                 Excluir
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -468,5 +547,5 @@ export default function ClientsPage() {
         </AlertDialog>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

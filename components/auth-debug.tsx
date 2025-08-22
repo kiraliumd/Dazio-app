@@ -14,22 +14,26 @@ export function AuthDebug() {
     const updateDebugInfo = () => {
       setDebugInfo({
         timestamp: new Date().toISOString(),
-        user: user ? {
-          id: user.id,
-          email: user.email,
-          emailConfirmed: user.email_confirmed_at,
-          lastSignIn: user.last_sign_in_at,
-        } : null,
-        session: session ? {
-          accessToken: session.access_token ? 'Present' : 'Missing',
-          refreshToken: session.refresh_token ? 'Present' : 'Missing',
-          expiresAt: session.expires_at,
-        } : null,
+        user: user
+          ? {
+              id: user.id,
+              email: user.email,
+              emailConfirmed: user.email_confirmed_at,
+              lastSignIn: user.last_sign_in_at,
+            }
+          : null,
+        session: session
+          ? {
+              accessToken: session.access_token ? 'Present' : 'Missing',
+              refreshToken: session.refresh_token ? 'Present' : 'Missing',
+              expiresAt: session.expires_at,
+            }
+          : null,
         loading,
         localStorage: {
           pendingEmail: localStorage.getItem('pendingEmail'),
           supabaseAuth: localStorage.getItem('dazio-auth'),
-        }
+        },
       });
     };
 
@@ -48,7 +52,7 @@ export function AuthDebug() {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center justify-between">
           Auth Debug
-          <Badge variant={user ? "default" : "destructive"}>
+          <Badge variant={user ? 'default' : 'destructive'}>
             {user ? 'Logged In' : 'Not Logged In'}
           </Badge>
         </CardTitle>
@@ -64,34 +68,40 @@ export function AuthDebug() {
           <strong>Session:</strong> {session ? 'Active' : 'None'}
         </div>
         <div>
-          <strong>Email Confirmed:</strong> {user?.email_confirmed_at ? 'Yes' : 'No'}
+          <strong>Email Confirmed:</strong>{' '}
+          {user?.email_confirmed_at ? 'Yes' : 'No'}
         </div>
         <div>
           <strong>Last Sign In:</strong> {user?.last_sign_in_at || 'Never'}
         </div>
         <div>
-          <strong>Access Token:</strong> {debugInfo.session?.accessToken || 'N/A'}
+          <strong>Access Token:</strong>{' '}
+          {debugInfo.session?.accessToken || 'N/A'}
         </div>
         <div>
-          <strong>Refresh Token:</strong> {debugInfo.session?.refreshToken || 'N/A'}
+          <strong>Refresh Token:</strong>{' '}
+          {debugInfo.session?.refreshToken || 'N/A'}
         </div>
         <div>
-          <strong>Session Expires:</strong> {debugInfo.session?.expiresAt || 'N/A'}
+          <strong>Session Expires:</strong>{' '}
+          {debugInfo.session?.expiresAt || 'N/A'}
         </div>
         <div>
-          <strong>Pending Email:</strong> {debugInfo.localStorage?.pendingEmail || 'None'}
+          <strong>Pending Email:</strong>{' '}
+          {debugInfo.localStorage?.pendingEmail || 'None'}
         </div>
         <div>
-          <strong>Supabase Auth:</strong> {debugInfo.localStorage?.supabaseAuth ? 'Present' : 'None'}
+          <strong>Supabase Auth:</strong>{' '}
+          {debugInfo.localStorage?.supabaseAuth ? 'Present' : 'None'}
         </div>
         <div>
           <strong>Timestamp:</strong> {debugInfo.timestamp}
         </div>
-        
+
         <div className="pt-2 space-y-1">
-          <Button 
-            size="sm" 
-            variant="outline" 
+          <Button
+            size="sm"
+            variant="outline"
             onClick={clearStorage}
             className="w-full"
           >
@@ -101,4 +111,4 @@ export function AuthDebug() {
       </CardContent>
     </Card>
   );
-} 
+}

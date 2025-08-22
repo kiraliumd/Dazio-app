@@ -11,7 +11,7 @@ export interface TrialStatus {
 export async function checkTrialStatus(userId: string): Promise<TrialStatus> {
   try {
     const supabase = await createClient();
-    
+
     const { data: profile, error } = await supabase
       .from('company_profiles')
       .select('trial_end, status')
@@ -24,13 +24,15 @@ export async function checkTrialStatus(userId: string): Promise<TrialStatus> {
         isExpired: true,
         daysLeft: 0,
         trialEnd: null,
-        status: 'expired'
+        status: 'expired',
       };
     }
 
     const now = new Date();
     const trialEnd = new Date(profile.trial_end);
-    const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const daysLeft = Math.ceil(
+      (trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    );
     const isExpired = now > trialEnd;
 
     return {
@@ -38,7 +40,7 @@ export async function checkTrialStatus(userId: string): Promise<TrialStatus> {
       isExpired,
       daysLeft: Math.max(0, daysLeft),
       trialEnd: profile.trial_end,
-      status: profile.status as 'trial' | 'active' | 'expired' | 'cancelled'
+      status: profile.status as 'trial' | 'active' | 'expired' | 'cancelled',
     };
   } catch (error) {
     console.error('Erro ao verificar status do trial:', error);
@@ -47,7 +49,7 @@ export async function checkTrialStatus(userId: string): Promise<TrialStatus> {
       isExpired: true,
       daysLeft: 0,
       trialEnd: null,
-      status: 'expired'
+      status: 'expired',
     };
   }
 }
@@ -60,4 +62,4 @@ export function formatDaysLeft(daysLeft: number): string {
   } else {
     return `${daysLeft} dias restantes`;
   }
-} 
+}
