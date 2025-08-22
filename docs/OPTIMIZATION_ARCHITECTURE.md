@@ -432,3 +432,206 @@ A implementação desta arquitetura de otimização com sistema de notificaçõe
 ✅ **Depois**: Novos orçamentos aparecem imediatamente na lista  
 
 Esta solução segue as melhores práticas de arquitetura de software, implementa um sistema de cache inteligente com invalidação automática, e estabelece uma base sólida para futuras otimizações e expansões do sistema.
+
+# Otimização de Arquitetura - Dazio Admin
+
+## Correções de Loop Infinito (2024-12-19)
+
+### Problema Identificado
+
+O projeto estava apresentando um loop infinito de chamadas para `getCurrentUserCompanyId`, causando:
+- Sobrecarga no console com logs repetitivos
+- Performance degradada
+- Possível travamento da aplicação
+
+### Causas do Problema
+
+1. **Múltiplas chamadas simultâneas**: Vários componentes chamando a função ao mesmo tempo
+2. **Hooks com dependências problemáticas**: useEffect com dependências que causavam re-renderizações infinitas
+3. **Cache não funcionando**: Função sendo chamada repetidamente mesmo quando deveria usar cache
+4. **Redirecionamentos automáticos**: Loops causados por redirecionamentos para `/create-profile`
+
+### Soluções Implementadas
+
+#### 1. Sistema de Cache para getCurrentUserCompanyId
+
+```typescript
+// Cache para evitar chamadas repetidas
+let companyIdCache: {
+  id: string | null
+  timestamp: number
+  ttl: number
+} | null = null
+
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutos
+
+export async function getCurrentUserCompanyId(): Promise<string | null> {
+  // Verificar cache primeiro
+  if (companyIdCache && Date.now() - companyIdCache.timestamp < companyIdCache.ttl) {
+    console.log('🔍 getCurrentUserCompanyId: Usando cache, ID:', companyIdCache.id)
+    return companyIdCache.id
+  }
+  
+  // ... resto da lógica
+}
+```
+
+#### 2. Limpeza de Cache no Logout
+
+```typescript
+const signOut = async () => {
+  console.log('AuthContext: Fazendo logout')
+  
+  // Limpar cache do company_id antes do logout
+  clearCompanyIdCache()
+  
+  await supabase.auth.signOut()
+  // ... resto da lógica
+}
+```
+
+#### 3. Correção de Dependências em Hooks
+
+**Antes (problemático):**
+```typescript
+useEffect(() => {
+  if (!companyName && user) {
+    refreshCompanyName()
+  }
+}, [companyName, user, refreshCompanyName]) // Dependências causavam loops
+```
+
+**Depois (corrigido):**
+```typescript
+useEffect(() => {
+  if (!companyName && user) {
+    refreshCompanyName()
+  }
+}, [user]) // Apenas user como dependência
+```
+
+#### 4. Prevenção de Carregamentos Múltiplos
+
+```typescript
+const [hasLoadedCompanyInfo, setHasLoadedCompanyInfo] = useState(false)
+
+useEffect(() => {
+  if (user && !hasLoadedCompanyInfo) {
+    loadCompanyInfo()
+    setHasLoadedCompanyInfo(true)
+  }
+}, [user, hasLoadedCompanyInfo])
+```
+
+### Arquivos Modificados
+
+1. **`lib/database/client-utils.ts`**
+   - Implementado sistema de cache
+   - Adicionada função `clearCompanyIdCache()`
+
+2. **`lib/auth-context.tsx`**
+   - Limpeza de cache no logout
+
+3. **`hooks/useCompanyName.ts`**
+   - Corrigidas dependências do useEffect
+
+4. **`hooks/useEquipmentCategories.ts`**
+   - Corrigidas dependências do useEffect
+
+5. **`lib/hooks/use-optimized-data.ts`**
+   - Simplificado para evitar dependências problemáticas
+
+6. **`app/test-multi-tenant/page.tsx`**
+   - Prevenção de carregamentos múltiplos
+
+### Benefícios das Correções
+
+1. **Performance**: Redução significativa de chamadas desnecessárias
+2. **Estabilidade**: Eliminação de loops infinitos
+3. **Experiência do usuário**: Interface mais responsiva
+4. **Debugging**: Console mais limpo e legível
+5. **Escalabilidade**: Melhor gerenciamento de recursos
+
+### Monitoramento
+
+Para verificar se as correções funcionaram:
+
+1. Abrir o console do navegador
+2. Fazer login na aplicação
+3. Navegar entre páginas
+4. Verificar se não há mais logs repetitivos de `getCurrentUserCompanyId`
+
+### Prevenção Futura
+
+1. **Sempre usar array vazio `[]`** para useEffect que deve executar apenas uma vez
+2. **Implementar cache** para funções que fazem chamadas ao banco
+3. **Usar flags de controle** para evitar carregamentos múltiplos
+4. **Testar dependências** de hooks antes de implementar
+5. **Monitorar console** para identificar padrões de chamadas repetitivas
+
+---
+
+## Estrutura de Cache
+
+### Cache de Company ID
+
+```typescript
+interface CompanyIdCache {
+  id: string | null
+  timestamp: number
+  ttl: number
+}
+
+// TTL: 5 minutos para resultados positivos
+// TTL: 1 minuto para resultados negativos
+```
+
+### Cache de Nome da Empresa
+
+```typescript
+interface CompanyNameCache {
+  name: string
+  lastFetch: number
+  ttl: number // 10 minutos
+}
+```
+
+### Invalidação de Cache
+
+- **Logout**: Limpa todo o cache
+- **Mudanças de dados**: Invalida cache específico
+- **TTL expirado**: Cache é automaticamente invalidado
+
+---
+
+## Arquitetura de Hooks Otimizados
+
+### Princípios
+
+1. **Carregamento único**: Dados carregados apenas uma vez na montagem
+2. **Cache inteligente**: Uso de localStorage e sessionStorage
+3. **Dependências mínimas**: useEffect com dependências essenciais apenas
+4. **Cleanup adequado**: Limpeza de listeners e timers
+
+### Padrão Recomendado
+
+```typescript
+export function useOptimizedHook() {
+  const [data, setData] = useState(null)
+  const [hasLoaded, setHasLoaded] = useState(false)
+
+  useEffect(() => {
+    if (!hasLoaded) {
+      loadData()
+      setHasLoaded(true)
+    }
+  }, [hasLoaded])
+
+  // ... resto da lógica
+}
+```
+
+Esta abordagem garante que:
+- Os dados sejam carregados apenas uma vez
+- Não haja loops infinitos
+- O hook seja eficiente e previsível

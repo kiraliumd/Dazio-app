@@ -20,9 +20,10 @@ export function useEquipmentCategories() {
     }
   };
 
+  // Carregar categorias apenas uma vez na montagem
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, []); // Array vazio para executar apenas uma vez
 
   // Escutar mudanças nas categorias
   useEffect(() => {
@@ -34,7 +35,7 @@ export function useEquipmentCategories() {
     return () => {
       window.removeEventListener('categoriesChanged', handleCategoriesChanged);
     };
-  }, []);
+  }, []); // Array vazio para executar apenas uma vez
 
   const refreshCategories = () => {
     loadCategories();

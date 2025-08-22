@@ -52,13 +52,15 @@ export function useCompanyName() {
     } catch {}
   }, [user, updateLocal, isCacheValid])
 
+  // Carregar nome da empresa apenas uma vez quando usuário estiver disponível
   useEffect(() => {
     if (!companyName && user) {
       // busca em background sem flicker
       refreshCompanyName()
     }
-  }, [companyName, user, refreshCompanyName])
+  }, [user]) // Removida dependência de companyName e refreshCompanyName
 
+  // Escutar mudanças de storage
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'company_name' && typeof e.newValue === 'string') {

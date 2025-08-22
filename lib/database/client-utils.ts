@@ -1,10 +1,25 @@
 import { supabase } from "../supabase"
 
+// Cache para evitar chamadas repetidas
+let companyIdCache: {
+  id: string | null
+  timestamp: number
+  ttl: number
+} | null = null
+
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutos
+
 /**
  * Obtém o company_id do usuário autenticado (versão cliente)
  */
 export async function getCurrentUserCompanyId(): Promise<string | null> {
   try {
+    // Verificar cache primeiro
+    if (companyIdCache && Date.now() - companyIdCache.timestamp < companyIdCache.ttl) {
+      console.log('🔍 getCurrentUserCompanyId: Usando cache, ID:', companyIdCache.id)
+      return companyIdCache.id
+    }
+
     console.log('🔍 getCurrentUserCompanyId: Iniciando busca do company_id')
     
     // 1. Verificar se há usuário autenticado
@@ -59,15 +74,38 @@ export async function getCurrentUserCompanyId(): Promise<string | null> {
         console.log('🔍 getCurrentUserCompanyId: Perfis existentes:', allProfiles)
       }
       
+      // Cachear resultado negativo por um tempo menor
+      companyIdCache = {
+        id: null,
+        timestamp: Date.now(),
+        ttl: 1 * 60 * 1000 // 1 minuto para resultados negativos
+      }
+      
       return null
     }
 
     console.log('✅ getCurrentUserCompanyId: Company ID encontrado:', companyProfile.id, 'Empresa:', companyProfile.company_name)
+    
+    // Cachear resultado positivo
+    companyIdCache = {
+      id: companyProfile.id,
+      timestamp: Date.now(),
+      ttl: CACHE_TTL
+    }
+    
     return companyProfile.id
   } catch (error) {
     console.error('❌ getCurrentUserCompanyId: Erro inesperado:', error)
     return null
   }
+}
+
+/**
+ * Limpa o cache do company_id (útil para logout ou mudanças de usuário)
+ */
+export function clearCompanyIdCache() {
+  companyIdCache = null
+  console.log('🧹 getCurrentUserCompanyId: Cache limpo')
 }
 
 /**

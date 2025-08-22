@@ -1,16 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { dataService, DataServiceOptions } from '../services/data-service'
-import { useDataCache } from '../contexts/data-cache-context'
+import { dataService } from '../services/data-service'
 
-// Importar o tipo DataCache do contexto
-type DataCache = {
-  clients: any
-  equipments: any
-  budgets: any
-  rentals: any
-}
-
-interface UseOptimizedDataOptions extends DataServiceOptions {
+interface UseOptimizedDataOptions {
+  useCache?: boolean
+  ttl?: number
   autoRefresh?: boolean
   refreshInterval?: number
   onError?: (error: Error) => void
@@ -32,7 +25,6 @@ export function useOptimizedData<T>(
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
-  const { getCachedData, setCachedData, invalidateCache: invalidateContextCache, subscribeToChanges } = useDataCache()
   
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -49,89 +41,49 @@ export function useOptimizedData<T>(
     try {
       setLoading(true)
       setError(null)
-
-      // Verificar cache do contexto primeiro
-      if (!forceRefresh && options.useCache !== false) {
-        const cachedData = getCachedData(dataType)
-        if (cachedData) {
-          setData(cachedData)
-          setLoading(false)
-          return
-        }
-      }
-
+      
       // Buscar dados do serviço
-      let result: T
-      const serviceOptions: DataServiceOptions = {
-        useCache: options.useCache,
-        forceRefresh,
-        ttl: options.ttl,
-      }
-
+      let result: any
       switch (dataType) {
         case 'clients':
-          result = await dataService.getClients(params?.limit, serviceOptions) as T
+          result = await dataService.getClients(params?.limit)
           break
         case 'equipments':
-          result = await dataService.getEquipments(serviceOptions) as T
+          result = await dataService.getEquipments()
           break
         case 'budgets':
-          result = await dataService.getBudgets(
-            params?.limit,
-            params?.startDate,
-            params?.endDate,
-            serviceOptions
-          ) as T
+          result = await dataService.getBudgets(params?.limit, params?.startDate, params?.endDate)
           break
         case 'rentals':
-          result = await dataService.getRentals(params?.limit, serviceOptions) as T
+          result = await dataService.getRentals(params?.limit)
           break
         case 'dashboard':
-          result = await dataService.getDashboardMetrics(serviceOptions) as T
+          result = await dataService.getDashboardMetrics()
           break
         default:
           throw new Error(`Tipo de dados não suportado: ${dataType}`)
       }
 
-      // Verificar se a requisição foi cancelada
-      if (abortControllerRef.current.signal.aborted) {
-        return
-      }
-
       setData(result)
-      
-      // Armazenar no cache do contexto
-      if (options.useCache !== false) {
-        setCachedData(dataType, result)
-      }
-
-    } catch (err) {
-      // Verificar se a requisição foi cancelada
-      if (abortControllerRef.current?.signal.aborted) {
-        return
-      }
-
-      const error = err instanceof Error ? err : new Error('Erro desconhecido')
-      setError(error)
-      
-      if (options.onError) {
-        options.onError(error)
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        setError(error)
+        if (options.onError) {
+          options.onError(error)
+        }
       }
     } finally {
       if (!abortControllerRef.current?.signal.aborted) {
         setLoading(false)
       }
     }
-  }, [dataType, params, options, getCachedData, setCachedData])
+  }, [dataType, params, options.onError])
 
   const refresh = useCallback(async (force = false) => {
     await fetchData(force)
   }, [fetchData])
 
   const invalidateCache = useCallback(() => {
-    // Invalidar cache do contexto
-    invalidateContextCache(dataType)
-    
     // Invalidar cache do serviço
     switch (dataType) {
       case 'clients':
@@ -147,7 +99,7 @@ export function useOptimizedData<T>(
         dataService.invalidateRentalsCache()
         break
     }
-  }, [dataType, invalidateContextCache])
+  }, [dataType])
 
   // Configurar auto-refresh se habilitado
   useEffect(() => {
@@ -163,21 +115,6 @@ export function useOptimizedData<T>(
       }
     }
   }, [options.autoRefresh, options.refreshInterval, refresh])
-
-  // Inscrever-se nas mudanças de dados para atualização automática
-  useEffect(() => {
-    const unsubscribe = subscribeToChanges((changedDataType: keyof DataCache, operation: string) => {
-      // Se o tipo de dados mudou é o mesmo que este hook está observando
-      if (changedDataType === dataType) {
-        console.log(`🔄 useOptimizedData: ${dataType} mudou (${operation}), atualizando automaticamente`)
-        
-        // Atualizar dados automaticamente
-        fetchData(true)
-      }
-    })
-
-    return unsubscribe
-  }, [dataType, subscribeToChanges, fetchData])
 
   // Buscar dados na montagem do componente
   useEffect(() => {
@@ -224,75 +161,4 @@ export function useRentals(limit?: number, options?: UseOptimizedDataOptions) {
 
 export function useDashboardMetrics(options?: UseOptimizedDataOptions) {
   return useOptimizedData('dashboard', undefined, options)
-}
-
-export function useRentalsForReports(startDate?: string, endDate?: string, options?: UseOptimizedDataOptions) {
-  return useOptimizedData('rentals', { startDate, endDate, forReports: true }, options)
-}
-
-export function useBudgetsForReports(startDate?: string, endDate?: string, options?: UseOptimizedDataOptions) {
-  return useOptimizedData('budgets', { startDate, endDate, forReports: true }, options)
-}
-
-// Hook especializado para orçamentos com operações CRUD
-export function useBudgetsWithCRUD(limit?: number, startDate?: string, endDate?: string, options?: UseOptimizedDataOptions) {
-  const budgetsHook = useOptimizedData('budgets', { limit, startDate, endDate }, options)
-  const { invalidateCache } = useDataCache()
-
-  const createBudget = useCallback(async (budgetData: any, items: any[]) => {
-    try {
-      const { createBudget } = await import('../database/budgets')
-      const result = await createBudget(budgetData, items)
-      
-      // O cache será invalidado automaticamente pela função createBudget
-      console.log('✅ Orçamento criado com sucesso, cache invalidado automaticamente')
-      
-      return result
-    } catch (error) {
-      console.error('Erro ao criar orçamento:', error)
-      throw error
-    }
-  }, [])
-
-  const updateBudget = useCallback(async (id: string, budgetData: any, items?: any[]) => {
-    try {
-      const { updateBudget } = await import('../database/budgets')
-      const result = await updateBudget(id, budgetData, items)
-      
-      // O cache será invalidado automaticamente pela função updateBudget
-      console.log('✅ Orçamento atualizado com sucesso, cache invalidado automaticamente')
-      
-      return result
-    } catch (error) {
-      console.error('Erro ao atualizar orçamento:', error)
-      throw error
-    }
-  }, [])
-
-  const deleteBudget = useCallback(async (id: string) => {
-    try {
-      const { deleteBudget } = await import('../database/budgets')
-      const result = await deleteBudget(id)
-      
-      // O cache será invalidado automaticamente pela função deleteBudget
-      console.log('✅ Orçamento excluído com sucesso, cache invalidado automaticamente')
-      
-      return result
-    } catch (error) {
-      console.error('Erro ao excluir orçamento:', error)
-      throw error
-    }
-  }, [])
-
-  const forceRefresh = useCallback(() => {
-    budgetsHook.refresh(true)
-  }, [budgetsHook])
-
-  return {
-    ...budgetsHook,
-    createBudget,
-    updateBudget,
-    deleteBudget,
-    forceRefresh,
-  }
 }

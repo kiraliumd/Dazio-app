@@ -14,19 +14,23 @@ export default function TestMultiTenantPage() {
   const [loading, setLoading] = useState(false)
   const [companyId, setCompanyId] = useState<string | null>(null)
   const [companyProfile, setCompanyProfile] = useState<any>(null)
+  const [hasLoadedCompanyInfo, setHasLoadedCompanyInfo] = useState(false)
 
   useEffect(() => {
-    if (user) {
+    if (user && !hasLoadedCompanyInfo) {
       loadCompanyInfo()
+      setHasLoadedCompanyInfo(true)
     }
-  }, [user])
+  }, [user, hasLoadedCompanyInfo])
 
   const loadCompanyInfo = async () => {
     try {
+      console.log('🔄 Carregando informações da empresa...')
       const id = await getCurrentUserCompanyId()
       const profile = await getCurrentUserCompanyProfile()
       setCompanyId(id)
       setCompanyProfile(profile)
+      console.log('✅ Informações da empresa carregadas')
     } catch (error) {
       console.error('Erro ao carregar informações da empresa:', error)
     }
@@ -52,122 +56,105 @@ export default function TestMultiTenantPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Teste Multi-Tenant</h1>
-        <Button onClick={runTests} disabled={loading}>
-          {loading ? 'Executando...' : 'Executar Testes'}
-        </Button>
-      </div>
-
-      {/* Informações do Usuário */}
       <Card>
         <CardHeader>
-          <CardTitle>Informações do Usuário</CardTitle>
+          <CardTitle>Teste Multi-Tenant</CardTitle>
+          <CardDescription>
+            Teste de funcionalidades multi-tenant e isolamento de dados
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <strong>Email:</strong> {user?.email || 'Não autenticado'}
-            </div>
-            <div>
-              <strong>User ID:</strong> {user?.id || 'N/A'}
-            </div>
-            <div>
-              <strong>Status:</strong> 
-              <Badge variant={user ? 'default' : 'destructive'} className="ml-2">
-                {user ? 'Autenticado' : 'Não autenticado'}
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Informações da Empresa */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Informações da Empresa</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div>
-              <strong>Company ID:</strong> {companyId || 'Não encontrado'}
-            </div>
-            <div>
-              <strong>Nome da Empresa:</strong> {companyProfile?.company_name || 'N/A'}
-            </div>
-            <div>
-              <strong>CNPJ:</strong> {companyProfile?.cnpj || 'N/A'}
-            </div>
-            <div>
-              <strong>Status:</strong> 
-              <Badge variant={companyProfile ? 'default' : 'destructive'} className="ml-2">
-                {companyProfile ? 'Encontrado' : 'Não encontrado'}
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Resultados dos Testes */}
-      {testResults && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Resultados dos Testes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Teste de Autenticação */}
-              <div>
-                <h3 className="font-semibold mb-2">Teste de Autenticação e Acesso</h3>
-                <div className="bg-gray-100 p-3 rounded">
-                  <pre className="text-sm overflow-auto">
-                    {JSON.stringify(testResults.auth, null, 2)}
-                  </pre>
+              <h3 className="font-semibold mb-2">Status da Autenticação</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant={user ? "default" : "destructive"}>
+                    {user ? "Autenticado" : "Não Autenticado"}
+                  </Badge>
                 </div>
+                {user && (
+                  <div className="text-sm text-muted-foreground">
+                    <p>Email: {user.email}</p>
+                    <p>ID: {user.id}</p>
+                  </div>
+                )}
               </div>
+            </div>
 
-              {/* Teste da Função do Banco */}
-              <div>
-                <h3 className="font-semibold mb-2">Teste da Função get_user_company_id()</h3>
-                <div className="bg-gray-100 p-3 rounded">
-                  <pre className="text-sm overflow-auto">
-                    {JSON.stringify(testResults.function, null, 2)}
-                  </pre>
+            <div>
+              <h3 className="font-semibold mb-2">Informações da Empresa</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant={companyId ? "default" : "destructive"}>
+                    {companyId ? "Empresa Encontrada" : "Empresa Não Encontrada"}
+                  </Badge>
                 </div>
-              </div>
-
-              {/* Resumo */}
-              <div className="mt-4 p-4 bg-blue-50 rounded">
-                <h3 className="font-semibold mb-2">Resumo</h3>
-                <div className="space-y-1">
-                  <div>
-                    <strong>Autenticação:</strong> 
-                    <Badge variant={testResults.auth?.success ? 'default' : 'destructive'} className="ml-2">
-                      {testResults.auth?.success ? 'OK' : 'ERRO'}
-                    </Badge>
-                  </div>
-                  <div>
-                    <strong>Função do Banco:</strong> 
-                    <Badge variant={testResults.function?.success ? 'default' : 'destructive'} className="ml-2">
-                      {testResults.function?.success ? 'OK' : 'ERRO'}
-                    </Badge>
-                  </div>
-                  <div>
-                    <strong>Dados Encontrados:</strong> 
-                    {testResults.auth?.success && (
-                      <span className="ml-2">
-                        {testResults.auth.data?.budgets || 0} orçamentos, 
-                        {testResults.auth.data?.clients || 0} clientes, 
-                        {testResults.auth.data?.equipments || 0} equipamentos
-                      </span>
+                {companyId && (
+                  <div className="text-sm text-muted-foreground">
+                    <p>Company ID: {companyId}</p>
+                    {companyProfile && (
+                      <p>Nome: {companyProfile.company_name}</p>
                     )}
                   </div>
-                </div>
+                )}
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+
+          <div className="pt-4">
+            <Button 
+              onClick={runTests} 
+              disabled={loading || !user}
+              className="w-full"
+            >
+              {loading ? "Executando Testes..." : "Executar Testes"}
+            </Button>
+          </div>
+
+          {testResults && (
+            <div className="mt-6">
+              <h3 className="font-semibold mb-4">Resultados dos Testes</h3>
+              <div className="space-y-4">
+                {testResults.error ? (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                    <h4 className="font-medium text-red-800">Erro</h4>
+                    <p className="text-red-600">{String(testResults.error)}</p>
+                  </div>
+                ) : (
+                  <>
+                    {testResults.auth && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm">Teste de Autenticação</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+                            {JSON.stringify(testResults.auth, null, 2)}
+                          </pre>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {testResults.function && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm">Teste de Função</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+                            {JSON.stringify(testResults.function, null, 2)}
+                          </pre>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 } 

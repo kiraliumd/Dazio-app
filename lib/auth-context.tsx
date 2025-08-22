@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
+import { clearCompanyIdCache } from './database/client-utils'
 
 interface AuthContextType {
   user: User | null
@@ -108,6 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     console.log('AuthContext: Fazendo logout')
+    
+    // Limpar cache do company_id antes do logout
+    clearCompanyIdCache()
+    
     await supabase.auth.signOut()
     try {
       await fetch('/auth/callback', {
