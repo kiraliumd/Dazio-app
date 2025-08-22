@@ -142,20 +142,26 @@ export async function createBudget(
     throw new Error('Usuário não autenticado ou empresa não encontrada');
   }
 
-  const budgetWithCompany = {
-    ...budget,
-    company_id: companyId,
-  };
+  try {
+    // Importar a função de transformação
+    const { transformBudgetToDB } = await import('../utils/data-transformers');
+    
+    // Transformar o orçamento para o formato do banco
+    const budgetForDB = transformBudgetToDB(budget);
+    
+    // Adicionar company_id
+    const budgetWithCompany = {
+      ...budgetForDB,
+      company_id: companyId,
+    };
 
-  // Criar o orçamento com tentativa de retry em caso de conflito no número
-  let budgetData;
-  {
+    // Criar o orçamento com tentativa de retry em caso de conflito no número
+    let budgetData: any;
     let attempts = 0;
-    // Clonar o objeto para permitir alteração do number em caso de retry
-    let payload = { ...budgetWithCompany } as any;
+    let payload = { ...budgetWithCompany };
+    
     // Tentar no máximo 3 vezes
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    while (attempts < 3) {
       const { data, error } = await supabase
         .from('budgets')
         .insert([payload])
@@ -168,7 +174,7 @@ export async function createBudget(
       }
 
       // Se for erro de chave duplicada (23505), gerar um novo número e tentar de novo
-      if ((error as any)?.code === '23505' && attempts < 3) {
+      if ((error as any)?.code === '23505' && attempts < 2) {
         console.warn(
           'createBudget: Número duplicado, gerando novo e tentando novamente...'
         );
@@ -189,33 +195,40 @@ export async function createBudget(
       console.error('Erro ao criar orçamento:', error);
       throw error;
     }
-  }
 
-  // Criar os itens do orçamento
-  if (items.length > 0) {
-    const budgetItems = items.map(item => ({
-      ...item,
-      budget_id: budgetData.id,
-    }));
+    // Criar os itens do orçamento
+    if (items.length > 0) {
+      const budgetItems = items.map(item => ({
+        budget_id: budgetData.id,
+        equipment_name: item.equipmentName,
+        quantity: item.quantity,
+        daily_rate: item.dailyRate,
+        days: item.days,
+        total: item.total,
+      }));
 
-    const { error: itemsError } = await supabase
-      .from('budget_items')
-      .insert(budgetItems);
+      const { error: itemsError } = await supabase
+        .from('budget_items')
+        .insert(budgetItems);
 
-    if (itemsError) {
-      console.error('Erro ao criar itens do orçamento:', itemsError);
-      throw itemsError;
+      if (itemsError) {
+        console.error('Erro ao criar itens do orçamento:', itemsError);
+        throw itemsError;
+      }
     }
-  }
 
-  // Notificar mudança para invalidar cache
-  try {
-    dataService.notifyDataChange('budgets', 'create');
+    // Notificar mudança para invalidar cache
+    try {
+      dataService.notifyDataChange('budgets', 'create');
+    } catch (error) {
+      console.warn('Erro ao notificar mudança de cache:', error);
+    }
+
+    return budgetData;
   } catch (error) {
-    console.warn('Erro ao notificar mudança de cache:', error);
+    console.error('Erro ao criar orçamento:', error);
+    throw error;
   }
-
-  return budgetData;
 }
 
 export async function updateBudget(
@@ -230,58 +243,73 @@ export async function updateBudget(
     throw new Error('Usuário não autenticado ou empresa não encontrada');
   }
 
-  // Atualizar o orçamento
-  const { error: budgetError } = await supabase
-    .from('budgets')
-    .update({
-      ...budget,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .eq('company_id', companyId);
-
-  if (budgetError) {
-    console.error('Erro ao atualizar orçamento:', budgetError);
-    throw budgetError;
-  }
-
-  // Atualizar itens se fornecidos
-  if (items && items.length > 0) {
-    // Remover itens existentes
-    const { error: deleteError } = await supabase
-      .from('budget_items')
-      .delete()
-      .eq('budget_id', id);
-
-    if (deleteError) {
-      console.error('Erro ao remover itens existentes:', deleteError);
-      throw deleteError;
-    }
-
-    // Inserir novos itens
-    const budgetItems = items.map(item => ({
-      ...item,
-      budget_id: id,
-    }));
-
-    const { error: itemsError } = await supabase
-      .from('budget_items')
-      .insert(budgetItems);
-
-    if (itemsError) {
-      console.error('Erro ao inserir novos itens:', itemsError);
-      throw itemsError;
-    }
-  }
-
-  // Notificar mudança para invalidar cache
   try {
-    dataService.notifyDataChange('budgets', 'update');
-  } catch (error) {
-    console.warn('Erro ao notificar mudança de cache:', error);
-  }
+    // Importar a função de transformação
+    const { transformBudgetToDB } = await import('../utils/data-transformers');
+    
+    // Transformar o orçamento para o formato do banco
+    const budgetForDB = transformBudgetToDB(budget as any);
+    
+    // Atualizar o orçamento
+    const { error: budgetError } = await supabase
+      .from('budgets')
+      .update({
+        ...budgetForDB,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('company_id', companyId);
 
-  return { success: true };
+    if (budgetError) {
+      console.error('Erro ao atualizar orçamento:', budgetError);
+      throw budgetError;
+    }
+
+    // Atualizar itens se fornecidos
+    if (items && items.length > 0) {
+      // Remover itens existentes
+      const { error: deleteError } = await supabase
+        .from('budget_items')
+        .delete()
+        .eq('budget_id', id);
+
+      if (deleteError) {
+        console.error('Erro ao remover itens existentes:', deleteError);
+        throw deleteError;
+      }
+
+      // Inserir novos itens
+      const budgetItems = items.map(item => ({
+        budget_id: id,
+        equipment_name: item.equipmentName,
+        quantity: item.quantity,
+        daily_rate: item.dailyRate,
+        days: item.days,
+        total: item.total,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('budget_items')
+        .insert(budgetItems);
+
+      if (itemsError) {
+        console.error('Erro ao inserir novos itens:', itemsError);
+        throw itemsError;
+      }
+    }
+
+    // Notificar mudança para invalidar cache
+    try {
+      dataService.notifyDataChange('budgets', 'update');
+    } catch (error) {
+      console.warn('Erro ao notificar mudança de cache:', error);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Erro ao atualizar orçamento:', error);
+    throw error;
+  }
 }
 
 export async function deleteBudget(id: string) {
