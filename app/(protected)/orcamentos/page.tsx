@@ -373,21 +373,21 @@ export default function BudgetsPage() {
         totalValue: budgetData.totalValue,
         status: budgetData.status,
         observations: budgetData.observations || '',
-        // Campos de recorrência
+        // Campos de recorrência - CORRIGIDO: só definir quando realmente for recorrente
         isRecurring: Boolean(budgetData.isRecurring),
         recurrenceType: budgetData.isRecurring
           ? (budgetData.recurrenceType as 'weekly' | 'monthly' | 'yearly') ||
             'weekly'
-          : 'weekly',
+          : undefined, // ← CORRIGIDO: undefined quando não é recorrente
         recurrenceInterval: budgetData.isRecurring
           ? budgetData.recurrenceInterval || 1
-          : 1,
+          : undefined, // ← CORRIGIDO: undefined quando não é recorrente
         recurrenceEndDate: budgetData.isRecurring
-          ? budgetData.recurrenceEndDate || ''
-          : '',
+          ? budgetData.recurrenceEndDate || undefined
+          : undefined, // ← CORRIGIDO: undefined quando não é recorrente
       };
 
-      const items = budgetData.items.map(
+      const items = (budgetData.items || []).map(
         (item: {
           equipmentName: string;
           quantity: number;
@@ -497,7 +497,12 @@ export default function BudgetsPage() {
         next_occurrence_date: null,
       };
 
-      const rentalItems = selectedBudget.items.map(
+      // Verificar se há itens antes de tentar acessá-los
+      const budgetItems = selectedBudget?.items || [];
+      const totalItems = budgetItems.length;
+      const totalValue = budgetItems.reduce((sum, item) => sum + item.total, 0);
+
+      const rentalItems = (selectedBudget?.items || []).map(
         (item: {
           equipmentName: string;
           quantity: number;
