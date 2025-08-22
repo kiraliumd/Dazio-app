@@ -46,7 +46,8 @@ export interface Budget {
   installationTime?: string;
   removalTime?: string;
   installationLocation?: string;
-  items: BudgetItem[];
+  // items é carregado separadamente da tabela budget_items
+  items?: BudgetItem[];
   subtotal: number;
   discount: number;
   totalValue: number;

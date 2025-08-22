@@ -239,7 +239,6 @@ export class DataService {
           installation_time,
           removal_time,
           installation_location,
-          items,
           subtotal,
           discount,
           total_value,
