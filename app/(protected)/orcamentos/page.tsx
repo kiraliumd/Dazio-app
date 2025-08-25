@@ -361,7 +361,8 @@ export default function BudgetsPage() {
         number: budgetNumber,
         clientId: budgetData.clientId,
         clientName: budgetData.clientName,
-        createdAt: new Date().toISOString(),
+        // ✅ CORREÇÃO: Manter createdAt original ao editar, criar novo apenas para novos orçamentos
+        ...(budgetData.id ? {} : { createdAt: new Date().toISOString() }), // Criar createdAt apenas para novos orçamentos
         startDate: budgetData.startDate,
         endDate: budgetData.endDate,
         installationTime: undefined,

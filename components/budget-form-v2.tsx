@@ -611,6 +611,8 @@ export function BudgetFormV2({
 
       const budgetData = {
         ...formData,
+        // ✅ CORREÇÃO CRÍTICA: Incluir o ID quando estiver editando
+        ...(budget?.id && { id: budget.id }),
         subtotal: totalValue,
         totalValue: finalValue,
         status: 'Pendente' as const,
