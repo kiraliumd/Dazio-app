@@ -137,6 +137,7 @@ export default function BudgetsPage() {
   const [budgetToDelete, setBudgetToDelete] = useState<string | null>(null);
   const [logisticsModalOpen, setLogisticsModalOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
+  const [viewBudgetModalOpen, setViewBudgetModalOpen] = useState(false);
 
   // Constantes
   const ITEMS_PER_PAGE = 10;
@@ -548,7 +549,7 @@ export default function BudgetsPage() {
 
   const handleViewBudget = useCallback((budget: Budget) => {
     setSelectedBudget(budget);
-    // setViewDialogOpen(true) // This state was removed, so this line is removed
+    setViewBudgetModalOpen(true); // ✅ CORREÇÃO: Abrir modal de visualização
   }, []);
 
   const handleGeneratePDF = async (budget: Budget) => {
@@ -1048,8 +1049,16 @@ export default function BudgetsPage() {
           </Suspense>
         )}
 
-        {/* Dialog de Visualização */}
-        {/* This dialog was removed, so this block is removed */}
+        {/* Modal de Visualização do Orçamento - Lazy loaded */}
+        {viewBudgetModalOpen && selectedBudget && (
+          <Suspense fallback={<LoadingSpinner />}>
+            <BudgetViewModal
+              open={viewBudgetModalOpen}
+              onOpenChange={setViewBudgetModalOpen}
+              budget={selectedBudget}
+            />
+          </Suspense>
+        )}
 
         {/* Dialog de Confirmação de Exclusão */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
