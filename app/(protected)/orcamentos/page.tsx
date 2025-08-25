@@ -92,6 +92,13 @@ const LogisticsConfirmationModal = lazy(() =>
   }))
 );
 
+// Lazy load do modal de visualização do orçamento
+const BudgetViewModal = lazy(() =>
+  import('../../../components/budget-view-modal').then(module => ({
+    default: module.BudgetViewModal,
+  }))
+);
+
 // Hook para debounce
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
