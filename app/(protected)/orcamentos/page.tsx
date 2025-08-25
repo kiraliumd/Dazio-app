@@ -357,12 +357,11 @@ export default function BudgetsPage() {
         budgetNumber = await generateBudgetNumber();
       }
 
-      const dbBudgetData = {
+      // ✅ CORREÇÃO: Criar objeto base sem createdAt para edição
+      const baseBudgetData = {
         number: budgetNumber,
         clientId: budgetData.clientId,
         clientName: budgetData.clientName,
-        // ✅ CORREÇÃO: Manter createdAt original ao editar, criar novo apenas para novos orçamentos
-        ...(budgetData.id ? {} : { createdAt: new Date().toISOString() }), // Criar createdAt apenas para novos orçamentos
         startDate: budgetData.startDate,
         endDate: budgetData.endDate,
         installationTime: undefined,
@@ -405,9 +404,12 @@ export default function BudgetsPage() {
       );
 
       if (budgetData.id) {
-        await updateBudget(budgetData.id, dbBudgetData, items);
+        // ✅ CORREÇÃO: Para edição, não incluir createdAt
+        await updateBudget(budgetData.id, baseBudgetData, items);
       } else {
-        await createBudget(dbBudgetData, items);
+        // ✅ CORREÇÃO: Para criação, incluir createdAt obrigatoriamente
+        const createBudgetData = { ...baseBudgetData, createdAt: new Date().toISOString() };
+        await createBudget(createBudgetData, items);
       }
 
       await refreshBudgets();
@@ -620,7 +622,7 @@ export default function BudgetsPage() {
             <div>
               <div className="font-medium text-foreground">{budget.number}</div>
               <div className="text-sm text-text-secondary">
-                {budget.items.length} item(s)
+                {(budget.items || []).length} item(s)
               </div>
             </div>
           </div>

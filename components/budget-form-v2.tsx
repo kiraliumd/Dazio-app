@@ -36,38 +36,10 @@ import { useClients, useEquipments } from '../lib/hooks/use-optimized-data';
 import {
   transformClientFromDB,
   transformEquipmentFromDB,
+  type Budget,
+  type BudgetItem,
+  type RecurrenceType,
 } from '../lib/utils/data-transformers';
-import type { RecurrenceType } from '../lib/utils/data-transformers';
-
-export interface BudgetItem {
-  id: string;
-  equipmentName: string;
-  quantity: number;
-  dailyRate: number;
-  days: number;
-  total: number;
-}
-
-export interface Budget {
-  id: string;
-  number: string;
-  clientId: string;
-  clientName: string;
-  createdAt: string;
-  startDate: string;
-  endDate: string;
-  installationLocation?: string;
-  items: BudgetItem[];
-  subtotal: number;
-  discount: number;
-  totalValue: number;
-  status: 'Pendente' | 'Aprovado' | 'Rejeitado';
-  observations: string;
-  isRecurring?: boolean;
-  recurrenceType?: RecurrenceType;
-  recurrenceInterval?: number;
-  recurrenceEndDate?: string;
-}
 
 interface BudgetFormProps {
   open: boolean;
@@ -309,7 +281,7 @@ export function BudgetFormV2({
         startDate: formatDateForInput(budget.startDate),
         endDate: formatDateForInput(budget.endDate),
         installationLocation: budget.installationLocation || '',
-        items: budget.items,
+        items: budget.items || [],
         discount: budget.discount,
         observations: budget.observations,
         // Campos de recorrência
