@@ -44,159 +44,75 @@ const styles = StyleSheet.create({
     borderColor: '#000',
     paddingBottom: 15,
   },
-  title: {
+  mainTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 5,
     textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 12,
-    textAlign: 'center',
-    color: '#666',
   },
 
   // Seções
   section: {
     marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 14,
+
+  // Títulos das cláusulas
+  clauseTitle: {
+    fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 8,
     textDecoration: 'underline',
-    borderBottom: 1,
-    borderColor: '#ccc',
-    paddingBottom: 5,
   },
 
-  // Layout de duas colunas
-  twoColumns: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
+  // Subtítulos
+  subsectionTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    marginTop: 10,
   },
-  column: {
-    width: '48%',
+
+  // Parágrafos
+  paragraph: {
+    fontSize: 10,
+    marginBottom: 8,
+    textAlign: 'justify',
+    lineHeight: 1.5,
+  },
+
+  // Texto em negrito
+  bold: {
+    fontWeight: 'bold',
   },
 
   // Campos de dados
   fieldGroup: {
     marginBottom: 8,
+    marginLeft: 15,
   },
   fieldLabel: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 2,
-  },
-  fieldValue: {
     fontSize: 10,
     marginBottom: 4,
-    paddingLeft: 5,
   },
 
-  // Período de locação
-  periodSection: {
-    backgroundColor: '#f8f9fa',
-    padding: 15,
-    marginBottom: 20,
-    borderTop: 1,
-    borderBottom: 1,
-    borderLeft: 1,
-    borderRight: 1,
-    borderColor: '#dee2e6',
-  },
-  periodGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  periodItem: {
-    width: '48%',
-  },
-
-  // Tabela de equipamentos
-  equipmentTable: {
-    marginBottom: 20,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#f8f9fa',
-    borderBottom: 1,
-    borderColor: '#dee2e6',
-    paddingVertical: 8,
-    fontWeight: 'bold',
-    fontSize: 9,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottom: 1,
-    borderColor: '#eee',
-    paddingVertical: 6,
-    fontSize: 9,
-  },
-  tableCell: {
-    paddingHorizontal: 4,
-  },
-  colName: { width: '35%' },
-  colQty: { width: '10%', textAlign: 'center' },
-  colRate: { width: '20%', textAlign: 'right' },
-  colDays: { width: '10%', textAlign: 'center' },
-  colTotal: { width: '25%', textAlign: 'right' },
-
-  // Resumo financeiro
-  financialSummary: {
-    marginTop: 20,
-    marginBottom: 30,
-    alignSelf: 'flex-end',
-    width: '40%',
-  },
-  financialRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  // Lista de equipamentos
+  equipmentItem: {
     marginBottom: 4,
+    marginLeft: 15,
   },
-  financialLabel: {
+  equipmentText: {
     fontSize: 10,
-    fontWeight: 'bold',
-  },
-  financialValue: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  totalRow: {
-    borderTop: 1,
-    borderColor: '#000',
-    paddingTop: 8,
-    marginTop: 8,
+    lineHeight: 1.4,
   },
 
-  // Condições gerais
-  conditionsSection: {
-    marginBottom: 30,
-  },
-  conditionItem: {
-    flexDirection: 'row',
-    marginBottom: 6,
-  },
-  conditionNumber: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    marginRight: 8,
-    minWidth: 20,
-  },
-  conditionText: {
-    fontSize: 9,
-    flex: 1,
-  },
-
-  // Assinaturas
-  signatures: {
+  // Seção de assinaturas
+  signaturesSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 40,
+    marginTop: 30,
+    marginBottom: 20,
   },
-  signature: {
+  signatureColumn: {
     width: '45%',
     textAlign: 'center',
   },
@@ -232,6 +148,7 @@ interface ContractData {
     address: string;
     phone: string;
     email: string;
+    ie?: string; // Added for new contract
   };
   client: {
     name: string;
@@ -239,6 +156,7 @@ interface ContractData {
     address: string;
     phone: string;
     email: string;
+    ie?: string; // Added for new contract
   };
   contract: {
     startDate: string;
@@ -256,6 +174,7 @@ interface ContractData {
       days: number;
       total: number;
     }>;
+    observations?: string; // Added for new contract
   };
   template: string;
 }
@@ -284,204 +203,185 @@ export function ContractPDF({ data }: ContractPDFProps) {
   // Log para debug
   console.log('ContractPDF rendering with data:', data);
 
+  // Calcular dias totais
+  const startDate = new Date(data.contract.startDate);
+  const endDate = new Date(data.contract.endDate);
+  const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+  const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+  // Formatar valor por extenso
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
+  // Formatar data por extenso
+  const formatDateLong = (date: Date) => {
+    const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const months = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    
+    return `${days[date.getDay()]} Feira, ${date.getDate()} de ${months[date.getMonth()]} de ${date.getFullYear()}`;
+  };
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Cabeçalho */}
+        {/* Título Principal */}
         <View style={styles.header}>
-          <Text style={styles.title}>CONTRATO DE LOCAÇÃO DE EQUIPAMENTOS</Text>
-          <Text style={styles.subtitle}>Documento oficial de locação</Text>
+          <Text style={styles.mainTitle}>CONTRATO DE LOCAÇÃO DE BENS MÓVEIS</Text>
         </View>
 
-        {/* Dados das Partes - Duas Colunas */}
+        {/* Preâmbulo */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>DADOS DAS PARTES</Text>
-          <View style={styles.twoColumns}>
-            {/* Coluna do Contratante (Cliente) */}
-            <View style={styles.column}>
-              <Text style={styles.fieldLabel}>CONTRATANTE:</Text>
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldValue}>{data.client.name}</Text>
-                <Text style={styles.fieldValue}>
-                  Documento: {data.client.document}
-                </Text>
-                <Text style={styles.fieldValue}>
-                  Endereço: {data.client.address}
-                </Text>
-                <Text style={styles.fieldValue}>
-                  Telefone: {data.client.phone}
-                </Text>
-                <Text style={styles.fieldValue}>
-                  E-mail: {data.client.email}
-                </Text>
-              </View>
-            </View>
+          <Text style={styles.paragraph}>
+            Pelo presente instrumento de locação de bens móveis que entre si, fazem como{' '}
+            <Text style={styles.bold}>LOCADORA: {data.company.name}</Text>, {data.company.address}, 
+            Telefone: {data.company.phone}, CPF/CNPJ: {data.company.cnpj}, IE: {data.company.ie || 'N/A'}, 
+            neste ato representada por seu representante legal infra-assinado e que doravante será designado{' '}
+            <Text style={styles.bold}>LOCADORA</Text> e de outro lado: <Text style={styles.bold}>{data.client.name}</Text>, 
+            situada na {data.client.address}, inscrita no IE/RG: {data.client.ie || 'N/A'}, doravante denominada{' '}
+            <Text style={styles.bold}>LOCATÁRIA</Text>, Contrataram a locação dos bens móveis abaixo descritos, 
+            com respectivos valores unitários, mediante as condições estabelecidas nas cláusulas seguintes:
+          </Text>
+        </View>
 
-            {/* Coluna do Contratado (Empresa) */}
-            <View style={styles.column}>
-              <Text style={styles.fieldLabel}>CONTRATADO:</Text>
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldValue}>{data.company.name}</Text>
-                <Text style={styles.fieldValue}>CNPJ: {data.company.cnpj}</Text>
-                <Text style={styles.fieldValue}>
-                  Endereço: {data.company.address}
-                </Text>
-                <Text style={styles.fieldValue}>
-                  Telefone: {data.company.phone}
-                </Text>
-                <Text style={styles.fieldValue}>
-                  E-mail: {data.company.email}
-                </Text>
-              </View>
-            </View>
+        {/* Cláusula Primeira - Objeto do Contrato */}
+        <View style={styles.section}>
+          <Text style={styles.clauseTitle}>1-) OBJETO DO CONTRATO:</Text>
+          <Text style={styles.paragraph}>
+            A Locadora aluga os bens móveis, abaixo descritos de sua propriedade para uso exclusivo no endereço aqui especificado:
+          </Text>
+          
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Local de entrega: {data.contract.installationLocation}</Text>
+          </View>
+          
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Observações: {data.contract.observations || 'Nenhuma observação adicional'}</Text>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>
+              PERÍODO: {format(new Date(data.contract.startDate), 'dd/MM/yyyy', { locale: ptBR })} às {data.contract.installationTime} 
+              horas até {format(new Date(data.contract.endDate), 'dd/MM/yyyy', { locale: ptBR })} às {data.contract.removalTime} 
+              horas totalizando {totalDays} dia(s), totalizando {formatCurrency(data.contract.finalValue)}.
+            </Text>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Forma de Pagamento: Transferência Bancária</Text>
           </View>
         </View>
 
-        {/* Período de Locação */}
+        {/* Lista de Equipamentos */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PERÍODO DE LOCAÇÃO</Text>
-          <View style={styles.periodSection}>
-            <View style={styles.periodGrid}>
-              <View style={styles.periodItem}>
-                <Text style={styles.fieldLabel}>Data de Início:</Text>
-                <Text style={styles.fieldValue}>
-                  {format(new Date(data.contract.startDate), 'dd/MM/yyyy', {
-                    locale: ptBR,
-                  })}{' '}
-                  às {data.contract.installationTime}
-                </Text>
-              </View>
-              <View style={styles.periodItem}>
-                <Text style={styles.fieldLabel}>Data de Término:</Text>
-                <Text style={styles.fieldValue}>
-                  {format(new Date(data.contract.endDate), 'dd/MM/yyyy', {
-                    locale: ptBR,
-                  })}{' '}
-                  às {data.contract.removalTime}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Local de Instalação:</Text>
-              <Text style={styles.fieldValue}>
-                {data.contract.installationLocation}
+          <Text style={styles.subsectionTitle}>EQUIPAMENTOS LOCADOS:</Text>
+          {data.contract.items.map((item, index) => (
+            <View key={index} style={styles.equipmentItem}>
+              <Text style={styles.equipmentText}>
+                • {item.equipmentName} - Qtd: {item.quantity} - Valor: {formatCurrency(item.total)}
               </Text>
             </View>
-          </View>
+          ))}
         </View>
 
-        {/* Equipamentos Locados */}
+        {/* Cláusula Segunda - Pagamento */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>EQUIPAMENTOS LOCADOS</Text>
-          <View style={styles.equipmentTable}>
-            {/* Cabeçalho da Tabela */}
-            <View style={styles.tableHeader}>
-              <Text style={[styles.tableCell, styles.colName]}>
-                EQUIPAMENTO
-              </Text>
-              <Text style={[styles.tableCell, styles.colQty]}>QTD</Text>
-              <Text style={[styles.tableCell, styles.colRate]}>VALOR/DIA</Text>
-              <Text style={[styles.tableCell, styles.colDays]}>DIAS</Text>
-              <Text style={[styles.tableCell, styles.colTotal]}>TOTAL</Text>
-            </View>
-
-            {/* Linhas dos Equipamentos */}
-            {data.contract.items.map((item, index) => (
-              <View key={index} style={styles.tableRow}>
-                <Text style={[styles.tableCell, styles.colName]}>
-                  {item.equipmentName}
-                </Text>
-                <Text style={[styles.tableCell, styles.colQty]}>
-                  {item.quantity}
-                </Text>
-                <Text style={[styles.tableCell, styles.colRate]}>
-                  R$ {item.dailyRate.toFixed(2).replace('.', ',')}
-                </Text>
-                <Text style={[styles.tableCell, styles.colDays]}>
-                  {item.days}
-                </Text>
-                <Text style={[styles.tableCell, styles.colTotal]}>
-                  R$ {item.total.toFixed(2).replace('.', ',')}
-                </Text>
-              </View>
-            ))}
-          </View>
+          <Text style={styles.clauseTitle}>CLÁUSULA SEGUNDA: DO PAGAMENTO:</Text>
+          <Text style={styles.paragraph}>
+            Como pagamento pela locação de bens móveis de que se trata a Cláusula Primeira, a LOCATÁRIA pagará a 
+            LOCADORA a importância certa de {formatCurrency(data.contract.finalValue)}.
+          </Text>
         </View>
 
-        {/* Resumo Financeiro */}
-        <View style={styles.financialSummary}>
-          <View style={styles.financialRow}>
-            <Text style={styles.financialLabel}>Valor Total:</Text>
-            <Text style={styles.financialValue}>
-              R$ {data.contract.totalValue.toFixed(2).replace('.', ',')}
-            </Text>
-          </View>
-          <View style={styles.financialRow}>
-            <Text style={styles.financialLabel}>Desconto:</Text>
-            <Text style={styles.financialValue}>
-              R$ {data.contract.discount.toFixed(2).replace('.', ',')}
-            </Text>
-          </View>
-          <View style={[styles.financialRow, styles.totalRow]}>
-            <Text style={styles.financialLabel}>VALOR FINAL:</Text>
-            <Text style={styles.financialValue}>
-              R$ {data.contract.finalValue.toFixed(2).replace('.', ',')}
-            </Text>
-          </View>
+        {/* Cláusula Terceira - Devolução */}
+        <View style={styles.section}>
+          <Text style={styles.clauseTitle}>CLÁUSULA TERCEIRA:</Text>
+          <Text style={styles.paragraph}>
+            A LOCATÁRIA fica a obrigação de devolver os materiais locados, ao final do evento ou na loja, 
+            no estado em que os recebeu, além de pagar pontualmente o aluguel acordado e de conservá-los como se fossem seus.
+          </Text>
+          <Text style={styles.paragraph}>
+            Em caso de avaria, extravio, danos por força maior e/ou furto do material locado, a LOCADORA se reserva 
+            o direito de emitir cobrança bancária a LOCATÁRIA, no valor correspondente ao reparo e/ou substituição 
+            do material conforme preço de reposição descrito no contrato.
+          </Text>
         </View>
 
-        {/* Condições Gerais */}
-        <View style={styles.conditionsSection}>
-          <Text style={styles.sectionTitle}>CONDIÇÕES GERAIS</Text>
-          <View style={styles.conditionItem}>
-            <Text style={styles.conditionNumber}>1.</Text>
-            <Text style={styles.conditionText}>
-              O contratante se compromete a devolver os equipamentos no estado
-              em que foram recebidos, responsabilizando-se por qualquer dano ou
-              perda durante o período de locação.
-            </Text>
-          </View>
-          <View style={styles.conditionItem}>
-            <Text style={styles.conditionNumber}>2.</Text>
-            <Text style={styles.conditionText}>
-              O pagamento deve ser realizado conforme acordado entre as partes,
-              sendo obrigatório o cumprimento dos prazos estabelecidos.
-            </Text>
-          </View>
-          <View style={styles.conditionItem}>
-            <Text style={styles.conditionNumber}>3.</Text>
-            <Text style={styles.conditionText}>
-              Em caso de atraso na devolução dos equipamentos, será cobrada
-              multa diária equivalente a 10% do valor da diária por equipamento.
-            </Text>
-          </View>
-          <View style={styles.conditionItem}>
-            <Text style={styles.conditionNumber}>4.</Text>
-            <Text style={styles.conditionText}>
-              O contratado não se responsabiliza por danos causados por mau uso
-              ou condições inadequadas de instalação dos equipamentos.
-            </Text>
-          </View>
+        {/* Cláusula Quarta - Anuência das Partes */}
+        <View style={styles.section}>
+          <Text style={styles.clauseTitle}>CLÁUSULA QUARTA: ANUÊNCIA DAS PARTES:</Text>
+          <Text style={styles.paragraph}>
+            Caso haja rescisão contratual por uma das partes - depois de assinado o presente contrato, restará para 
+            aquele que rescindir pagar uma multa de 50% (cinquenta por cento) do valor total do contrato.
+          </Text>
+          <Text style={styles.paragraph}>
+            Após o evento realizado, em caso de haver inadimplência de alguma parcela em aberto, fica também estipulada 
+            a multa de 2% (dois por cento) do valor total do contrato. Fica reservado o direito da LOCADORA de não 
+            realizar a montagem e locação dos materiais ora contratados, caso haja algum inadimplemento ou rescisão 
+            contratual mediante notificação.
+          </Text>
+        </View>
+
+        {/* Cláusula Quinta - Período e Local */}
+        <View style={styles.section}>
+          <Text style={styles.clauseTitle}>CLÁUSULA QUINTA: DO PERÍODO E LOCAL:</Text>
+          <Text style={styles.paragraph}>
+            A data de locação dos materiais descritos na Cláusula Primeira corresponde no período das datas mencionadas.
+          </Text>
+        </View>
+
+        {/* Cláusula Sexta - Responsabilidades */}
+        <View style={styles.section}>
+          <Text style={styles.clauseTitle}>CLÁUSULA SEXTA: DAS RESPONSABILIDADES:</Text>
+          <Text style={styles.paragraph}>
+            A LOCATÁRIA se responsabiliza pela retirada, transporte e devolução dos materiais em perfeitas condições 
+            de uso no dia, local e hora da devolução dos mesmos, caso escolha retirar e devolver o material na empresa. 
+            A LOCATÁRIA também se responsabiliza por conferir o material na entrega e/ou retirada, assim como na 
+            recolha e/ou devolução dos mesmos, não sendo aceitas reclamações posteriores. A retirada e devolução dos 
+            equipamentos locados serão efetuadas através do comprovante de entrega e de devolução emitidos pela LOCADORA. 
+            Os mesmos deverão ser assinados pela LOCADORA e pela LOCATÁRIA ou por representantes autorizados.
+          </Text>
+        </View>
+
+        {/* Cláusula Sétima - Foro */}
+        <View style={styles.section}>
+          <Text style={styles.clauseTitle}>CLÁUSULA SÉTIMA: DO FORO:</Text>
+          <Text style={styles.paragraph}>
+            Em caso de alguma controvérsia as partes elegem o Foro de Cuiabá-MT para dirimir quaisquer problemas 
+            que surgir relativos a este contrato.
+          </Text>
+          <Text style={styles.paragraph}>
+            <Text style={styles.bold}>PARÁGRAFO ÚNICO:</Text> Renuncia a LOCATÁRIA qualquer foro diverso a este 
+            eleito nesta cláusula por mais privilegiado que seja. Por estarem assim acordados e ajustados, firmam 
+            o presente contrato em duas vias de teor e forma igual para um só efeito.
+          </Text>
         </View>
 
         {/* Assinaturas */}
-        <View style={styles.signatures}>
-          <View style={styles.signature}>
+        <View style={styles.signaturesSection}>
+          <View style={styles.signatureColumn}>
             <View style={styles.signatureLine} />
-            <Text style={styles.signatureText}>CONTRATANTE</Text>
-            <Text style={styles.signatureSubtext}>{data.client.name}</Text>
+            <Text style={styles.signatureText}>{data.company.name}</Text>
+            <Text style={styles.signatureSubtext}>LOCADORA</Text>
           </View>
-          <View style={styles.signature}>
+          
+          <View style={styles.signatureColumn}>
             <View style={styles.signatureLine} />
-            <Text style={styles.signatureText}>CONTRATADO</Text>
-            <Text style={styles.signatureSubtext}>{data.company.name}</Text>
+            <Text style={styles.signatureText}>{data.client.name}</Text>
+            <Text style={styles.signatureSubtext}>LOCATÁRIA</Text>
           </View>
         </View>
 
         {/* Data do Contrato */}
-        <Text style={styles.contractDate}>
-          Cuiabá, {format(new Date(), 'dd/MM/yyyy', { locale: ptBR })}
-        </Text>
+        <View style={styles.contractDate}>
+          <Text>CUIABÁ - MT, {formatDateLong(new Date())}</Text>
+        </View>
       </Page>
     </Document>
   );
