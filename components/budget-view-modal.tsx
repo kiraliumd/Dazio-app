@@ -33,12 +33,16 @@ interface BudgetViewModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   budget: Budget;
+  onEdit?: (budget: Budget) => void;
+  onGeneratePDF?: (budget: Budget) => void;
 }
 
 export function BudgetViewModal({
   open,
   onOpenChange,
   budget,
+  onEdit,
+  onGeneratePDF,
 }: BudgetViewModalProps) {
   // Função para formatar datas
   const formatDate = (dateString: string) => {
@@ -267,12 +271,6 @@ export function BudgetViewModal({
                 <span>Criado em:</span>
                 <span>{formatDate(budget.createdAt)}</span>
               </div>
-              {budget.updatedAt && budget.updatedAt !== budget.createdAt && (
-                <div className="flex justify-between">
-                  <span>Última atualização:</span>
-                  <span>{formatDate(budget.updatedAt)}</span>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -285,20 +283,29 @@ export function BudgetViewModal({
               Fechar
             </Button>
             
-            {budget.status === 'Pendente' && (
+            {budget.status === 'Pendente' && onEdit && (
               <Button
                 variant="outline"
                 className="text-primary hover:text-primary hover:bg-primary/10"
+                onClick={() => {
+                  onEdit(budget);
+                  onOpenChange(false); // Fechar modal ao editar
+                }}
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Editar
               </Button>
             )}
 
-            <Button className="bg-primary hover:bg-primary/90">
-              <Download className="h-4 w-4 mr-2" />
-              Gerar PDF
-            </Button>
+            {onGeneratePDF && (
+              <Button 
+                className="bg-primary hover:bg-primary/90"
+                onClick={() => onGeneratePDF(budget)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Gerar PDF
+              </Button>
+            )}
           </div>
         </div>
       </SheetContent>

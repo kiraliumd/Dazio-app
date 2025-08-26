@@ -1063,6 +1063,11 @@ export default function BudgetsPage() {
               open={viewBudgetModalOpen}
               onOpenChange={setViewBudgetModalOpen}
               budget={selectedBudget}
+              onEdit={(budget) => {
+                setEditingBudget(budget);
+                setIsFormOpen(true);
+              }}
+              onGeneratePDF={handleGeneratePDF}
             />
           </Suspense>
         )}
