@@ -1,10 +1,10 @@
 import {
-    Document,
-    Font,
-    Page,
-    StyleSheet,
-    Text,
-    View,
+  Document,
+  Font,
+  Page,
+  StyleSheet,
+  Text,
+  View,
 } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

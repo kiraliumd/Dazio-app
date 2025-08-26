@@ -1,73 +1,73 @@
 'use client';
 
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
-    Pagination,
-    PaginationContent,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
 } from '@/components/ui/pagination';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { useClients, useRentals } from '@/lib/hooks/use-optimized-data';
 import { formatDateCuiaba } from '@/lib/utils';
 import { pdf } from '@react-pdf/renderer';
 import {
-    Calendar,
-    DollarSign,
-    Edit,
-    Eye,
-    FileText,
-    MapPin,
-    MessageSquare,
-    Package,
-    Plus,
-    Search,
-    Trash2,
-    User,
+  Calendar,
+  DollarSign,
+  Edit,
+  Eye,
+  FileText,
+  MapPin,
+  MessageSquare,
+  Package,
+  Plus,
+  Search,
+  Trash2,
+  User,
 } from 'lucide-react';
 import React, {
-    lazy,
-    Suspense,
-    useCallback,
-    useEffect,
-    useMemo,
-    useState,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
 } from 'react';
 import { AppSidebar } from '../../../components/app-sidebar';
 import { ContractPDF } from '../../../components/contract-pdf';
@@ -77,9 +77,9 @@ import { transformRentalFromDB } from '../../../lib/utils/data-transformers';
 
 // Importar funções de CRUD que ainda são necessárias
 import {
-    createRental,
-    deleteRental,
-    updateRental,
+  createRental,
+  deleteRental,
+  updateRental,
 } from '../../../lib/database/rentals';
 import { getCompanySettings } from '../../../lib/database/settings';
 

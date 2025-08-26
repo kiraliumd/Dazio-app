@@ -140,27 +140,62 @@ export default function RelatoriosPage() {
   }, []);
 
   // Calcular métricas
-  const totalRevenue = filteredRentals.reduce(
-    (sum, rental) => sum + rental.finalValue,
-    0
-  );
-  const contractsCount = filteredRentals.length;
-  const budgetsCount = filteredBudgets.length;
+  const totalRevenue = (() => {
+    // ✅ CORREÇÃO: Verificar se filteredRentals existe e é um array
+    if (!filteredRentals || !Array.isArray(filteredRentals)) {
+      return 0;
+    }
+
+    return filteredRentals.reduce(
+      (sum, rental) => {
+        // ✅ CORREÇÃO: Verificar se finalValue existe e é um número
+        if (typeof rental.finalValue === 'number') {
+          return sum + rental.finalValue;
+        }
+        return sum;
+      },
+      0
+    );
+  })();
+  const contractsCount = (() => {
+    // ✅ CORREÇÃO: Verificar se filteredRentals existe e é um array
+    if (!filteredRentals || !Array.isArray(filteredRentals)) {
+      return 0;
+    }
+    return filteredRentals.length;
+  })();
+  
+  const budgetsCount = (() => {
+    // ✅ CORREÇÃO: Verificar se filteredBudgets existe e é um array
+    if (!filteredBudgets || !Array.isArray(filteredBudgets)) {
+      return 0;
+    }
+    return filteredBudgets.length;
+  })();
+  
   const averageTicket = contractsCount > 0 ? totalRevenue / contractsCount : 0;
 
   // Top 3 clientes
   const getTopClients = () => {
+    // ✅ CORREÇÃO: Verificar se filteredRentals existe e é um array
+    if (!filteredRentals || !Array.isArray(filteredRentals)) {
+      return [];
+    }
+
     const clientStats = filteredRentals.reduce(
       (acc, rental) => {
-        if (!acc[rental.clientName]) {
-          acc[rental.clientName] = {
-            name: rental.clientName,
-            contracts: 0,
-            totalValue: 0,
-          };
+        // ✅ CORREÇÃO: Verificar se os campos necessários existem
+        if (rental.clientName && typeof rental.finalValue === 'number') {
+          if (!acc[rental.clientName]) {
+            acc[rental.clientName] = {
+              name: rental.clientName,
+              contracts: 0,
+              totalValue: 0,
+            };
+          }
+          acc[rental.clientName].contracts += 1;
+          acc[rental.clientName].totalValue += rental.finalValue;
         }
-        acc[rental.clientName].contracts += 1;
-        acc[rental.clientName].totalValue += rental.finalValue;
         return acc;
       },
       {} as Record<
@@ -176,19 +211,27 @@ export default function RelatoriosPage() {
 
   // Equipamentos mais alugados
   const getTopEquipments = () => {
+    // ✅ CORREÇÃO: Verificar se filteredRentals existe e é um array
+    if (!filteredRentals || !Array.isArray(filteredRentals)) {
+      return [];
+    }
+
     const equipmentStats = filteredRentals.reduce(
       (acc, rental) => {
-        rental.items.forEach(item => {
-          if (!acc[item.equipmentName]) {
-            acc[item.equipmentName] = {
-              name: item.equipmentName,
-              quantity: 0,
-              rentals: 0,
-            };
-          }
-          acc[item.equipmentName].quantity += item.quantity;
-          acc[item.equipmentName].rentals += 1;
-        });
+        // ✅ CORREÇÃO: Verificar se rental.items existe antes de usar forEach
+        if (rental.items && Array.isArray(rental.items)) {
+          rental.items.forEach(item => {
+            if (!acc[item.equipmentName]) {
+              acc[item.equipmentName] = {
+                name: item.equipmentName,
+                quantity: 0,
+                rentals: 0,
+              };
+            }
+            acc[item.equipmentName].quantity += item.quantity;
+            acc[item.equipmentName].rentals += 1;
+          });
+        }
         return acc;
       },
       {} as Record<string, { name: string; quantity: number; rentals: number }>
