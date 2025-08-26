@@ -1,11 +1,10 @@
-import React from 'react';
 import {
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-  Font,
+    Document,
+    Font,
+    Page,
+    StyleSheet,
+    Text,
+    View,
 } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -148,7 +147,6 @@ interface ContractData {
     address: string;
     phone: string;
     email: string;
-    ie?: string; // Added for new contract
   };
   client: {
     name: string;
@@ -156,7 +154,6 @@ interface ContractData {
     address: string;
     phone: string;
     email: string;
-    ie?: string; // Added for new contract
   };
   contract: {
     startDate: string;
@@ -167,6 +164,7 @@ interface ContractData {
     totalValue: number;
     discount: number;
     finalValue: number;
+    observations?: string;
     items: Array<{
       equipmentName: string;
       quantity: number;
@@ -174,7 +172,6 @@ interface ContractData {
       days: number;
       total: number;
     }>;
-    observations?: string; // Added for new contract
   };
   template: string;
 }
@@ -241,10 +238,10 @@ export function ContractPDF({ data }: ContractPDFProps) {
           <Text style={styles.paragraph}>
             Pelo presente instrumento de locação de bens móveis que entre si, fazem como{' '}
             <Text style={styles.bold}>LOCADORA: {data.company.name}</Text>, {data.company.address}, 
-            Telefone: {data.company.phone}, CPF/CNPJ: {data.company.cnpj}, IE: {data.company.ie || 'N/A'}, 
+            Telefone: {data.company.phone}, CPF/CNPJ: {data.company.cnpj}, 
             neste ato representada por seu representante legal infra-assinado e que doravante será designado{' '}
             <Text style={styles.bold}>LOCADORA</Text> e de outro lado: <Text style={styles.bold}>{data.client.name}</Text>, 
-            situada na {data.client.address}, inscrita no IE/RG: {data.client.ie || 'N/A'}, doravante denominada{' '}
+            situada na {data.client.address}, doravante denominada{' '}
             <Text style={styles.bold}>LOCATÁRIA</Text>, Contrataram a locação dos bens móveis abaixo descritos, 
             com respectivos valores unitários, mediante as condições estabelecidas nas cláusulas seguintes:
           </Text>

@@ -3,11 +3,11 @@
 import { AuthGuard } from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,21 +18,21 @@ import { useToast } from '@/components/ui/use-toast';
 import { useCompanyName } from '@/hooks/useCompanyName';
 import { AlertCircle, CheckCircle, Key, Lock, Save } from 'lucide-react';
 import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    lazy,
+    Suspense,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from 'react';
 import { AppSidebar } from '../../../components/app-sidebar';
 import { PageHeader } from '../../../components/page-header';
 import { useAuth } from '../../../lib/auth-context';
 import {
-  CompanySettings,
-  getCompanySettings,
-  updateCompanySettings,
+    CompanySettings,
+    getCompanySettings,
+    updateCompanySettings,
 } from '../../../lib/database/settings';
 
 // Lazy load do componente pesado
@@ -58,7 +58,7 @@ export default function SettingsPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { setCompanyName: setHeaderCompanyName } = useCompanyName();
 
@@ -187,47 +187,52 @@ export default function SettingsPage() {
   // Memoizar o handler do modelo de exemplo
   const handleUseExampleTemplate = useCallback(() => {
     if (settings) {
-      const exampleTemplate = `CONTRATO DE LOCAÇÃO DE EQUIPAMENTOS
+      const exampleTemplate = `CONTRATO DE LOCAÇÃO DE BENS MÓVEIS
 
-CONTRATANTE: {client_name}
-Documento: {client_document}
-Endereço: {client_address}
-Telefone: {client_phone}
-E-mail: {client_email}
+Pelo presente instrumento de locação de bens móveis que entre si, fazem como LOCADORA: {company_name}, {address}, Telefone: {phone}, CPF/CNPJ: {cnpj}, neste ato representada por seu representante legal infra-assinado e que doravante será designado LOCADORA e de outro lado: {client_name}, situada na {client_address}, doravante denominada LOCATÁRIA, Contrataram a locação dos bens móveis abaixo descritos, com respectivos valores unitários, mediante as condições estabelecidas nas cláusulas seguintes:
 
-CONTRATADO: {company_name}
-CNPJ: {cnpj}
-Endereço: {address}
-Telefone: {phone}
-E-mail: {email}
+1-) OBJETO DO CONTRATO:
+A Locadora aluga os bens móveis, abaixo descritos de sua propriedade para uso exclusivo no endereço aqui especificado:
 
-OBJETO DO CONTRATO:
-Locação dos seguintes equipamentos:
+Local de entrega: {installation_location}
+Observações: {observations}
+
+PERÍODO: {start_date} às {installation_time} horas até {end_date} às {removal_time} horas totalizando {total_days} dia(s), totalizando {final_value}, {final_value_extenso}.
+
+Forma de Pagamento: Transferência Bancária
+
+EQUIPAMENTOS LOCADOS:
 {equipment_list}
 
-PERÍODO DE LOCAÇÃO:
-Início: {start_date} às {installation_time}
-Término: {end_date} às {removal_time}
+CLÁUSULA SEGUNDA: DO PAGAMENTO:
+Como pagamento pela locação de bens móveis de que se trata a Cláusula Primeira, a LOCATÁRIA pagará a LOCADORA a importância certa de {final_value}.
 
-LOCAL DE INSTALAÇÃO:
-{installation_location}
+CLÁUSULA TERCEIRA:
+A LOCATÁRIA fica a obrigação de devolver os materiais locados, ao final do evento ou na loja, no estado em que os recebeu, além de pagar pontualmente o aluguel acordado e de conservá-los como se fossem seus.
 
-VALORES:
-Valor Total: R$ {total_value}
-Desconto: R$ {discount}
-Valor Final: R$ {final_value}
+Em caso de avaria, extravio, danos por força maior e/ou furto do material locado, a LOCADORA se reserva o direito de emitir cobrança bancária a LOCATÁRIA, no valor correspondente ao reparo e/ou substituição do material conforme preço de reposição descrito no contrato.
 
-CONDIÇÕES GERAIS:
-1. O contratante se compromete a devolver os equipamentos no estado em que foram recebidos.
-2. Qualquer dano aos equipamentos será de responsabilidade do contratante.
-3. O pagamento deve ser realizado conforme acordado entre as partes.
+CLÁUSULA QUARTA: ANUÊNCIA DAS PARTES:
+Caso haja rescisão contratual por uma das partes - depois de assinado o presente contrato, restará para aquele que rescindir pagar uma multa de 50% (cinquenta por cento) do valor total do contrato.
 
-Data do Contrato: {contract_date}
+Após o evento realizado, em caso de haver inadimplência de alguma parcela em aberto, fica também estipulada a multa de 2% (dois por cento) do valor total do contrato. Fica reservado o direito da LOCADORA de não realizar a montagem e locação dos materiais ora contratados, caso haja algum inadimplemento ou rescisão contratual mediante notificação.
 
-Assinaturas:
+CLÁUSULA QUINTA: DO PERÍODO E LOCAL:
+A data de locação dos materiais descritos na Cláusula Primeira corresponde no período das datas mencionadas.
+
+CLÁUSULA SEXTA: DAS RESPONSABILIDADES:
+A LOCATÁRIA se responsabiliza pela retirada, transporte e devolução dos materiais em perfeitas condições de uso no dia, local e hora da devolução dos mesmos, caso escolha retirar e devolver o material na empresa. A LOCATÁRIA também se responsabiliza por conferir o material na entrega e/ou retirada, assim como na recolha e/ou devolução dos mesmos, não sendo aceitas reclamações posteriores. A retirada e devolução dos equipamentos locados serão efetuadas através do comprovante de entrega e de devolução emitidos pela LOCADORA. Os mesmos deverão ser assinados pela LOCADORA e pela LOCATÁRIA ou por representantes autorizados.
+
+CLÁUSULA SÉTIMA: DO FORO:
+Em caso de alguma controvérsia as partes elegem o Foro de Cuiabá-MT para dirimir quaisquer problemas que surgir relativos a este contrato.
+
+PARÁGRAFO ÚNICO: Renuncia a LOCATÁRIA qualquer foro diverso a este eleito nesta cláusula por mais privilegiado que seja. Por estarem assim acordados e ajustados, firmam o presente contrato em duas vias de teor e forma igual para um só efeito.
+
+CUIABÁ - MT, {contract_date}
 
 _____________________                    _____________________
-Contratante                              Contratado`;
+{company_name}                           {client_name}
+LOCADORA                                 LOCATÁRIA`;
       setSettings({ ...settings, contract_template: exampleTemplate });
     }
   }, [settings]);
@@ -317,7 +322,7 @@ Contratante                              Contratado`;
 
       setPasswordLoading(true);
       try {
-        const { error } = await updateUser({ password: newPassword });
+        const { error } = await updateUser({ password: newPassword } as any);
 
         if (error) {
           toast({
