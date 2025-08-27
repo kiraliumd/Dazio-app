@@ -1,13 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -17,21 +10,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import {
-  Plus,
-  Trash2,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
+import {
   Calculator,
+  Calendar,
   ChevronLeft,
   ChevronRight,
-  User,
-  Package,
   FileText,
-  Search,
   MapPin,
+  Package,
+  Plus,
+  Search,
+  Trash2,
+  User,
 } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { useEffect, useState } from 'react';
 import { useClients, useEquipments } from '../lib/hooks/use-optimized-data';
 import {
   transformClientFromDB,
@@ -575,14 +576,12 @@ export function BudgetFormV2({
 
   const canProceedToNextStep = () => {
     if (currentStep === 1) {
-      const hasBasicData =
-        formData.clientId && formData.startDate && formData.endDate;
+      // ✅ CORREÇÃO: Para recorrentes, só precisa de cliente e data de início
+      const hasBasicData = formData.clientId && formData.startDate;
 
-      // Validar se as datas são válidas
+      // Validar se a data de início é válida
       const isStartDateValid =
         formData.startDate && /^\d{4}-\d{2}-\d{2}$/.test(formData.startDate);
-      const isEndDateValid =
-        formData.endDate && /^\d{4}-\d{2}-\d{2}$/.test(formData.endDate);
 
       // ✅ CORREÇÃO: Log detalhado para debug
       console.log('🔍 DEBUG - Validação do Step 1:', {
@@ -592,14 +591,13 @@ export function BudgetFormV2({
         startDate: formData.startDate,
         endDate: formData.endDate,
         isStartDateValid,
-        isEndDateValid,
         isRecurring: formData.isRecurring,
         recurrenceType: formData.recurrenceType,
         recurrenceInterval: formData.recurrenceInterval,
         recurrenceEndDate: formData.recurrenceEndDate
       });
 
-      // Se for recorrente, verificar se tem tipo e duração (datas são calculadas automaticamente)
+      // Se for recorrente, verificar se tem tipo e duração (data de fim é calculada automaticamente)
       if (formData.isRecurring) {
         const hasRecurrenceData = 
           formData.recurrenceType && 
@@ -609,7 +607,6 @@ export function BudgetFormV2({
         console.log('🔍 Validação de recorrência:', {
           hasBasicData,
           isStartDateValid,
-          isEndDateValid,
           hasRecurrenceData,
           isRecurring: formData.isRecurring,
           recurrenceType: formData.recurrenceType,
@@ -621,7 +618,6 @@ export function BudgetFormV2({
         const canProceed = (
           hasBasicData &&
           isStartDateValid &&
-          isEndDateValid &&
           hasRecurrenceData
         );
         
@@ -629,6 +625,10 @@ export function BudgetFormV2({
         return canProceed;
       }
 
+      // Para não recorrentes, precisa de cliente, data de início E data de fim
+      const isEndDateValid =
+        formData.endDate && /^\d{4}-\d{2}-\d{2}$/.test(formData.endDate);
+      
       const canProceed = hasBasicData && isStartDateValid && isEndDateValid;
       console.log('✅ Pode avançar (não recorrente):', canProceed);
       return canProceed;
@@ -965,7 +965,12 @@ export function BudgetFormV2({
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-6">
               <div className="grid gap-2">
-                <Label htmlFor="startDate">Data de Início *</Label>
+                <Label htmlFor="startDate">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Data de Início *
+                  </div>
+                </Label>
                 <Input
                   id="startDate"
                   type="date"
@@ -973,10 +978,19 @@ export function BudgetFormV2({
                   onChange={e =>
                     setFormData({ ...formData, startDate: e.target.value })
                   }
+                  disabled={isApprovedBudget}
+                  required
                 />
               </div>
+
+              {/* ✅ CORREÇÃO: Sempre mostrar data de fim, mas com lógica diferente para recorrentes */}
               <div className="grid gap-2">
-                <Label htmlFor="endDate">Data de Término *</Label>
+                <Label htmlFor="endDate">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    {formData.isRecurring ? 'Data de Término (Calculada)' : 'Data de Fim *'}
+                  </div>
+                </Label>
                 <Input
                   id="endDate"
                   type="date"
@@ -984,9 +998,15 @@ export function BudgetFormV2({
                   onChange={e =>
                     setFormData({ ...formData, endDate: e.target.value })
                   }
-                  min={formData.startDate}
-                  disabled={isApprovedBudget}
+                  disabled={isApprovedBudget || formData.isRecurring} // Desabilitar se for recorrente
+                  required={!formData.isRecurring} // Só obrigatório se não for recorrente
+                  className={formData.isRecurring ? 'bg-gray-100' : ''} // Visual diferente se for recorrente
                 />
+                {formData.isRecurring && (
+                  <p className="text-xs text-blue-600">
+                    ⏰ Data calculada automaticamente baseada na recorrência
+                  </p>
+                )}
               </div>
             </div>
 
