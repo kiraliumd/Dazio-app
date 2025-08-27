@@ -2,11 +2,11 @@
 
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from '@/components/ui/card';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -104,9 +104,10 @@ export default function AgendaPage() {
   // Memoizar busca de eventos do dia
   const getEventsForDate = useCallback(
     (dateKey: string) => {
-      return events.filter(
+      const eventsForDay = events.filter(
         (event: LogisticsEvent) => event.event_date === dateKey
       );
+      return eventsForDay;
     },
     [events]
   );
@@ -170,27 +171,27 @@ export default function AgendaPage() {
         day
       );
       const eventsForDay = getEventsForDate(dateKey);
-      // Corrigir para comparar com a data local, não UTC
+      // ✅ CORREÇÃO: Comparação simples de data para evitar problemas de fuso horário
       const today = new Date();
-      const localDateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const isToday = dateKey === localDateKey;
+      const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const isTodayDate = dateKey === todayKey;
 
       days.push(
         <Link
           key={day}
           href={`/agenda/${dateKey}`}
           className={`h-32 border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer ${
-            isToday
+            isTodayDate
               ? 'bg-primary/10 border-primary ring-2 ring-primary/20'
               : 'bg-white'
           }`}
         >
           <div className="p-2 h-full flex flex-col">
             <div
-              className={`text-sm font-medium mb-1 ${isToday ? 'text-primary font-bold' : 'text-gray-900'}`}
+              className={`text-sm font-medium mb-1 ${isTodayDate ? 'text-primary font-bold' : 'text-gray-900'}`}
             >
               {day}
-              {isToday && <span className="ml-1 text-xs">(Hoje)</span>}
+              {isTodayDate && <span className="ml-1 text-xs">(Hoje)</span>}
             </div>
             <div className="flex-1 space-y-1 overflow-hidden">
               {eventsForDay

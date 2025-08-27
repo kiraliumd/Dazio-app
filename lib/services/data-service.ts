@@ -1,5 +1,5 @@
-import { supabase } from '../supabase';
 import { getCurrentUserCompanyId } from '../database/client-utils';
+import { supabase } from '../supabase';
 
 export interface DataServiceOptions {
   useCache?: boolean;
@@ -353,31 +353,27 @@ export class DataService {
   async getDashboardMetrics(options: DataServiceOptions = {}): Promise<any> {
     const cacheKey = this.getCacheKey('dashboard');
 
-    // Verificar cache se habilitado
-    if (options.useCache !== false && !options.forceRefresh) {
-      const cached = this.getCache(cacheKey);
-      if (cached) {
-        console.log(
-          '📦 DataService: Métricas do dashboard carregadas do cache'
-        );
-        return cached;
-      }
-    }
+    // Forçar limpeza do cache para dashboard
+    this.cache.delete(cacheKey);
+    console.log('🗑️ DataService: Cache do dashboard limpo forçadamente');
 
+    // Sempre buscar dados frescos para dashboard
     try {
       const companyId = await getCurrentUserCompanyId();
       if (!companyId) {
         throw new Error('Usuário não autenticado ou empresa não encontrada');
       }
 
+      console.log('🔍 DataService getDashboardMetrics: Company ID:', companyId);
+
       // Importar dinamicamente para evitar dependência circular
       const { getDashboardMetrics } = await import('../database/dashboard');
       const result = await getDashboardMetrics();
 
+      console.log('🔍 DataService getDashboardMetrics: Resultado:', result);
+
       // Armazenar no cache
-      if (options.useCache !== false) {
-        this.setCache(cacheKey, result, options.ttl || 1 * 60 * 1000); // 1 minuto para métricas
-      }
+      this.setCache(cacheKey, result, options.ttl || 1 * 60 * 1000); // 1 minuto para métricas
 
       console.log('🗄️ DataService: Métricas do dashboard carregadas do banco');
       return result;
@@ -386,6 +382,11 @@ export class DataService {
         'DataService: Erro ao buscar métricas do dashboard:',
         error
       );
+      
+      // Limpar cache em caso de erro
+      this.cache.delete(cacheKey);
+      console.log('🗑️ DataService: Cache limpo devido ao erro');
+      
       throw error;
     }
   }

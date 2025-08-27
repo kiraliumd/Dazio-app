@@ -4,43 +4,44 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Calculator,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  MapPin,
-  Package,
-  Plus,
-  Search,
-  Trash2,
-  User,
+    Calculator,
+    Calendar,
+    ChevronLeft,
+    ChevronRight,
+    FileText,
+    MapPin,
+    Package,
+    Plus,
+    Search,
+    Trash2,
+    User,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useClients, useEquipments } from '../lib/hooks/use-optimized-data';
 import {
-  transformClientFromDB,
-  transformEquipmentFromDB,
-  type Budget,
-  type BudgetItem,
-  type RecurrenceType,
+    transformClientFromDB,
+    transformEquipmentFromDB,
+    type Budget,
+    type BudgetItem,
+    type RecurrenceType,
 } from '../lib/utils/data-transformers';
+import { formatDateForDisplay, formatDateForInput } from '../lib/utils/date-utils';
 
 interface BudgetFormProps {
   open: boolean;
@@ -84,75 +85,11 @@ export function BudgetFormV2({
   // Verificar se o orçamento está aprovado e não pode ser editado
   const isApprovedBudget = budget?.status === 'Aprovado';
 
-  // Função para formatar datas
+
+
+  // Função para formatar datas (usando utilitários)
   const formatDate = (dateString: string) => {
-    try {
-      if (!dateString) return '';
-
-      // Se já estiver no formato YYYY-MM-DD, converter para pt-BR
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        const [year, month, day] = dateString.split('-').map(Number);
-        const date = new Date(year, month - 1, day);
-        return date.toLocaleDateString('pt-BR');
-      }
-
-      // Se for timestamp UTC, converter para timezone local
-      if (dateString.includes('T') && dateString.includes('+')) {
-        const utcDate = new Date(dateString);
-        if (isNaN(utcDate.getTime())) {
-          throw new Error('Data inválida');
-        }
-        return utcDate.toLocaleDateString('pt-BR');
-      }
-
-      // Para outros formatos, tentar conversão simples
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        throw new Error('Data inválida');
-      }
-      return date.toLocaleDateString('pt-BR');
-    } catch (error) {
-      return dateString;
-    }
-  };
-
-  // Função para converter timestamp UTC para formato de input date
-  const formatDateForInput = (dateString: string): string => {
-    try {
-      if (!dateString) return '';
-
-      // Se já estiver no formato YYYY-MM-DD, usar diretamente
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        return dateString;
-      }
-
-      // Se for timestamp UTC, converter para timezone local
-      if (dateString.includes('T') && dateString.includes('+')) {
-        const utcDate = new Date(dateString);
-        if (isNaN(utcDate.getTime())) {
-          throw new Error('Data inválida');
-        }
-
-        // Converter para timezone local e formatar como YYYY-MM-DD
-        const year = utcDate.getFullYear();
-        const month = String(utcDate.getMonth() + 1).padStart(2, '0');
-        const day = String(utcDate.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      }
-
-      // Para outros formatos, tentar conversão simples
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        throw new Error('Data inválida');
-      }
-
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    } catch (error) {
-      return '';
-    }
+    return formatDateForDisplay(dateString);
   };
   const [formData, setFormData] = useState({
     clientId: '',
@@ -654,10 +591,14 @@ export function BudgetFormV2({
       );
       const finalValue = totalValue - formData.discount;
 
+      // ✅ CORREÇÃO: Não converter datas para UTC, preservar as datas locais
       const budgetData = {
         ...formData,
         // ✅ CORREÇÃO CRÍTICA: Incluir o ID quando estiver editando
         ...(budget?.id && { id: budget.id }),
+        // ✅ CORREÇÃO: Preservar as datas locais sem conversão
+        startDate: formData.startDate,
+        endDate: formData.endDate,
         subtotal: totalValue,
         totalValue: finalValue,
         status: 'Pendente' as const,
@@ -665,7 +606,7 @@ export function BudgetFormV2({
         ...(formData.isRecurring && {
           recurrenceType: formData.recurrenceType,
           recurrenceInterval: formData.recurrenceInterval,
-          recurrenceEndDate: formData.recurrenceEndDate,
+          recurrenceEndDate: formData.recurrenceEndDate || undefined,
         }),
         // Se não for recorrente, remover os campos de recorrência
         ...(!formData.isRecurring && {
@@ -957,72 +898,96 @@ export function BudgetFormV2({
         </CardContent>
       </Card>
 
-      {!formData.isRecurring && (
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Período da Locação</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="startDate">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Data de Início *
-                  </div>
-                </Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={e =>
-                    setFormData({ ...formData, startDate: e.target.value })
-                  }
-                  disabled={isApprovedBudget}
-                  required
-                />
-              </div>
-
-              {/* ✅ CORREÇÃO: Sempre mostrar data de fim, mas com lógica diferente para recorrentes */}
-              <div className="grid gap-2">
-                <Label htmlFor="endDate">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    {formData.isRecurring ? 'Data de Término (Calculada)' : 'Data de Fim *'}
-                  </div>
-                </Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={formData.endDate}
-                  onChange={e =>
-                    setFormData({ ...formData, endDate: e.target.value })
-                  }
-                  disabled={isApprovedBudget || formData.isRecurring} // Desabilitar se for recorrente
-                  required={!formData.isRecurring} // Só obrigatório se não for recorrente
-                  className={formData.isRecurring ? 'bg-gray-100' : ''} // Visual diferente se for recorrente
-                />
-                {formData.isRecurring && (
-                  <p className="text-xs text-blue-600">
-                    ⏰ Data calculada automaticamente baseada na recorrência
-                  </p>
-                )}
-              </div>
+      {/* ✅ CORREÇÃO: Campos de data SEMPRE visíveis */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">
+            {formData.isRecurring ? 'Período da Locação (Recorrente)' : 'Período da Locação'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="startDate">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Data de Início *
+                </div>
+              </Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={formData.startDate}
+                onChange={e =>
+                  setFormData({ ...formData, startDate: e.target.value })
+                }
+                disabled={isApprovedBudget}
+                required
+              />
             </div>
 
-            {formData.startDate && formData.endDate && (
-              <div className="bg-primary/10 text-primary p-4 rounded-lg border border-primary/20">
-                <strong>{calculateRealDays()} dia(s)</strong> de locação
-                {calculateRealDays() > 30 && (
-                  <div className="text-xs text-gray-600 mt-1">
-                    Faturamento: {calculateDays()} dia(s) (máximo 30 dias)
+            <div className="grid gap-2">
+              <Label htmlFor="endDate">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  {formData.isRecurring ? 'Data de Término (Calculada)' : 'Data de Fim *'}
+                </div>
+              </Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={formData.endDate}
+                onChange={e =>
+                  setFormData({ ...formData, endDate: e.target.value })
+                }
+                disabled={isApprovedBudget || formData.isRecurring} // Desabilitar se for recorrente
+                required={!formData.isRecurring} // Só obrigatório se não for recorrente
+                className={formData.isRecurring ? 'bg-gray-100' : ''} // Visual diferente se for recorrente
+              />
+              {formData.isRecurring && (
+                <p className="text-xs text-blue-600">
+                  ⏰ Data calculada automaticamente baseada na recorrência
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* ✅ CORREÇÃO: Mostrar informações de período sempre que tiver data de início */}
+          {formData.startDate && (
+            <div className="bg-primary/10 text-primary p-4 rounded-lg border border-primary/20">
+              {formData.isRecurring ? (
+                <div>
+                  <strong>Período Recorrente Configurado</strong>
+                  <div className="text-sm mt-1">
+                    Início: {formatDate(formData.startDate)}
+                    {formData.endDate && (
+                      <span> | Término: {formatDate(formData.endDate)}</span>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                  {formData.recurrenceType && formData.recurrenceInterval > 0 && (
+                    <div className="text-xs text-gray-600 mt-1">
+                      Recorrência: {formData.recurrenceInterval} {
+                        formData.recurrenceType === 'weekly' ? 'semana(s)' :
+                        formData.recurrenceType === 'monthly' ? 'mês(es)' :
+                        formData.recurrenceType === 'yearly' ? 'ano(s)' : ''
+                      }
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <strong>{calculateRealDays()} dia(s)</strong> de locação
+                  {calculateRealDays() > 30 && (
+                    <div className="text-xs text-gray-600 mt-1">
+                      Faturamento: {calculateDays()} dia(s) (máximo 30 dias)
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 

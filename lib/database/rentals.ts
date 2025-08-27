@@ -1,6 +1,6 @@
-import { supabase } from '../supabase';
+
 import type { Rental, RentalItem } from '../supabase';
-import { format } from 'date-fns';
+import { supabase } from '../supabase';
 import { getCurrentUserCompanyId } from './client-utils';
 
 // Função para calcular a próxima data de ocorrência
@@ -235,8 +235,12 @@ export async function createRental(
         rental_id: createdRental.id,
         company_id: companyId, // Adicionar company_id para multi-tenancy
         event_type: 'Instalação',
-        event_date: format(logisticsData.installation, 'yyyy-MM-dd'), // Data formatada
-        event_time: format(logisticsData.installation, 'HH:mm'), // Hora formatada
+        event_date: logisticsData.installation.toLocaleDateString('en-CA'), // Formato YYYY-MM-DD no fuso local
+        event_time: logisticsData.installation.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        }), // Formato HH:mm no fuso local
         status: 'Agendado', // Status padrão da nova tabela
         notes: 'Evento de instalação criado automaticamente',
       },
@@ -244,8 +248,12 @@ export async function createRental(
         rental_id: createdRental.id,
         company_id: companyId, // Adicionar company_id para multi-tenancy
         event_type: 'Retirada',
-        event_date: format(logisticsData.removal, 'yyyy-MM-dd'), // Data formatada
-        event_time: format(logisticsData.removal, 'HH:mm'), // Hora formatada
+        event_date: logisticsData.removal.toLocaleDateString('en-CA'), // Formato YYYY-MM-DD no fuso local
+        event_time: logisticsData.removal.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        }), // Formato HH:mm no fuso local
         status: 'Agendado', // Status padrão da nova tabela
         notes: 'Evento de retirada criado automaticamente',
       },
@@ -417,6 +425,7 @@ export async function getLogisticsEvents() {
     throw new Error('Usuário não autenticado ou empresa não encontrada');
   }
 
+  // ✅ CORREÇÃO: Voltar para a implementação original que funcionava
   const { data, error } = await supabase
     .from('rental_logistics_events')
     .select(
@@ -433,7 +442,7 @@ export async function getLogisticsEvents() {
       )
     `
     )
-    .eq('company_id', companyId) // Filtrar diretamente pelo company_id da tabela rental_logistics_events
+    .eq('company_id', companyId)
     .order('event_date, event_time', { ascending: true });
 
   if (error) {

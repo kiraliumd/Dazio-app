@@ -244,19 +244,36 @@ export async function updateBudget(
   }
 
   try {
-    // Importar a função de transformação
-    const { transformBudgetToDB } = await import('../utils/data-transformers');
+    // ✅ CORREÇÃO: Para atualizações simples (como status), não transformar todos os campos
+    let updateData: any = {
+      updated_at: new Date().toISOString(),
+    };
+
+    // Se estiver atualizando apenas o status, não incluir outros campos
+    if (Object.keys(budget).length === 1 && budget.status !== undefined) {
+      updateData.status = budget.status;
+    } else {
+      // Para atualizações completas, usar transformação
+      const { transformBudgetToDB } = await import('../utils/data-transformers');
+      const budgetForDB = transformBudgetToDB(budget as any);
+      updateData = {
+        ...budgetForDB,
+        updated_at: new Date().toISOString(),
+      };
+    }
     
-    // Transformar o orçamento para o formato do banco
-    const budgetForDB = transformBudgetToDB(budget as any);
+    // ✅ CORREÇÃO: Log para debug
+    console.log('🔍 updateBudget: Dados para atualização:', {
+      id,
+      companyId,
+      updateData,
+      budgetKeys: Object.keys(budget)
+    });
     
     // Atualizar o orçamento
     const { error: budgetError } = await supabase
       .from('budgets')
-      .update({
-        ...budgetForDB,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', id)
       .eq('company_id', companyId);
 

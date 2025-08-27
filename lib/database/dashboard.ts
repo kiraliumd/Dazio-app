@@ -21,13 +21,22 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     throw new Error('Usuário não autenticado ou empresa não encontrada');
   }
 
+  console.log('🔍 getDashboardMetrics: Company ID:', companyId);
+
   const { data, error } = await supabase.rpc('get_dashboard_metrics', {
     p_company_id: companyId,
   });
+  
   if (error) {
     console.error('Erro ao obter métricas do dashboard (RPC):', error);
+    console.error('🔍 getDashboardMetrics: Parâmetros da RPC:', { p_company_id: companyId });
     throw error;
   }
+
+  console.log('🔍 getDashboardMetrics: Dados brutos da RPC:', data);
+  console.log('🔍 getDashboardMetrics: Tipo dos dados:', typeof data);
+  console.log('🔍 getDashboardMetrics: É array?', Array.isArray(data));
+  console.log('🔍 getDashboardMetrics: Length:', data?.length);
 
   const row = (data && data[0]) || {
     total_rentals: 0,
@@ -43,7 +52,9 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     scheduled_events: 0,
   };
 
-  return {
+  console.log('🔍 getDashboardMetrics: Row processado:', row);
+
+  const result = {
     totalRentals: Number(row.total_rentals || 0),
     activeRentals: Number(row.active_rentals || 0),
     totalBudgets: Number(row.total_budgets || 0),
@@ -56,4 +67,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     pendingInstallations: Number(row.pending_installations || 0),
     scheduledEvents: Number(row.scheduled_events || 0),
   };
+
+  console.log('🔍 getDashboardMetrics: Resultado final:', result);
+
+  return result;
 }

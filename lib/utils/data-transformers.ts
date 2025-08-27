@@ -1,6 +1,7 @@
 // Utilitários para transformar dados entre o formato do frontend e backend
 
 import type { Client as DBClient, Equipment as DBEquipment } from '../supabase';
+import { utcToLocal } from './date-utils';
 
 // Definir tipos do frontend que estão faltando
 export interface Client {
@@ -179,34 +180,9 @@ export function transformEquipmentToDB(
 
 // Transformar orçamento do banco para o frontend
 export function transformBudgetFromDB(dbBudget: any): Budget {
-  // Função para formatar data do banco
+  // ✅ CORREÇÃO: Usar utilitários de data para conversão UTC -> Local
   const formatDateFromDB = (dateString: string): string => {
-    try {
-      if (!dateString) return '';
-
-      // Se já estiver no formato YYYY-MM-DD, usar diretamente
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        return dateString;
-      }
-
-      // Se for timestamp UTC, extrair apenas a parte da data
-      if (dateString.includes('T') && dateString.includes('+')) {
-        return dateString.split('T')[0];
-      }
-
-      // Para outros formatos, tentar conversão
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        throw new Error('Data inválida');
-      }
-
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    } catch (error) {
-      return dateString;
-    }
+    return utcToLocal(dateString);
   };
 
   return {
@@ -274,34 +250,9 @@ export function transformBudgetToDB(
 
 // Transformar locação do banco para o frontend
 export function transformRentalFromDB(dbRental: any): Rental {
-  // Função para formatar data do banco
+  // ✅ CORREÇÃO: Usar utilitários de data para conversão UTC -> Local
   const formatDateFromDB = (dateString: string): string => {
-    try {
-      if (!dateString) return '';
-
-      // Se já estiver no formato YYYY-MM-DD, usar diretamente
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        return dateString;
-      }
-
-      // Se for timestamp UTC, extrair apenas a parte da data
-      if (dateString.includes('T') && dateString.includes('+')) {
-        return dateString.split('T')[0];
-      }
-
-      // Para outros formatos, tentar conversão
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        throw new Error('Data inválida');
-      }
-
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    } catch (error) {
-      return dateString;
-    }
+    return utcToLocal(dateString);
   };
 
   const result = {
