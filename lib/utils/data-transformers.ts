@@ -227,12 +227,15 @@ export function transformBudgetToDB(
     number?: string;
   }
 ): any {
+  // ✅ CORREÇÃO CRÍTICA: Usar normalizeDateForStorage para evitar problemas de fuso horário
+  const { normalizeDateForStorage } = require('../utils/date-utils');
+  
   return {
     number: budget.number || '',
     client_id: budget.clientId,
     client_name: budget.clientName,
-    start_date: budget.startDate,
-    end_date: budget.endDate,
+    start_date: normalizeDateForStorage(budget.startDate),
+    end_date: normalizeDateForStorage(budget.endDate),
     installation_time: budget.installationTime || null,
     removal_time: budget.removalTime || null,
     installation_location: budget.installationLocation || null,
@@ -244,7 +247,7 @@ export function transformBudgetToDB(
     is_recurring: Boolean(budget.isRecurring),
     recurrence_type: budget.recurrenceType || null,
     recurrence_interval: budget.recurrenceInterval || 1,
-    recurrence_end_date: budget.recurrenceEndDate || null,
+    recurrence_end_date: budget.recurrenceEndDate ? normalizeDateForStorage(budget.recurrenceEndDate) : null,
   };
 }
 
