@@ -162,7 +162,7 @@ export function BudgetFormV2({
     items: [] as BudgetItem[],
     discount: 0,
     observations: '',
-    // Campos de recorrência
+    // ✅ CORREÇÃO: Campos de recorrência sempre inicializados com valores válidos
     isRecurring: false,
     recurrenceType: 'weekly' as RecurrenceType,
     recurrenceInterval: 1,
@@ -368,13 +368,11 @@ export function BudgetFormV2({
         }
 
         // ✅ CORREÇÃO: Log para debug do cálculo de datas
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔍 Calculando datas de recorrência:', {
-            startDate: formData.startDate,
-            recurrenceType: formData.recurrenceType,
-            recurrenceInterval: formData.recurrenceInterval
-          });
-        }
+        console.log('🔍 Calculando datas de recorrência:', {
+          startDate: formData.startDate,
+          recurrenceType: formData.recurrenceType,
+          recurrenceInterval: formData.recurrenceInterval
+        });
 
         // Calcular data de término baseada na duração
         let endDate = new Date(startDate);
@@ -422,12 +420,10 @@ export function BudgetFormV2({
         const newRenewalDate = formatDateForInput(renewalDate);
 
         // ✅ CORREÇÃO: Log para debug das datas calculadas
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ Datas calculadas:', {
-            newEndDate,
-            newRenewalDate
-          });
-        }
+        console.log('✅ Datas calculadas:', {
+          newEndDate,
+          newRenewalDate
+        });
 
         setFormData(prev => ({
           ...prev,
@@ -444,6 +440,30 @@ export function BudgetFormV2({
     formData.recurrenceType,
     formData.recurrenceInterval,
   ]);
+
+  // ✅ CORREÇÃO: Novo useEffect para forçar cálculo quando recorrência for marcada
+  useEffect(() => {
+    if (formData.isRecurring && formData.startDate && !formData.endDate) {
+      // Se for recorrente e tiver data de início mas não tiver data de fim,
+      // forçar o cálculo das datas
+      console.log('🔄 Forçando cálculo de datas para recorrência...');
+      
+      // Simular mudança para forçar o cálculo
+      const currentStartDate = formData.startDate;
+      const currentRecurrenceType = formData.recurrenceType;
+      const currentRecurrenceInterval = formData.recurrenceInterval;
+      
+      // Forçar recálculo
+      setTimeout(() => {
+        setFormData(prev => ({
+          ...prev,
+          startDate: currentStartDate,
+          recurrenceType: currentRecurrenceType,
+          recurrenceInterval: currentRecurrenceInterval,
+        }));
+      }, 100);
+    }
+  }, [formData.isRecurring, formData.startDate, formData.endDate]);
 
   const handleClientChange = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
@@ -564,6 +584,21 @@ export function BudgetFormV2({
       const isEndDateValid =
         formData.endDate && /^\d{4}-\d{2}-\d{2}$/.test(formData.endDate);
 
+      // ✅ CORREÇÃO: Log detalhado para debug
+      console.log('🔍 DEBUG - Validação do Step 1:', {
+        currentStep,
+        hasBasicData,
+        clientId: formData.clientId,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        isStartDateValid,
+        isEndDateValid,
+        isRecurring: formData.isRecurring,
+        recurrenceType: formData.recurrenceType,
+        recurrenceInterval: formData.recurrenceInterval,
+        recurrenceEndDate: formData.recurrenceEndDate
+      });
+
       // Se for recorrente, verificar se tem tipo e duração (datas são calculadas automaticamente)
       if (formData.isRecurring) {
         const hasRecurrenceData = 
@@ -571,29 +606,32 @@ export function BudgetFormV2({
           formData.recurrenceInterval > 0;
         
         // ✅ CORREÇÃO: Log para debug da validação de recorrência
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔍 Validação de recorrência:', {
-            hasBasicData,
-            isStartDateValid,
-            isEndDateValid,
-            hasRecurrenceData,
-            isRecurring: formData.isRecurring,
-            recurrenceType: formData.recurrenceType,
-            recurrenceInterval: formData.recurrenceInterval,
-            startDate: formData.startDate,
-            endDate: formData.endDate
-          });
-        }
+        console.log('🔍 Validação de recorrência:', {
+          hasBasicData,
+          isStartDateValid,
+          isEndDateValid,
+          hasRecurrenceData,
+          isRecurring: formData.isRecurring,
+          recurrenceType: formData.recurrenceType,
+          recurrenceInterval: formData.recurrenceInterval,
+          startDate: formData.startDate,
+          endDate: formData.endDate
+        });
         
-        return (
+        const canProceed = (
           hasBasicData &&
           isStartDateValid &&
           isEndDateValid &&
           hasRecurrenceData
         );
+        
+        console.log('✅ Pode avançar (recorrente):', canProceed);
+        return canProceed;
       }
 
-      return hasBasicData && isStartDateValid && isEndDateValid;
+      const canProceed = hasBasicData && isStartDateValid && isEndDateValid;
+      console.log('✅ Pode avançar (não recorrente):', canProceed);
+      return canProceed;
     }
     if (currentStep === 2) {
       return formData.items.length > 0;
@@ -767,36 +805,39 @@ export function BudgetFormV2({
               checked={formData.isRecurring}
               onChange={e => {
                 const isRecurring = e.target.checked;
-                // ✅ CORREÇÃO: Garantir que os campos de recorrência sejam inicializados corretamente
-                setFormData(prev => ({
-                  ...prev,
-                  isRecurring,
+                console.log('🔄 Checkbox de recorrência alterado:', isRecurring);
+                
+                // ✅ CORREÇÃO: Simplificar a lógica para garantir funcionamento
+                setFormData(prev => {
+                  const newData = {
+                    ...prev,
+                    isRecurring,
+                  };
+                  
                   // Se estiver marcando como recorrente, garantir valores padrão
-                  ...(isRecurring && {
-                    recurrenceType: prev.recurrenceType || 'weekly',
-                    recurrenceInterval: prev.recurrenceInterval || 1,
-                    recurrenceEndDate: prev.recurrenceEndDate || '',
-                  }),
-                  // Se não for recorrente, limpar campos
-                  ...(!isRecurring && {
-                    recurrenceType: undefined,
-                    recurrenceInterval: undefined,
-                    recurrenceEndDate: undefined,
-                  }),
-                }));
+                  if (isRecurring) {
+                    newData.recurrenceType = prev.recurrenceType || 'weekly';
+                    newData.recurrenceInterval = prev.recurrenceInterval || 1;
+                    newData.recurrenceEndDate = prev.recurrenceEndDate || '';
+                  } else {
+                    // Se não for recorrente, limpar campos
+                    newData.recurrenceType = 'weekly' as RecurrenceType; // Valor padrão em vez de undefined
+                    newData.recurrenceInterval = 1; // Valor padrão em vez de undefined
+                    newData.recurrenceEndDate = ''; // String vazia em vez de undefined
+                  }
+                  
+                  console.log('✅ Novo estado de recorrência:', {
+                    isRecurring: newData.isRecurring,
+                    recurrenceType: newData.recurrenceType,
+                    recurrenceInterval: newData.recurrenceInterval
+                  });
+                  
+                  return newData;
+                });
                 
                 // ✅ CORREÇÃO: Atualizar o input de intervalo também
                 if (isRecurring) {
                   setIntervalInputValue((formData.recurrenceInterval || 1).toString());
-                }
-                
-                // ✅ CORREÇÃO: Log para debug
-                if (process.env.NODE_ENV === 'development') {
-                  console.log('🔄 Checkbox de recorrência alterado:', {
-                    isRecurring,
-                    recurrenceType: formData.recurrenceType,
-                    recurrenceInterval: formData.recurrenceInterval
-                  });
                 }
               }}
               className="mr-2 h-4 w-4 text-primary focus:ring-primary"
