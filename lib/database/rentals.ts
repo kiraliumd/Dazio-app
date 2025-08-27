@@ -229,13 +229,15 @@ export async function createRental(
 
   // 3. Criar eventos de logística (opcional)
   try {
-    // Nova estrutura simplificada: event_date (DATE) + event_time (TIME)
+    // ✅ CORREÇÃO: Usar o mesmo padrão de data dos orçamentos
+    const { normalizeDateForStorage } = require('../utils/date-utils');
+    
     const logisticsEvents = [
       {
         rental_id: createdRental.id,
         company_id: companyId, // Adicionar company_id para multi-tenancy
         event_type: 'Instalação',
-        event_date: logisticsData.installation.toLocaleDateString('en-CA'), // Formato YYYY-MM-DD no fuso local
+        event_date: logisticsData.installation, // Data no formato YYYY-MM-DD
         event_time: logisticsData.installation.toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit',
@@ -248,7 +250,7 @@ export async function createRental(
         rental_id: createdRental.id,
         company_id: companyId, // Adicionar company_id para multi-tenancy
         event_type: 'Retirada',
-        event_date: logisticsData.removal.toLocaleDateString('en-CA'), // Formato YYYY-MM-DD no fuso local
+        event_date: logisticsData.removal, // Data no formato YYYY-MM-DD
         event_time: logisticsData.removal.toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit',

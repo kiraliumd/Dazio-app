@@ -104,6 +104,7 @@ export default function AgendaPage() {
   // Memoizar busca de eventos do dia
   const getEventsForDate = useCallback(
     (dateKey: string) => {
+      // ✅ CORREÇÃO: Agora as datas estão padronizadas, comparação direta
       const eventsForDay = events.filter(
         (event: LogisticsEvent) => event.event_date === dateKey
       );
