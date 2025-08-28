@@ -5,8 +5,8 @@
  * Estratégia: Sempre trabalhar com datas no fuso local do usuário, converter para UTC apenas no momento de salvar
  */
 
-import { format, parseISO, isValid } from 'date-fns';
-import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { format, isValid, parseISO } from 'date-fns';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
 // Fuso horário padrão do Brasil
 const DEFAULT_TIMEZONE = 'America/Sao_Paulo';
@@ -48,14 +48,14 @@ export function localToUTC(
 }
 
 /**
- * Converte uma data UTC do banco para fuso horário local
- * @param utcDate - Data UTC do banco
- * @param timezone - Fuso horário de destino (padrão: America/Sao_Paulo)
- * @returns Data formatada no fuso local
+ * Converte uma data do banco para formato local (sem conversão de fuso)
+ * @param utcDate - Data do banco (pode ser UTC ou local)
+ * @param timezone - Fuso horário (não usado mais, mantido para compatibilidade)
+ * @returns Data formatada como YYYY-MM-DD
  */
 export function utcToLocal(
   utcDate: string,
-  timezone: string = DEFAULT_TIMEZONE
+  timezone?: string
 ): string {
   try {
     if (!utcDate) return '';
@@ -65,20 +65,23 @@ export function utcToLocal(
       return utcDate;
     }
 
-    // ✅ SOLUÇÃO PROFISSIONAL: Converter UTC para fuso local usando date-fns-tz
-    const utcDateTime = parseISO(utcDate);
-    
-    if (!isValid(utcDateTime)) {
+    // ✅ SOLUÇÃO: Se for timestamp com hora, extrair apenas a data
+    // O problema era que as conversões de fuso estavam causando mudanças de dia
+    if (utcDate.includes('T')) {
+      const datePart = utcDate.split('T')[0];
+      return datePart;
+    }
+
+    // Para outros formatos, tentar conversão simples
+    const dateObj = parseISO(utcDate);
+    if (!isValid(dateObj)) {
       throw new Error('Data inválida');
     }
-    
-    // Converter para o fuso horário local
-    const localDateTime = toZonedTime(utcDateTime, timezone);
-    
-    // Formatar como YYYY-MM-DD
-    return format(localDateTime, 'yyyy-MM-dd');
+
+    // ✅ SOLUÇÃO: Retornar data no formato YYYY-MM-DD sem conversão de fuso
+    return format(dateObj, 'yyyy-MM-dd');
   } catch (error) {
-    console.error('Erro ao converter UTC para local:', error);
+    console.error('Erro ao converter data para local:', error);
     return utcDate;
   }
 }

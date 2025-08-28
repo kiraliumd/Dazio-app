@@ -1,21 +1,21 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Calendar, Repeat, CalendarX } from 'lucide-react';
-import { format, addMonths, addWeeks, addDays, addYears } from 'date-fns';
+import { addDays, addMonths, addWeeks, addYears, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Calendar, CalendarX, Repeat } from 'lucide-react';
+import { useState } from 'react';
 import type { RecurrenceType } from '../lib/utils/data-transformers';
 
 interface RecurrenceConfigProps {
@@ -55,7 +55,7 @@ export function RecurrenceConfig({
   const handleRecurrenceToggle = (checked: boolean) => {
     onConfigChange({
       isRecurring: checked,
-      recurrenceType: checked ? 'monthly' : 'none',
+      recurrenceType: checked ? 'monthly' : 'weekly',
       recurrenceInterval: 1,
       recurrenceEndDate: checked
         ? addMonths(new Date(endDate), 6).toISOString().split('T')[0]
@@ -115,10 +115,9 @@ export function RecurrenceConfig({
 
       // Calcular próxima data
       switch (recurrenceType) {
-        case 'daily':
-          currentDate = addDays(currentDate, recurrenceInterval);
-          break;
         case 'weekly':
+          currentDate = addDays(currentDate, recurrenceInterval * 7);
+          break;
           currentDate = addWeeks(currentDate, recurrenceInterval);
           break;
         case 'monthly':
@@ -193,7 +192,6 @@ export function RecurrenceConfig({
                   className="w-20"
                 />
                 <span className="text-sm text-muted-foreground">
-                  {recurrenceType === 'daily' && 'dias'}
                   {recurrenceType === 'weekly' && 'semanas'}
                   {recurrenceType === 'monthly' && 'meses'}
                   {recurrenceType === 'yearly' && 'anos'}

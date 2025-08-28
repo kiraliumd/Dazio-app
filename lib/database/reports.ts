@@ -20,6 +20,7 @@ interface RentalData {
 
 interface BudgetData {
   id: string;
+  number?: string;
   client_name: string;
   created_at: string;
   total_value: number;
@@ -47,7 +48,7 @@ export interface RentalReport {
 
 export interface BudgetReport {
   id: string;
-  number: string;
+  number?: string;
   clientName: string;
   createdAt: string;
   totalValue: number;
@@ -132,14 +133,16 @@ export async function getBudgetsForReports(
     }
 
     // Transformar dados para o formato do relatório
-    const budgets = (data || []).map((budget: BudgetData) => ({
-      id: budget.id,
-      number: budget.number,
-      clientName: budget.client_name,
-      createdAt: budget.created_at,
-      totalValue: budget.total_value,
-      status: budget.status,
-    }));
+    const budgets: BudgetReport[] = (data || []).map((budget: BudgetData) => {
+      return {
+        id: budget.id,
+        number: budget.number || budget.id,
+        clientName: budget.client_name,
+        createdAt: budget.created_at,
+        totalValue: budget.total_value,
+        status: budget.status,
+      };
+    });
 
     return budgets;
   } catch (error) {

@@ -165,9 +165,17 @@ export async function createRental(
   // Essas colunas podem não existir na tabela, então não vamos incluí-las por padrão
   // Se você quiser usar horários separados, execute o script 044-add-time-columns-to-rentals.sql
 
-  // Incluir horários na tabela rentals
-  rentalData.installation_time = format(logisticsData.installation, 'HH:mm');
-  rentalData.removal_time = format(logisticsData.removal, 'HH:mm');
+  // ✅ CORREÇÃO: Usar toLocaleTimeString em vez de format do date-fns
+  rentalData.installation_time = logisticsData.installation.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  rentalData.removal_time = logisticsData.removal.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
 
   console.log('Dados a serem inseridos:', rentalData);
   console.log('Período da locação:', rental.start_date, 'até', rental.end_date);
@@ -237,7 +245,7 @@ export async function createRental(
         rental_id: createdRental.id,
         company_id: companyId, // Adicionar company_id para multi-tenancy
         event_type: 'Instalação',
-        event_date: logisticsData.installation, // Data no formato YYYY-MM-DD
+        event_date: logisticsData.installation.toLocaleDateString('en-CA'), // ✅ CORREÇÃO: Converter para YYYY-MM-DD
         event_time: logisticsData.installation.toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit',
@@ -250,7 +258,7 @@ export async function createRental(
         rental_id: createdRental.id,
         company_id: companyId, // Adicionar company_id para multi-tenancy
         event_type: 'Retirada',
-        event_date: logisticsData.removal, // Data no formato YYYY-MM-DD
+        event_date: logisticsData.removal.toLocaleDateString('en-CA'), // ✅ CORREÇÃO: Converter para YYYY-MM-DD
         event_time: logisticsData.removal.toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit',
@@ -272,6 +280,15 @@ export async function createRental(
   } catch (error) {
     console.error('Erro ao criar eventos de logística:', error);
     // Não vamos falhar a criação da locação por causa dos eventos
+  }
+
+  // ✅ CORREÇÃO: Atualizar quantidades dos equipamentos após criar a locação
+  try {
+    const { updateEquipmentQuantities } = await import('./equipments');
+    await updateEquipmentQuantities();
+    console.log('✅ Quantidades dos equipamentos atualizadas após criar locação');
+  } catch (error) {
+    console.warn('Erro ao atualizar quantidades dos equipamentos:', error);
   }
 
   return createdRental;
@@ -350,6 +367,15 @@ export async function updateRental(
     }
   }
 
+  // ✅ CORREÇÃO: Atualizar quantidades dos equipamentos após atualizar a locação
+  try {
+    const { updateEquipmentQuantities } = await import('./equipments');
+    await updateEquipmentQuantities();
+    console.log('✅ Quantidades dos equipamentos atualizadas após atualizar locação');
+  } catch (error) {
+    console.warn('Erro ao atualizar quantidades dos equipamentos:', error);
+  }
+
   return rentalData;
 }
 
@@ -371,6 +397,15 @@ export async function deleteRental(id: string) {
   if (error) {
     console.error('Erro ao deletar locação:', error);
     throw error;
+  }
+
+  // ✅ CORREÇÃO: Atualizar quantidades dos equipamentos após deletar a locação
+  try {
+    const { updateEquipmentQuantities } = await import('./equipments');
+    await updateEquipmentQuantities();
+    console.log('✅ Quantidades dos equipamentos atualizadas após deletar locação');
+  } catch (error) {
+    console.warn('Erro ao atualizar quantidades dos equipamentos:', error);
   }
 
   return true;

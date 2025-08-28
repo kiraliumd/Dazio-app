@@ -3,37 +3,37 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-    Card,
-    CardContent,
-    CardHeader
+  Card,
+  CardContent,
+  CardHeader
 } from '@/components/ui/card';
 import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import {
-    SidebarInset,
-    SidebarProvider,
-    SidebarTrigger,
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import { formatDateCuiaba, formatTimeCuiaba } from '@/lib/utils';
 import {
-    ArrowLeft,
-    Calendar,
-    CalendarDays,
-    Clock,
-    Copy,
-    DollarSign,
-    MapPin,
-    Package
+  ArrowLeft,
+  Calendar,
+  CalendarDays,
+  Clock,
+  Copy,
+  DollarSign,
+  MapPin,
+  Package
 } from 'lucide-react';
 import Link from 'next/link';
 import { use, useCallback, useEffect, useState } from 'react';
@@ -80,10 +80,6 @@ export default function AgendaDatePage({
   const [newTime, setNewTime] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    loadEvents();
-  }, [date, loadEvents]); // Adicionar loadEvents como dependência
-
   const loadEvents = useCallback(async () => {
     try {
       setLoading(true);
@@ -102,14 +98,34 @@ export default function AgendaDatePage({
     }
   }, [date]);
 
+  useEffect(() => {
+    if (date) {
+      loadEvents();
+    }
+  }, [date, loadEvents]);
+
   const formatDate = (dateString: string) => {
-    return formatDateCuiaba(dateString, "dd 'de' MMMM 'de' yyyy");
+    try {
+      return formatDateCuiaba(dateString, "dd 'de' MMMM 'de' yyyy");
+    } catch (error) {
+      // Fallback para formatação nativa
+      return new Date(dateString).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      });
+    }
   };
 
   const formatTime = (timeString: string) => {
-    // Se vier string de hora, manter compatibilidade
-    if (timeString && timeString.length <= 5) return timeString;
-    return formatTimeCuiaba(timeString, 'HH:mm');
+    try {
+      // Se vier string de hora, manter compatibilidade
+      if (timeString && timeString.length <= 5) return timeString;
+      return formatTimeCuiaba(timeString, 'HH:mm');
+    } catch (error) {
+      // Fallback para formatação nativa
+      return timeString;
+    }
   };
 
   const getStatusColor = (eventType: string) => {
@@ -151,39 +167,57 @@ export default function AgendaDatePage({
   };
 
   const generateWhatsAppMessage = () => {
-    const formattedDate = formatDate(date);
-    let message = `📅 *Resumo da Agenda - ${formattedDate}*\n\n`;
+    try {
+      const formattedDate = formatDate(date);
+      let message = `📅 *Resumo da Agenda - ${formattedDate}*\n\n`;
 
-    if (events.length === 0) {
-      message += 'Nenhum evento agendado para esta data.';
-    } else {
-      events.forEach((event, index) => {
-        message += `${index + 1}. *${event.event_type}* - ${event.event_time}\n`;
-        message += `   👤 ${event.rentals.client_name}\n`;
-        message += `   📍 ${event.rentals.installation_location}\n`;
-        message += `   💰 R$ ${event.rentals.total_value.toFixed(2).replace('.', ',')}\n\n`;
-      });
+      if (!events || events.length === 0) {
+        message += 'Nenhum evento agendado para esta data.';
+      } else {
+        events.forEach((event, index) => {
+          if (event && event.rentals) {
+            message += `${index + 1}. *${event.event_type || 'Evento'}* - ${event.event_time || 'Horário não definido'}\n`;
+            message += `   👤 ${event.rentals.client_name || 'Cliente não definido'}\n`;
+            message += `   📍 ${event.rentals.installation_location || 'Local não definido'}\n`;
+            message += `   💰 R$ ${(event.rentals.total_value || 0).toFixed(2).replace('.', ',')}\n\n`;
+          }
+        });
+      }
+
+      return message;
+    } catch (error) {
+      console.error('Erro ao gerar mensagem do WhatsApp:', error);
+      return 'Erro ao gerar resumo da agenda.';
     }
-
-    return message;
   };
 
   const generateEventMessage = (event: LogisticsEvent) => {
-    const formattedDate = formatDate(date);
-    let message = `📅 *${event.event_type} - ${formattedDate}*\n\n`;
-    message += `⏰ *Horário:* ${formatTime(event.event_time)}\n`;
-    message += `👤 *Cliente:* ${event.rentals.client_name}\n`;
-    message += `📍 *Local:* ${event.rentals.installation_location}\n`;
-    message += `💰 *Valor:* R$ ${event.rentals.total_value.toFixed(2).replace('.', ',')}\n\n`;
+    try {
+      if (!event || !event.rentals) {
+        return 'Dados do evento não disponíveis.';
+      }
 
-    if (event.rentals.rental_items.length > 0) {
-      message += `📦 *Equipamentos:*\n`;
-      event.rentals.rental_items.forEach((item, index) => {
-        message += `   • ${item.equipment_name}\n`;
-      });
+      const formattedDate = formatDate(date);
+      let message = `📅 *${event.event_type || 'Evento'} - ${formattedDate}*\n\n`;
+      message += `⏰ *Horário:* ${formatTime(event.event_time || '')}\n`;
+      message += `👤 *Cliente:* ${event.rentals.client_name || 'Cliente não definido'}\n`;
+      message += `📍 *Local:* ${event.rentals.installation_location || 'Local não definido'}\n`;
+      message += `💰 *Valor:* R$ ${(event.rentals.total_value || 0).toFixed(2).replace('.', ',')}\n\n`;
+
+      if (event.rentals.rental_items && event.rentals.rental_items.length > 0) {
+        message += `📦 *Equipamentos:*\n`;
+        event.rentals.rental_items.forEach((item) => {
+          if (item && item.equipment_name) {
+            message += `   • ${item.equipment_name}\n`;
+          }
+        });
+      }
+
+      return message;
+    } catch (error) {
+      console.error('Erro ao gerar mensagem do evento:', error);
+      return 'Erro ao gerar resumo do evento.';
     }
-
-    return message;
   };
 
   const handleReschedule = (eventId: string) => {
@@ -288,69 +322,79 @@ export default function AgendaDatePage({
             </Card>
           ) : (
             <div className="space-y-4">
-              {events.map(event => (
-                <Card key={event.id}>
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        variant="outline"
-                        className={getStatusColor(event.event_type)}
-                      >
-                        {getStatusIcon(event.event_type)}
-                        <span className="ml-1">{event.event_type}</span>
-                      </Badge>
-                      <span className="text-sm text-gray-500">
-                        {formatTime(event.event_time)}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="font-semibold text-lg text-foreground mb-2">
-                          {event.rentals.client_name}
-                        </h3>
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                          <MapPin className="h-4 w-4" />
-                          <span>{event.rentals.installation_location}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <DollarSign className="h-4 w-4" />
-                          <span>
-                            R${' '}
-                            {event.rentals.total_value
-                              .toFixed(2)
-                              .replace('.', ',')}
-                          </span>
-                        </div>
-                      </div>
+              {events.map(event => {
+                // ✅ CORREÇÃO: Adicionar proteções para evitar erros
+                if (!event || !event.rentals) {
+                  return null;
+                }
 
-                      <div>
-                        <h4 className="font-medium text-sm text-gray-700 mb-2">
-                          Equipamentos:
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {event.rentals.rental_items.map((item, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-2 text-sm"
-                            >
-                              <Package className="h-4 w-4 text-gray-400" />
-                              <span>{item.equipment_name}</span>
-                            </div>
-                          ))}
-                        </div>
+                return (
+                  <Card key={event.id}>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <Badge
+                          variant="outline"
+                          className={getStatusColor(event.event_type || '')}
+                        >
+                          {getStatusIcon(event.event_type || '')}
+                          <span className="ml-1">{event.event_type || 'Evento'}</span>
+                        </Badge>
+                        <span className="text-sm text-gray-500">
+                          {formatTime(event.event_time || '')}
+                        </span>
                       </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="font-semibold text-lg text-foreground mb-2">
+                            {event.rentals.client_name || 'Cliente não definido'}
+                          </h3>
+                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                            <MapPin className="h-4 w-4" />
+                            <span>{event.rentals.installation_location || 'Local não definido'}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <DollarSign className="h-4 w-4" />
+                            <span>
+                              R${' '}
+                              {(event.rentals.total_value || 0)
+                                .toFixed(2)
+                                .replace('.', ',')}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-medium text-sm text-gray-700 mb-2">
+                            Equipamentos:
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {event.rentals.rental_items && event.rentals.rental_items.length > 0 ? (
+                              event.rentals.rental_items.map((item, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center gap-2 text-sm"
+                                >
+                                  <Package className="h-4 w-4 text-gray-400" />
+                                  <span>{item?.equipment_name || 'Equipamento não definido'}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-sm text-gray-500">Nenhum equipamento listado</span>
+                            )}
+                          </div>
+                        </div>
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-green-600" />
-                            <span>Horário: {formatTime(event.event_time)}</span>
+                            <span>Horário: {formatTime(event.event_time || '')}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-xs">
-                              {event.status}
+                              {event.status || 'Status não definido'}
                             </Badge>
                           </div>
                         </div>
@@ -378,7 +422,8 @@ export default function AgendaDatePage({
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              );
+            })}
             </div>
           )}
         </main>

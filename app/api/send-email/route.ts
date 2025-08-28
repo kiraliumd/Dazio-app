@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
-import { render } from '@react-email/render';
 import DazioConfirmationEmail from '@/emails/dazio-confirmation-email';
+import { render } from '@react-email/render';
+import { NextRequest, NextResponse } from 'next/server';
+import { ReactElement } from 'react';
+import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
         confirmationUrl: confirmationUrl,
       });
 
-      emailHtml = await render(emailComponent);
+      emailHtml = await render(emailComponent as ReactElement);
 
       // Verificar se o HTML foi renderizado corretamente
       console.log('🔍 Send Email API: Tipo do HTML:', typeof emailHtml);

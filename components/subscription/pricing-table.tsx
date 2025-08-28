@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { createSubscription } from '@/lib/subscription/actions';
 import { loadStripe } from '@stripe/stripe-js';
 import { CheckIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!;
@@ -61,7 +61,7 @@ export function PricingTable() {
     try {
       setLoading(planId);
 
-      const { sessionId } = await createSubscription(
+      const { checkoutUrl } = await createSubscription(
         planId as 'monthly' | 'annual'
       );
 
@@ -70,9 +70,11 @@ export function PricingTable() {
         throw new Error('Erro ao carregar Stripe');
       }
 
-      const { error } = await stripe.redirectToCheckout({ sessionId });
-      if (error) {
-        throw error;
+      if (checkoutUrl) {
+        // Redirecionar para o checkout do Stripe
+        window.location.href = checkoutUrl;
+      } else {
+        toast.error('Não foi possível criar a sessão de checkout');
       }
     } catch (error) {
       console.error('Erro ao criar assinatura:', error);

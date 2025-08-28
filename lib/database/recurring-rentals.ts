@@ -1,11 +1,9 @@
+import type {
+    Rental as DBRental
+} from '../supabase';
 import { supabase } from '../supabase';
 import type {
-  Rental as DBRental,
-  RecurringRentalOccurrence as DBRecurringOccurrence,
-} from '../supabase';
-import type {
-  Rental,
-  RecurringRentalOccurrence,
+    Rental
 } from '../utils/data-transformers';
 import { getCurrentUserCompanyId } from './client-utils';
 
@@ -124,8 +122,8 @@ export async function createRecurringRental(
     total_value: rental.totalValue,
     discount: rental.discount,
     final_value: rental.finalValue,
-    status: rental.status,
-    observations: rental.observations,
+    // status: rental.status, // Campo removido temporariamente
+    // observations: rental.observations, // Campo removido temporariamente
     budget_id: rental.budgetId,
 
     // Campos de recorrência

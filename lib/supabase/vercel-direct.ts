@@ -26,5 +26,7 @@ export function createUserClient(userId: string) {
   });
 
   // Definir o usuário atual para operações
-  return client.auth.admin.setUser(userId);
+  // Método setUser não existe mais na versão atual do Supabase
+  // return client.auth.admin.setUser(userId);
+  throw new Error('setUser não está disponível na versão atual do Supabase');
 }

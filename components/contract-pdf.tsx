@@ -1,28 +1,15 @@
 import {
-  Document,
-  Font,
-  Page,
-  StyleSheet,
-  Text,
-  View,
+    Document,
+    Page,
+    StyleSheet,
+    Text,
+    View,
 } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-// Registrar fonte padrão
-Font.register({
-  family: 'Helvetica',
-  fonts: [
-    {
-      src: 'https://fonts.gstatic.com/s/helveticaneue/v70/1Ptsg8zYS_SKggPNyC0IT4ttDfA.ttf',
-      fontWeight: 'normal',
-    },
-    {
-      src: 'https://fonts.gstatic.com/s/helveticaneue/v70/1Ptsg8zYS_SKggPNyC0IT4ttDfB.ttf',
-      fontWeight: 'bold',
-    },
-  ],
-});
+// ✅ BOAS PRÁTICAS: Usar fontes padrão do sistema sem Font.register
+// Isso evita problemas de carregamento de fontes externas e garante compatibilidade
 
 // Estilos do PDF
 const styles = StyleSheet.create({
@@ -30,7 +17,6 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     backgroundColor: '#ffffff',
     padding: 40,
-    fontFamily: 'Helvetica',
     fontSize: 10,
     lineHeight: 1.4,
   },
@@ -151,7 +137,6 @@ interface ContractData {
   client: {
     name: string;
     document: string;
-    address: string;
     phone: string;
     email: string;
   };
@@ -207,11 +192,17 @@ export function ContractPDF({ data }: ContractPDFProps) {
   const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
   // Formatar valor por extenso
+  // ✅ BOAS PRÁTICAS: Funções de formatação com tratamento de erro
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
+    try {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(value);
+    } catch (error) {
+      // Fallback para formatação simples
+      return `R$ ${value.toFixed(2).replace('.', ',')}`;
+    }
   };
 
   // Formatar data por extenso
@@ -241,7 +232,7 @@ export function ContractPDF({ data }: ContractPDFProps) {
             Telefone: {data.company.phone}, CPF/CNPJ: {data.company.cnpj}, 
             neste ato representada por seu representante legal infra-assinado e que doravante será designado{' '}
             <Text style={styles.bold}>LOCADORA</Text> e de outro lado: <Text style={styles.bold}>{data.client.name}</Text>, 
-            situada na {data.client.address}, doravante denominada{' '}
+            doravante denominada{' '}
             <Text style={styles.bold}>LOCATÁRIA</Text>, Contrataram a locação dos bens móveis abaixo descritos, 
             com respectivos valores unitários, mediante as condições estabelecidas nas cláusulas seguintes:
           </Text>

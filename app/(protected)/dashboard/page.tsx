@@ -77,57 +77,12 @@ export default function Dashboard() {
   // Carregar dados quando usuário estiver disponível
   useEffect(() => {
     if (user && !metrics) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(
-          '📦 Dashboard: Dados sendo carregados pelos hooks otimizados'
-        );
-      }
-      
       // Forçar refresh para garantir dados frescos
       setTimeout(() => {
-        console.log('🔄 Dashboard: Forçando refresh inicial...');
         refreshMetrics(true);
       }, 1000);
     }
   }, [user, metrics, refreshMetrics]);
-
-  // Debug: Log dos dados recebidos
-  useEffect(() => {
-    console.log('🔍 Dashboard Render: Metrics atualizado:', metrics);
-    console.log('🔍 Dashboard Render: Loading:', loading);
-    console.log('🔍 Dashboard Render: Error:', error);
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Dashboard Debug - Metrics existe:', !!metrics);
-      console.log('🔍 Dashboard Debug - Metrics é objeto:', typeof metrics === 'object');
-      console.log('🔍 Dashboard Debug - Tem pendingBudgets:', metrics && typeof metrics === 'object' && 'pendingBudgets' in metrics);
-      console.log('🔍 Dashboard Debug - MetricsData length:', metricsData.length);
-      
-      // Validação mais detalhada
-      if (metrics && typeof metrics === 'object') {
-        console.log('🔍 Dashboard Debug - Todos os campos:', {
-          pendingBudgets: (metrics as any)?.pendingBudgets,
-          monthlyRentals: (metrics as any)?.monthlyRentals,
-          monthlyRevenue: (metrics as any)?.monthlyRevenue,
-          scheduledEvents: (metrics as any)?.scheduledEvents,
-          activeRentals: (metrics as any)?.activeRentals,
-        });
-      }
-      
-      // Teste direto da função
-      if (user && !metrics) {
-        console.log('🔍 Dashboard Debug - Testando função diretamente...');
-        import('../../../lib/database/dashboard').then(async (module) => {
-          try {
-            const result = await module.getDashboardMetrics();
-            console.log('🔍 Dashboard Debug - Resultado direto da função:', result);
-          } catch (error) {
-            console.error('🔍 Dashboard Debug - Erro na função direta:', error);
-          }
-        });
-      }
-    }
-  }, [metrics, loading, error, user]);
 
   const formatCurrency = (value: number | undefined) => {
     if (value === undefined || value === null) return 'R$ 0,00';
@@ -169,12 +124,6 @@ export default function Dashboard() {
       variant: 'default' as const,
     },
   ] : [];
-
-  // Debug: Log dos dados processados
-  useEffect(() => {
-    console.log('🔍 Dashboard: MetricsData processado:', metricsData);
-    console.log('🔍 Dashboard: MetricsData length:', metricsData.length);
-  }, [metricsData]);
 
   const quickActions = [
     {
@@ -265,7 +214,6 @@ export default function Dashboard() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    console.log('🔄 Forçando refresh dos dados...');
                     refreshMetrics(true);
                   }}
                   className="text-muted-foreground hover:text-foreground"
@@ -281,7 +229,7 @@ export default function Dashboard() {
                     onClick={() => setShowLogoutConfirm(true)}
                     className="text-muted-foreground hover:text-foreground"
                   >
-                    <LogOut className="h-4 w-4 mr-1" />
+                    <LogOut className="h-4 w-4" />
                     Sair
                   </Button>
                 </div>

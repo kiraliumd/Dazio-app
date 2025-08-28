@@ -1,9 +1,9 @@
 'use client';
 
-import { AlertTriangleIcon, ClockIcon } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
+import { AlertTriangleIcon, ClockIcon } from 'lucide-react';
 import Link from 'next/link';
 
 export function TrialBanner() {
@@ -61,7 +61,7 @@ export function TrialBanner() {
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => setTrialStatus(null)}
+              onClick={() => {}}
             >
               Fechar
             </Button>

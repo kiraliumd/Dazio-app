@@ -56,8 +56,7 @@ import {
 import {
     createClient,
     deleteClient,
-    getClients,
-    updateClient,
+    updateClient
 } from '../../../lib/database/clients';
 import { transformClientToDB } from '../../../lib/utils/data-transformers';
 
@@ -120,16 +119,8 @@ export default function ClientsPage() {
       if (process.env.NODE_ENV === 'development') {
         console.error('Erro ao carregar clientes:', clientsError);
       }
-      // Remover alert para melhor UX
     }
   }, [clientsError]);
-
-  // Carregar dados apenas uma vez na montagem
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('📦 Clientes: Dados sendo carregados pelos hooks otimizados');
-    }
-  }, []);
 
   // Paginação
   const ITEMS_PER_PAGE = 10;
@@ -177,23 +168,6 @@ export default function ClientsPage() {
     setCurrentPage(1);
   }, [debouncedSearchTerm, documentTypeFilter]);
 
-  const loadClients = async () => {
-    try {
-      setLoading(true);
-      // Carregar apenas os primeiros 50 clientes para melhor performance
-      const dbClients = await getClients(50);
-      const transformedClients = dbClients.map(transformClientFromDB);
-      setClients(transformedClients);
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Erro ao carregar clientes:', error);
-      }
-      alert('Erro ao carregar clientes');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSearch = useCallback((value: string) => {
     setSearchTerm(value);
   }, []);
@@ -222,7 +196,6 @@ export default function ClientsPage() {
       if (process.env.NODE_ENV === 'development') {
         console.error('Erro ao salvar cliente:', error);
       }
-      alert('Erro ao salvar cliente');
     }
   };
 
@@ -245,7 +218,6 @@ export default function ClientsPage() {
         if (process.env.NODE_ENV === 'development') {
           console.error('Erro ao deletar cliente:', error);
         }
-        alert('Erro ao deletar cliente');
       }
     }
     setDeleteDialogOpen(false);
@@ -448,59 +420,59 @@ export default function ClientsPage() {
                     </TableBody>
                   </Table>
                 </div>
-              </div>
-              {totalPages > 1 && (
-                <div className="mt-4">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          href="#"
-                          onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                            e.preventDefault();
-                            handlePageChange(currentPage - 1);
-                          }}
-                          className={
-                            currentPage === 1
-                              ? 'pointer-events-none text-gray-400'
-                              : ''
-                          }
-                        />
-                      </PaginationItem>
-                      {[...Array(totalPages)].map((_, i) => (
-                        <PaginationItem key={i}>
-                          <PaginationLink
+                {totalPages > 1 && (
+                  <div className="mt-4">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
                             href="#"
-                            onClick={(
-                              e: React.MouseEvent<HTMLAnchorElement>
-                            ) => {
+                            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                               e.preventDefault();
-                              handlePageChange(i + 1);
+                              handlePageChange(currentPage - 1);
                             }}
-                            isActive={currentPage === i + 1}
-                          >
-                            {i + 1}
-                          </PaginationLink>
+                            className={
+                              currentPage === 1
+                                ? 'pointer-events-none text-gray-400'
+                                : ''
+                            }
+                          />
                         </PaginationItem>
-                      ))}
-                      <PaginationItem>
-                        <PaginationNext
-                          href="#"
-                          onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                            e.preventDefault();
-                            handlePageChange(currentPage + 1);
-                          }}
-                          className={
-                            currentPage === totalPages
-                              ? 'pointer-events-none text-gray-400'
-                              : ''
-                          }
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
+                        {[...Array(totalPages)].map((_, i) => (
+                          <PaginationItem key={i}>
+                            <PaginationLink
+                              href="#"
+                              onClick={(
+                                e: React.MouseEvent<HTMLAnchorElement>
+                              ) => {
+                                e.preventDefault();
+                                handlePageChange(i + 1);
+                              }}
+                              isActive={currentPage === i + 1}
+                            >
+                              {i + 1}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext
+                            href="#"
+                            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                              e.preventDefault();
+                              handlePageChange(currentPage + 1);
+                            }}
+                            className={
+                              currentPage === totalPages
+                                ? 'pointer-events-none text-gray-400'
+                                : ''
+                            }
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </main>

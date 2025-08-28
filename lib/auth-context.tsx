@@ -1,15 +1,15 @@
 'use client';
 
+import { Session, User } from '@supabase/supabase-js';
 import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
+    createContext,
+    ReactNode,
+    useContext,
+    useEffect,
+    useState,
 } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from './supabase';
 import { clearCompanyIdCache } from './database/client-utils';
+import { supabase } from './supabase';
 
 interface AuthContextType {
   user: User | null;
@@ -38,19 +38,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        console.log('AuthContext: Sessão inicial:', session?.user?.email);
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('AuthContext: Sessão inicial:', session?.user?.email);
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
 
-        // Sincronizar sessão inicial com o servidor
-        try {
-          await fetch('/auth/callback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ event: 'INITIAL_SESSION', session }),
-          });
-        } catch (e) {
-          console.warn('Falha ao sincronizar sessão inicial no servidor:', e);
+        // Sincronizar sessão inicial com o servidor apenas se houver sessão
+        if (session) {
+          try {
+            const response = await fetch('/auth/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ event: 'INITIAL_SESSION', session }),
+            });
+            
+            if (!response.ok) {
+              if (process.env.NODE_ENV === 'development') {
+                console.warn('Falha ao sincronizar sessão inicial no servidor:', response.status);
+              }
+            } else {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('✅ AuthContext: Sessão sincronizada com sucesso');
+              }
+            }
+          } catch (e) {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('Falha ao sincronizar sessão inicial no servidor:', e);
+            }
+          }
         }
       } catch (error) {
         console.error('Erro ao obter sessão:', error);
@@ -104,11 +122,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        await fetch('/auth/callback', {
+        
+        const response = await fetch('/auth/callback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ event: 'SIGNED_IN', session }),
         });
+        
+        if (!response.ok) {
+          console.warn('Falha ao sincronizar sessão após login:', response.status);
+        } else {
+          console.log('✅ AuthContext: Sessão sincronizada após login');
+        }
       } catch (e) {
         console.warn('Falha ao sincronizar sessão após login:', e);
       }

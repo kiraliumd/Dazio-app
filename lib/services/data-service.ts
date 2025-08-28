@@ -355,7 +355,7 @@ export class DataService {
 
     // Forçar limpeza do cache para dashboard
     this.cache.delete(cacheKey);
-    console.log('🗑️ DataService: Cache do dashboard limpo forçadamente');
+          // Log removido para produção - muito verboso
 
     // Sempre buscar dados frescos para dashboard
     try {
@@ -364,18 +364,18 @@ export class DataService {
         throw new Error('Usuário não autenticado ou empresa não encontrada');
       }
 
-      console.log('🔍 DataService getDashboardMetrics: Company ID:', companyId);
+      // Log removido para produção - muito verboso
 
       // Importar dinamicamente para evitar dependência circular
       const { getDashboardMetrics } = await import('../database/dashboard');
       const result = await getDashboardMetrics();
 
-      console.log('🔍 DataService getDashboardMetrics: Resultado:', result);
+      // Log removido para produção - muito verboso
 
       // Armazenar no cache
       this.setCache(cacheKey, result, options.ttl || 1 * 60 * 1000); // 1 minuto para métricas
 
-      console.log('🗄️ DataService: Métricas do dashboard carregadas do banco');
+      // Log removido para produção - muito verboso
       return result;
     } catch (error) {
       console.error(

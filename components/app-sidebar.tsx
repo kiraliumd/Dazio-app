@@ -1,32 +1,32 @@
 'use client';
 
 import {
-  BarChart3,
-  Calendar,
-  CreditCard,
-  FileText,
-  Home,
-  Package,
-  Repeat,
-  Settings,
-  Users,
-  Wrench,
+    BarChart3,
+    Calendar,
+    CreditCard,
+    FileText,
+    Home,
+    Package,
+    Repeat,
+    Settings,
+    Users,
+    Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BrandLogo } from './brand-logo';
 
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
+    Sidebar,
+    SidebarContent,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarRail,
 } from '@/components/ui/sidebar';
 
 interface MenuItem {
@@ -43,7 +43,7 @@ interface MenuItem {
 const mainMenuItems: MenuItem[] = [
   {
     title: 'Dashboard',
-    url: '/',
+    url: '/dashboard',
     icon: Home,
   },
   {
@@ -122,7 +122,7 @@ export function AppSidebar() {
     <Sidebar className="border-r border-light-gray">
       <SidebarHeader className="border-light-gray p-4 border-b-0">
         <div className="flex items-center justify-start">
-          <BrandLogo width={104} height={36} />
+          <BrandLogo width={120} height={28} />
         </div>
       </SidebarHeader>
       <SidebarContent>

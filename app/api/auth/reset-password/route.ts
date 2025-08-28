@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { resend } from '../../../../lib/resend';
-import React from 'react';
+import { createClient } from '@/lib/supabase/server';
 import { render } from '@react-email/render';
+import { NextRequest, NextResponse } from 'next/server';
+import React from 'react';
 import ResetPasswordEmail from '../../../../emails/reset-password-email';
+import { resend } from '../../../../lib/resend';
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         if (error) {
           throw error;
         }
-        actionLink = data?.properties?.action_link || data?.action_link || null;
+        actionLink = data?.properties?.action_link || null;
         console.log(
           '✅ Reset Password API: Link gerado via admin:',
           actionLink ? 'Sucesso' : 'Falhou'

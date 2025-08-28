@@ -4,83 +4,92 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { BudgetFormV2 } from '@/components/budget-form-v2';
 import { PageHeader } from '@/components/page-header';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from '@/components/ui/table';
 import { useBudgets } from '@/lib/hooks/use-optimized-data';
 import type { Budget } from '@/lib/utils/data-transformers';
 import { transformBudgetFromDB } from '@/lib/utils/data-transformers';
-import { format } from 'date-fns';
 import {
-  Calendar,
-  CheckCircle,
-  Download,
-  Edit,
-  Eye,
-  FileText,
-  Plus,
-  Repeat,
-  Search,
-  Trash2,
+    Calendar,
+    CheckCircle,
+    Download,
+    Edit,
+    Eye,
+    FileText,
+    Plus,
+    Repeat,
+    Search,
+    Trash2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
-  Suspense,
-  lazy,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
+    Suspense,
+    lazy,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
 } from 'react';
 
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
 } from '@/components/ui/pagination';
 
+import { Toaster } from '../../../components/ui/toaster';
+import { useToast } from '../../../hooks/use-toast';
 import { usePDFGenerator } from '../../../hooks/usePDFGenerator';
 import {
-  createBudget,
-  deleteBudget,
-  generateBudgetNumber,
-  getBudgets,
-  updateBudget,
+    createBudget,
+    deleteBudget,
+    generateBudgetNumber,
+    getBudgets,
+    updateBudget,
 } from '../../../lib/database/budgets';
 import { createRental } from '../../../lib/database/rentals';
 import { getCompanySettings } from '../../../lib/database/settings';
@@ -145,6 +154,14 @@ export default function BudgetsPage() {
   const [logisticsModalOpen, setLogisticsModalOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [viewBudgetModalOpen, setViewBudgetModalOpen] = useState(false);
+  
+  // ✅ NOVO: Estados para modal de conflitos de agenda
+  const [conflictsModalOpen, setConflictsModalOpen] = useState(false);
+  const [conflictsData, setConflictsData] = useState<any[]>([]);
+  const [conflictsModalTitle, setConflictsModalTitle] = useState('');
+  const [conflictsModalType, setConflictsModalType] = useState<'create' | 'approve'>('create');
+  const [pendingBudgetData, setPendingBudgetData] = useState<any>(null);
+  const [pendingLogisticsData, setPendingLogisticsData] = useState<any>(null);
 
   // Constantes
   const ITEMS_PER_PAGE = 10;
@@ -162,6 +179,9 @@ export default function BudgetsPage() {
 
   // Hook para geração de PDF
   const { generateBudgetPDF, isGenerating } = usePDFGenerator();
+
+  // Hook para toast
+  const { toast } = useToast();
 
   const router = useRouter();
 
@@ -354,6 +374,50 @@ export default function BudgetsPage() {
     budgetData: Omit<Budget, 'id' | 'number' | 'createdAt'> & { id?: string }
   ) => {
     try {
+      // ✅ NOVA FUNCIONALIDADE: Verificar conflitos de agenda antes de salvar
+      if (!budgetData.id) { // Só verificar conflitos para novos orçamentos
+        const { checkAgendaConflicts } = await import('../../../lib/database/equipments');
+        
+        // Verificar conflitos para cada item do orçamento
+        const conflicts: any[] = [];
+        
+        for (const item of budgetData.items || []) {
+          const itemConflicts = await checkAgendaConflicts(
+            item.equipmentName,
+            budgetData.startDate,
+            budgetData.endDate,
+            undefined, // excludeRentalId
+            item.quantity // requestedQuantity
+          );
+          
+          if (itemConflicts.hasConflicts) {
+            conflicts.push({
+              equipment: item.equipmentName,
+              requestedQuantity: item.quantity,
+              conflicts: itemConflicts.conflicts,
+              totalConflictingQuantity: itemConflicts.totalConflictingQuantity
+            });
+          }
+        }
+
+        // Se há conflitos, mostrar modal de conflitos
+        if (conflicts.length > 0) {
+          try {
+            // ✅ NOVO: Usar modal em vez de window.confirm
+            setConflictsData(conflicts);
+            setConflictsModalTitle('🚨 Conflitos de Agenda Detectados');
+            setConflictsModalType('create');
+            setPendingBudgetData(budgetData);
+            setConflictsModalOpen(true);
+            return; // Pausar aqui até o usuário decidir no modal
+          } catch (error) {
+            console.error('Erro ao processar conflitos:', error);
+            // Se houver erro ao processar conflitos, continuar mesmo assim
+            console.warn('Continuando com a criação do orçamento mesmo com erro na verificação de conflitos');
+          }
+        }
+      }
+
       let budgetNumber = '';
 
       if (budgetData.id) {
@@ -449,12 +513,7 @@ export default function BudgetsPage() {
 
   const handleDeleteBudget = useCallback(
     (id: string) => {
-      // Verificar se o orçamento está aprovado
-      const budget = budgets.find(b => b.id === id);
-      if (budget?.status === 'Aprovado') {
-        alert('Orçamentos aprovados não podem ser excluídos.');
-        return;
-      }
+      // ✅ CORREÇÃO: Permitir exclusão de orçamentos aprovados
       setBudgetToDelete(id);
       setDeleteDialogOpen(true);
     },
@@ -467,15 +526,115 @@ export default function BudgetsPage() {
     setLogisticsModalOpen(true);
   }, []);
 
-  const handleConfirmApproval = async (logisticsData: {
-    installation: Date;
-    removal: Date;
-  }) => {
+  // ✅ NOVA FUNÇÃO: Continuar salvando orçamento após verificar conflitos
+  const handleSaveBudgetContinue = async (budgetData: any) => {
+    try {
+      let budgetNumber = '';
+
+      if (budgetData.id) {
+        // Editando orçamento existente
+        budgetNumber =
+          budgets.find((b: Budget) => b.id === budgetData.id)?.number || '';
+      } else {
+        // Criando novo orçamento
+        budgetNumber = await generateBudgetNumber();
+      }
+
+      // ✅ CORREÇÃO: Criar objeto base sem createdAt para edição
+      const baseBudgetData = {
+        number: budgetNumber,
+        clientId: budgetData.clientId,
+        clientName: budgetData.clientName,
+        startDate: budgetData.startDate,
+        endDate: budgetData.endDate,
+        installationTime: undefined,
+        removalTime: undefined,
+        installationLocation: budgetData.installationLocation || '',
+        items: [],
+        subtotal: budgetData.subtotal,
+        discount: budgetData.discount,
+        totalValue: budgetData.totalValue,
+        status: budgetData.status,
+        observations: budgetData.observations || '',
+        // Campos de recorrência - CORRIGIDO: só definir quando realmente for recorrente
+        isRecurring: Boolean(budgetData.isRecurring),
+        recurrenceType: budgetData.isRecurring
+          ? (budgetData.recurrenceType as 'weekly' | 'monthly' | 'yearly') ||
+            'weekly'
+          : undefined, // ← CORRIGIDO: undefined quando não é recorrente
+        recurrenceInterval: budgetData.isRecurring
+          ? budgetData.recurrenceInterval || 1
+          : undefined, // ← CORRIGIDO: undefined quando não é recorrente
+        recurrenceEndDate: budgetData.isRecurring
+          ? budgetData.recurrenceEndDate || undefined
+          : undefined, // ← CORRIGIDO: undefined quando não é recorrente
+      };
+
+      const items = (budgetData.items || []).map(
+        (item: {
+          equipmentName: string;
+          quantity: number;
+          dailyRate: number;
+          days: number;
+          total: number;
+        }) => ({
+          equipmentName: item.equipmentName,
+          quantity: item.quantity,
+          dailyRate: item.dailyRate,
+          days: item.days,
+          total: item.total,
+        })
+      );
+
+      if (budgetData.id) {
+        // ✅ CORREÇÃO: Para edição, não incluir createdAt
+        await updateBudget(budgetData.id, baseBudgetData, items);
+      } else {
+        // ✅ CORREÇÃO: Para criação, incluir createdAt obrigatoriamente
+        const createBudgetData = { ...baseBudgetData, createdAt: new Date().toISOString() };
+        await createBudget(createBudgetData, items);
+      }
+
+      await refreshBudgets();
+      
+      // Limpar dados pendentes
+      setPendingBudgetData(null);
+      setConflictsModalOpen(false);
+      
+      toast({
+        title: 'Sucesso!',
+        description: 'Orçamento salvo com sucesso!',
+        variant: 'default',
+      });
+    } catch (error: unknown) {
+      console.error('Erro ao salvar orçamento:', error);
+      const errorMessage =
+        error &&
+        typeof error === 'object' &&
+        'message' in error &&
+        typeof error.message === 'string'
+          ? error.message
+          : 'Erro ao salvar orçamento. Tente novamente.';
+      
+      toast({
+        title: 'Erro',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // ✅ NOVA FUNÇÃO: Continuar aprovação após verificar conflitos
+  const handleConfirmApprovalContinue = async (logisticsData: any) => {
     if (!selectedBudget) return;
 
     try {
-      // Helper para formatar a hora
-      const formatTime = (date: Date) => format(date, 'HH:mm');
+      // ✅ CORREÇÃO: Usar toLocaleTimeString em vez de format do date-fns
+      const formatTime = (date: Date) => date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
 
       // 1. Criar contrato de locação com os dados de logística
       const rentalData = {
@@ -486,9 +645,148 @@ export default function BudgetsPage() {
         installation_time: formatTime(logisticsData.installation),
         removal_time: formatTime(logisticsData.removal),
         installation_location: selectedBudget.installationLocation || null,
-        total_value: selectedBudget.totalValue,
+        total_value: selectedBudget.subtotal, // ✅ CORREÇÃO: Usar subtotal (sem desconto)
         discount: selectedBudget.discount,
-        final_value: selectedBudget.totalValue - selectedBudget.discount,
+        final_value: selectedBudget.totalValue, // ✅ CORREÇÃO: Usar totalValue (já com desconto aplicado)
+        status: 'Instalação Pendente' as const,
+        observations: selectedBudget.observations || '',
+        budget_id: selectedBudget.id,
+        // Campos de recorrência
+        is_recurring: Boolean(selectedBudget.isRecurring),
+        recurrence_type: selectedBudget.isRecurring
+          ? selectedBudget.recurrenceType || 'weekly'
+          : 'weekly',
+        recurrence_interval: selectedBudget.isRecurring
+          ? selectedBudget.recurrenceInterval || 1
+          : 1,
+        recurrence_end_date: selectedBudget.isRecurring
+          ? selectedBudget.recurrenceEndDate || null
+          : null,
+        recurrence_status: 'active' as const,
+        parent_rental_id: null,
+        next_occurrence_date: null,
+      };
+
+      // Verificar se há itens antes de tentar acessá-los
+      const budgetItems = selectedBudget?.items || [];
+      const totalItems = budgetItems.length;
+      const totalValue = budgetItems.reduce((sum, item) => sum + item.total, 0);
+
+      const rentalItems = (selectedBudget?.items || []).map(
+        (item: {
+          equipmentName: string;
+          quantity: number;
+          dailyRate: number;
+          days: number;
+          total: number;
+        }) => ({
+          equipment_name: item.equipmentName,
+          quantity: item.quantity,
+          daily_rate: item.dailyRate,
+          days: item.days,
+          total: item.total,
+        })
+      );
+
+      // 2. Criar a locação
+      await createRental(rentalData, rentalItems, logisticsData);
+
+      // 3. Atualizar o status do orçamento para "Aprovado"
+      await updateBudget(selectedBudget.id, { status: 'Aprovado' });
+
+      // 4. Recarregar os orçamentos
+      await refreshBudgets();
+
+      // 5. Fechar o modal
+      setLogisticsModalOpen(false);
+      setSelectedBudget(null);
+      setPendingLogisticsData(null);
+      setConflictsModalOpen(false);
+
+      // 6. Navegar para a página apropriada baseada no tipo de recorrência
+      if (selectedBudget.recurrenceType) {
+        window.location.href = '/locacoes-recorrentes';
+      } else {
+        window.location.href = '/locacoes';
+      }
+    } catch (error) {
+      console.error('Erro ao aprovar orçamento:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao aprovar orçamento. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleConfirmApproval = async (logisticsData: {
+    installation: Date;
+    removal: Date;
+  }) => {
+    if (!selectedBudget) return;
+
+    try {
+      // ✅ NOVA FUNCIONALIDADE: Verificar conflitos de agenda antes de aprovar
+      const { checkAgendaConflicts } = await import('../../../lib/database/equipments');
+      
+      // Verificar conflitos para cada item do orçamento
+      const conflicts: any[] = [];
+      
+              for (const item of selectedBudget.items || []) {
+          const itemConflicts = await checkAgendaConflicts(
+            item.equipmentName,
+            selectedBudget.startDate,
+            selectedBudget.endDate,
+            undefined, // excludeRentalId
+            item.quantity // requestedQuantity
+          );
+        
+        if (itemConflicts.hasConflicts) {
+          conflicts.push({
+            equipment: item.equipmentName,
+            requestedQuantity: item.quantity,
+            conflicts: itemConflicts.conflicts,
+            totalConflictingQuantity: itemConflicts.totalConflictingQuantity
+          });
+        }
+      }
+
+              // Se há conflitos, mostrar modal de conflitos
+        if (conflicts.length > 0) {
+          try {
+            // ✅ NOVO: Usar modal em vez de window.confirm
+            setConflictsData(conflicts);
+            setConflictsModalTitle('🚨 Conflitos de Agenda Detectados na Aprovação');
+            setConflictsModalType('approve');
+            setPendingLogisticsData(logisticsData);
+            setConflictsModalOpen(true);
+            return; // Pausar aqui até o usuário decidir no modal
+          } catch (error) {
+            console.error('Erro ao processar conflitos:', error);
+            // Se houver erro ao processar conflitos, continuar mesmo assim
+            console.warn('Continuando com a aprovação do orçamento mesmo com erro na verificação de conflitos');
+          }
+        }
+
+      // ✅ CORREÇÃO: Usar toLocaleTimeString em vez de format do date-fns
+      const formatTime = (date: Date) => date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+
+      // 1. Criar contrato de locação com os dados de logística
+      const rentalData = {
+        client_id: selectedBudget.clientId,
+        client_name: selectedBudget.clientName,
+        start_date: selectedBudget.startDate,
+        end_date: selectedBudget.endDate,
+        installation_time: formatTime(logisticsData.installation),
+        removal_time: formatTime(logisticsData.removal),
+        installation_location: selectedBudget.installationLocation || null,
+        total_value: selectedBudget.subtotal, // ✅ CORREÇÃO: Usar subtotal (sem desconto)
+        discount: selectedBudget.discount,
+        final_value: selectedBudget.totalValue, // ✅ CORREÇÃO: Usar totalValue (já com desconto aplicado)
         status: 'Instalação Pendente' as const,
         observations: selectedBudget.observations || '',
         budget_id: selectedBudget.id,
@@ -605,10 +903,11 @@ export default function BudgetsPage() {
     }
   }, []);
 
-  // Memoização da formatação de data
+  // ✅ CORREÇÃO: Usar toLocaleDateString em vez de format do date-fns
   const formatDate = useCallback((dateString: string) => {
     try {
-      return format(new Date(dateString), 'dd/MM/yyyy');
+      const date = new Date(dateString);
+      return date.toLocaleDateString('pt-BR');
     } catch {
       return 'Data inválida';
     }
@@ -726,6 +1025,7 @@ export default function BudgetsPage() {
                 <Edit className="h-4 w-4" />
               </Button>
             )}
+            {/* Botão de excluir para orçamentos pendentes */}
             {budget.status === 'Pendente' && (
               <Button
                 variant="outline"
@@ -733,6 +1033,19 @@ export default function BudgetsPage() {
                 onClick={() => handleDeleteBudget(budget.id)}
                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 title="Excluir"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+            
+            {/* Botão de excluir para orçamentos aprovados */}
+            {budget.status === 'Aprovado' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDeleteBudget(budget.id)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                title="Excluir Orçamento Aprovado"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -1072,6 +1385,103 @@ export default function BudgetsPage() {
           </Suspense>
         )}
 
+        {/* ✅ NOVO: Modal de Conflitos de Agenda */}
+        <Dialog open={conflictsModalOpen} onOpenChange={setConflictsModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">
+                {conflictsModalTitle}
+              </DialogTitle>
+              <DialogDescription>
+                Verifique os conflitos de agenda detectados antes de continuar
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {conflictsData.map((conflict, index) => (
+                <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-center gap-2 mb-3">
+                    {conflict.isQuantityAvailable ? (
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    ) : (
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    )}
+                    <h3 className="font-semibold text-lg">
+                      {conflict.equipment}
+                    </h3>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      conflict.isQuantityAvailable 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {conflict.isQuantityAvailable ? '✅ DISPONÍVEL' : '❌ INDISPONÍVEL'}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-3">
+                    <div>
+                      <p className="text-sm text-gray-600">Quantidade Solicitada:</p>
+                      <p className="font-medium">{conflict.requestedQuantity}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-600">Status:</p>
+                      <p className={`font-medium ${
+                        conflict.isQuantityAvailable ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {conflict.isQuantityAvailable ? 'Quantidade Suficiente' : 'Quantidade Insuficiente'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {conflict.conflicts.length > 0 && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">Conflitos Detectados:</p>
+                      <div className="space-y-2">
+                        {conflict.conflicts.map((c: any, cIndex: number) => (
+                          <div key={cIndex} className="bg-white border rounded p-3">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-medium text-gray-900">{c.clientName}</p>
+                                <p className="text-sm text-gray-600">
+                                  {new Date(c.startDate).toLocaleDateString('pt-BR')} a {new Date(c.endDate).toLocaleDateString('pt-BR')}
+                                </p>
+                              </div>
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                                {c.quantity} unidade(s)
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            <DialogFooter className="mt-6">
+              <DialogClose asChild>
+                <Button variant="outline">Cancelar</Button>
+              </DialogClose>
+              <Button 
+                onClick={() => {
+                  setConflictsModalOpen(false);
+                  // Executar a ação pendente
+                  if (conflictsModalType === 'create' && pendingBudgetData) {
+                    handleSaveBudgetContinue(pendingBudgetData);
+                  } else if (conflictsModalType === 'approve' && pendingLogisticsData) {
+                    handleConfirmApprovalContinue(pendingLogisticsData);
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Continuar Mesmo com Conflitos
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Dialog de Confirmação de Exclusão */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
@@ -1079,27 +1489,43 @@ export default function BudgetsPage() {
               <AlertDialogTitle className="text-foreground">
                 Confirmar Exclusão
               </AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza que deseja excluir este orçamento? Esta ação não
-                pode ser desfeita.
-              </AlertDialogDescription>
+              <div className="space-y-4 text-left">
+                <p className="text-base text-muted-foreground leading-relaxed">
+                  Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.
+                </p>
+                
+                {/* ✅ AVISO: Impacto para orçamentos aprovados */}
+                {budgetToDelete && budgets.find(b => b.id === budgetToDelete)?.status === 'Aprovado' && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-3 h-3 bg-amber-500 rounded-full flex-shrink-0"></div>
+                      <p className="text-amber-800 text-base font-semibold">
+                        ⚠️ Atenção
+                      </p>
+                    </div>
+                    <p className="text-amber-700 text-sm leading-relaxed">
+                      Este orçamento está aprovado e pode ter contratos de locação relacionados que também serão excluídos automaticamente.
+                    </p>
+                  </div>
+                )}
+              </div>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>{' '}
-              {/* This state was removed, so this line is removed */}
+              <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDelete}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-orange-600 hover:bg-orange-700 focus:ring-orange-500"
                 disabled={loading}
               >
-                {' '}
-                {/* This state was removed, so this line is removed */}
                 {loading ? 'Excluindo...' : 'Excluir'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </SidebarInset>
+      
+      {/* ✅ NOVO: Componente Toaster para notificações */}
+      <Toaster />
     </SidebarProvider>
   );
 }

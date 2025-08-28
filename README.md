@@ -1,5 +1,25 @@
 # 🚀 Dazio - Sistema de Gestão de Locações
 
+## 🆕 Últimas Atualizações
+
+### Console Logs Limpos (v1.0.1)
+- ✅ **Logs de debug removidos** para produção
+- ✅ **Sistema de logging configurável** implementado
+- ✅ **Console limpo** com apenas logs essenciais
+- ✅ **Performance melhorada** sem logs desnecessários
+
+### Sistema de Logging Configurável
+- 🔍 **Debug**: Apenas em desenvolvimento
+- ℹ️ **Info**: Sempre visível
+- ✅ **Success**: Sempre visível  
+- ⚠️ **Warning**: Sempre visível
+- ❌ **Error**: Sempre visível
+- 🗄️ **Cache**: Apenas em desenvolvimento
+- 🗑️ **Cleanup**: Apenas em desenvolvimento
+- 📊 **Dashboard**: Apenas em desenvolvimento
+- 📦 **Data**: Apenas em desenvolvimento
+- 🔄 **Refresh**: Apenas em desenvolvimento
+
 ## 📋 Índice
 
 1. [Visão Geral](#visão-geral)

@@ -19,14 +19,11 @@ export async function getCurrentUserCompanyId(): Promise<string | null> {
       companyIdCache &&
       Date.now() - companyIdCache.timestamp < companyIdCache.ttl
     ) {
-      console.log(
-        '🔍 getCurrentUserCompanyId: Usando cache, ID:',
-        companyIdCache.id
-      );
+      // Log removido para produção - muito verboso
       return companyIdCache.id;
     }
 
-    console.log('🔍 getCurrentUserCompanyId: Iniciando busca do company_id');
+    // Log removido para produção - muito verboso
 
     // 1. Verificar se há usuário autenticado
     const {
@@ -47,12 +44,7 @@ export async function getCurrentUserCompanyId(): Promise<string | null> {
       return null;
     }
 
-    console.log(
-      '🔍 getCurrentUserCompanyId: Usuário encontrado:',
-      user.email,
-      'ID:',
-      user.id
-    );
+    // Log removido para produção - muito verboso
 
     // 2. Buscar o perfil da empresa
     const { data: companyProfile, error } = await supabase
@@ -118,12 +110,7 @@ export async function getCurrentUserCompanyId(): Promise<string | null> {
       return null;
     }
 
-    console.log(
-      '✅ getCurrentUserCompanyId: Company ID encontrado:',
-      companyProfile.id,
-      'Empresa:',
-      companyProfile.company_name
-    );
+    // Log removido para produção - muito verboso
 
     // Cachear resultado positivo
     companyIdCache = {

@@ -159,6 +159,16 @@ export async function POST(request: NextRequest) {
   try {
     const { event, session } = await request.json();
 
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Auth Callback (POST): Evento recebido:', event);
+      console.log('🔍 Auth Callback (POST): Sessão recebida:', {
+        hasSession: !!session,
+        userEmail: session?.user?.email,
+        accessToken: session?.access_token ? 'presente' : 'ausente',
+        refreshToken: session?.refresh_token ? 'presente' : 'ausente'
+      });
+    }
+
     // Cria cliente do servidor com suporte a cookies (setAll)
     const supabase = await createServerSupabaseClient();
 
@@ -168,12 +178,41 @@ export async function POST(request: NextRequest) {
       event === 'INITIAL_SESSION'
     ) {
       if (session) {
-        await supabase.auth.setSession(session);
+        try {
+          const { error } = await supabase.auth.setSession(session);
+          if (error) {
+            console.error('❌ Auth Callback: Erro ao definir sessão:', error);
+          } else {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('✅ Auth Callback: Sessão definida com sucesso');
+              
+              // Verificar se a sessão foi realmente definida
+              const { data: currentSession } = await supabase.auth.getSession();
+              console.log('🔍 Auth Callback: Sessão atual após setSession:', {
+                hasSession: !!currentSession.session,
+                userEmail: currentSession.session?.user?.email
+              });
+            }
+          }
+        } catch (setSessionError) {
+          console.error('❌ Auth Callback: Erro inesperado ao definir sessão:', setSessionError);
+        }
       }
     }
 
     if (event === 'SIGNED_OUT') {
-      await supabase.auth.signOut();
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error('❌ Auth Callback: Erro ao fazer logout:', error);
+        } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ Auth Callback: Logout realizado com sucesso');
+          }
+        }
+      } catch (signOutError) {
+        console.error('❌ Auth Callback: Erro inesperado ao fazer logout:', signOutError);
+      }
     }
 
     return NextResponse.json({ ok: true });

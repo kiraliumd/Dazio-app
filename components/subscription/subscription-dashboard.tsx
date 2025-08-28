@@ -1,18 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-import { Subscription } from '@/lib/subscription/types';
-import {
-  cancelSubscription,
-  getCustomerPortalUrl,
-} from '@/lib/subscription/actions';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, CreditCardIcon, AlertTriangleIcon } from 'lucide-react';
-import { toast } from 'sonner';
+import {
+    cancelSubscription,
+    getCustomerPortalUrl,
+} from '@/lib/subscription/actions';
+import { Subscription } from '@/lib/subscription/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { AlertTriangleIcon, CalendarIcon, CreditCardIcon } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface SubscriptionDashboardProps {
   subscription: Subscription;
@@ -168,11 +168,13 @@ export function SubscriptionDashboard({
                       Próxima cobrança:
                     </p>
                     <p className="font-medium text-lg">
-                      {format(
-                        new Date(subscription.current_period_end),
-                        'dd/MM/yyyy',
-                        { locale: ptBR }
-                      )}
+                      {subscription.current_period_end
+                        ? format(
+                            new Date(subscription.current_period_end),
+                            'dd/MM/yyyy',
+                            { locale: ptBR }
+                          )
+                        : 'N/A'}
                     </p>
                   </div>
                 )}

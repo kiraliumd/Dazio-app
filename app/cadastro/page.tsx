@@ -1,22 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { BrandLogo } from '@/components/brand-logo';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Lock, Mail, Loader2, CheckCircle } from 'lucide-react';
-import { BrandLogo } from '@/components/brand-logo';
-import { supabase } from '@/lib/supabase';
 
 interface CadastroData {
   email: string;
@@ -132,7 +131,7 @@ export default function CadastroPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <BrandLogo width={120} height={48} className="mx-auto" priority />
+          <BrandLogo width={120} height={28} className="mx-auto" priority />
         </div>
 
         {/* Card de Cadastro */}

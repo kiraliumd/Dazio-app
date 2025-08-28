@@ -27,14 +27,14 @@ export function useOptimizedData<T>(
   const [error, setError] = useState<Error | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
 
-  console.log('🔍 useOptimizedData: Hook inicializado', { dataType, hasLoaded, loading, data: !!data });
+  // Log removido para produção - muito verboso
 
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchData = useCallback(
     async (forceRefresh = false) => {
-      console.log('🔍 useOptimizedData fetchData: Iniciando...', { dataType, forceRefresh });
+      // Log removido para produção - muito verboso
       
       // Cancelar requisição anterior se existir
       if (abortControllerRef.current) {
@@ -48,7 +48,7 @@ export function useOptimizedData<T>(
         setLoading(true);
         setError(null);
 
-        console.log('🔍 useOptimizedData fetchData: Chamando serviço...', { dataType });
+        // Log removido para produção - muito verboso
 
         // Buscar dados do serviço
         let result: any;
@@ -71,19 +71,14 @@ export function useOptimizedData<T>(
             result = await dataService.getRentals(params?.limit);
             break;
           case 'dashboard':
-            console.log('🔍 useOptimizedData: Chamando getDashboardMetrics...');
             result = await dataService.getDashboardMetrics();
-            console.log('🔍 useOptimizedData: Resultado do getDashboardMetrics:', result);
             break;
           default:
             throw new Error(`Tipo de dados não suportado: ${dataType}`);
         }
 
-        console.log('🔍 useOptimizedData: Dados recebidos do serviço:', result);
-        console.log('🔍 useOptimizedData: Definindo dados...', { result, dataType });
         setData(result);
         setHasLoaded(true);
-        console.log('🔍 useOptimizedData: Dados definidos com sucesso');
       } catch (error) {
         if (error instanceof Error && error.name !== 'AbortError') {
           console.error('🔍 useOptimizedData: Erro na busca:', error);

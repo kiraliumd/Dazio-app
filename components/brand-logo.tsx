@@ -16,21 +16,48 @@ export function BrandLogo({
   height = 48,
   className,
   alt = 'Dazio Logo',
-  priority,
+  priority = false,
 }: BrandLogoProps) {
   const [erro, setErro] = useState(false);
 
+  // ✅ BOAS PRÁTICAS: Proporção otimizada para diferentes contextos
+  const getOptimalDimensions = () => {
+    // Proporção original da logo: 139:32 ≈ 4.34:1
+    const aspectRatio = 139 / 32;
+    
+    if (width && height) {
+      // Se ambos foram especificados, usar como está
+      return { width, height };
+    } else if (width) {
+      // Se só width foi especificado, calcular height proporcional
+      return { width, height: Math.round(width / aspectRatio) };
+    } else if (height) {
+      // Se só height foi especificado, calcular width proporcional
+      return { width: Math.round(height * aspectRatio), height };
+    } else {
+      // Valores padrão otimizados
+      return { width: 120, height: 28 };
+    }
+  };
+
+  const optimalDimensions = getOptimalDimensions();
+
   if (erro) {
-    // Fallback inline SVG (mesmo visual do arquivo public/logo-dazio.svg)
+    // Fallback inline SVG com proporção otimizada
     return (
       <svg
         className={className}
-        width={width}
-        height={height}
+        width={optimalDimensions.width}
+        height={optimalDimensions.height}
         viewBox="0 0 139 32"
         xmlns="http://www.w3.org/2000/svg"
         aria-label={alt}
         role="img"
+        style={{ 
+          maxWidth: '100%', 
+          height: 'auto',
+          display: 'block'
+        }}
       >
         <path
           d="M48.0321 30.4001C45.9817 30.4001 44.2356 29.9719 42.7936 29.1156C41.3516 28.2367 40.2588 27.0085 39.5153 25.4311C38.7718 23.8536 38.4 21.9945 38.4 19.8536C38.4 17.7128 38.7605 15.8536 39.4815 14.2762C40.225 12.6762 41.284 11.448 42.6584 10.5916C44.0553 9.73531 45.7114 9.30714 47.6265 9.30714C49.2037 9.30714 50.5556 9.61136 51.6821 10.2198C52.8087 10.8057 53.6762 11.6508 54.2845 12.755H54.4197V1.6001H59.016V25.3635H60.3142C60.8665 25.3635 61.3142 25.8112 61.3142 26.3635V28.9945C61.3142 29.5467 60.8665 29.9945 60.3142 29.9945H57.5489C56.9966 29.9945 56.5489 29.5467 56.5489 28.9945V26.7832H55.1294C54.4309 27.955 53.4846 28.8564 52.2905 29.4874C51.1189 30.0959 49.6994 30.4001 48.0321 30.4001ZM48.8094 26.4452C50.5218 26.4452 51.8849 25.9607 52.8988 24.9916C53.9127 24.0226 54.4197 22.7156 54.4197 21.0705V18.6367C54.4197 16.9916 53.9127 15.6846 52.8988 14.7156C51.8849 13.7466 50.5218 13.2621 48.8094 13.2621C46.9393 13.2621 45.4973 13.848 44.4834 15.0198C43.492 16.1916 42.9964 17.8029 42.9964 19.8536C42.9964 21.9043 43.492 23.5156 44.4834 24.6874C45.4973 25.8593 46.9393 26.4452 48.8094 26.4452Z"
@@ -68,11 +95,17 @@ export function BrandLogo({
     <Image
       src="/logo-dazio.svg"
       alt={alt}
-      width={width}
-      height={height}
+      width={optimalDimensions.width}
+      height={optimalDimensions.height}
       className={className}
       priority={priority}
       onError={() => setErro(true)}
+      style={{ 
+        width: 'auto',
+        height: 'auto',
+        maxWidth: '100%', 
+        display: 'block'
+      }}
     />
   );
 }

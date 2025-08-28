@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
 import {
-  pdf,
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-  Font,
+    Document,
+    Font,
+    Page,
+    pdf,
+    StyleSheet,
+    Text,
+    View,
 } from '@react-pdf/renderer';
-import { Budget } from '../components/budget-form-v2';
+import React, { useState } from 'react';
+// import { Budget } from '../components/budget-form-v2';
 import { CompanySettings } from '../lib/database/settings';
+
+// Usar o tipo Budget de data-transformers
+import { Budget } from '../lib/utils/data-transformers';
 
 // Registrar fonte padrão
 Font.register({
@@ -419,7 +422,7 @@ export const usePDFGenerator = () => {
                     ),
                   ]
                 ),
-                ...budget.items.map((item, index) =>
+                ...(budget.items || []).map((item, index) =>
                   React.createElement(
                     View,
                     { key: `row${index}`, style: styles.tableRow },

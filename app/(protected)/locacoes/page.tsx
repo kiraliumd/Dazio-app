@@ -1,85 +1,86 @@
 'use client';
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from '@/components/ui/card';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
 } from '@/components/ui/pagination';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { useClients, useRentals } from '@/lib/hooks/use-optimized-data';
 import { formatDateCuiaba } from '@/lib/utils';
 import { pdf } from '@react-pdf/renderer';
 import {
-  Calendar,
-  DollarSign,
-  Edit,
-  Eye,
-  FileText,
-  MapPin,
-  MessageSquare,
-  Package,
-  Plus,
-  Search,
-  Trash2,
-  User,
+    Calendar,
+    DollarSign,
+    Edit,
+    Eye,
+    FileText,
+    MapPin,
+    MessageSquare,
+    Package,
+    Plus,
+    Receipt,
+    Search,
+    Trash2,
+    User,
 } from 'lucide-react';
 import React, {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
+    lazy,
+    Suspense,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
 } from 'react';
 import { AppSidebar } from '../../../components/app-sidebar';
 import { ContractPDF } from '../../../components/contract-pdf';
+import { InvoicePDF } from '../../../components/invoice-pdf';
 import { PageHeader } from '../../../components/page-header';
 import { type Rental } from '../../../components/rental-form';
 import { transformRentalFromDB } from '../../../lib/utils/data-transformers';
 
 // Importar funções de CRUD que ainda são necessárias
 import {
-  createRental,
-  deleteRental,
-  updateRental,
+    createRental,
+    deleteRental,
+    updateRental,
 } from '../../../lib/database/rentals';
 import { getCompanySettings } from '../../../lib/database/settings';
 
@@ -434,7 +435,7 @@ export default function RentalsPage() {
         client: {
           name: client.name || 'Nome não informado',
           document: client.document_number || 'Documento não informado',
-          address: client.address || 'Endereço não informado', // ✅ Campo address corrigido
+          address: 'Endereço não informado', // Campo não disponível na tabela clients
           phone: client.phone || 'Telefone não informado',
           email: client.email || 'Email não informado',
         },
@@ -500,6 +501,114 @@ export default function RentalsPage() {
         title: 'Erro',
         description:
           'Erro ao gerar contrato. Verifique se todos os dados estão preenchidos corretamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // ✅ NOVA FUNÇÃO: Gerar Nota Fatura (similar ao recibo do Stripe)
+  const handleGenerateInvoice = async (rental: Rental) => {
+    try {
+      // Buscar configurações da empresa
+      const companySettings = await getCompanySettings();
+
+      // Buscar dados do cliente
+      const client = await getClientById(rental.clientId);
+
+      if (!client) {
+        toast({
+          title: 'Erro',
+          description: 'Cliente não encontrado',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Verificar se todos os dados necessários estão presentes
+      if (!rental.items || rental.items.length === 0) {
+        toast({
+          title: 'Erro',
+          description: 'Nota fiscal sem equipamentos. Não é possível gerar o PDF.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Preparar dados para a nota fiscal
+      const invoiceData = {
+        company: {
+          name: companySettings.company_name || 'Empresa não configurada',
+          cnpj: companySettings.cnpj || 'CNPJ não informado',
+          address: companySettings.address || 'Endereço não informado',
+          phone: companySettings.phone || 'Telefone não informado',
+          email: companySettings.email || 'Email não informado',
+        },
+        client: {
+          name: client.name || 'Nome não informado',
+          document: client.document_number || 'Documento não informado',
+          address: 'Endereço não informado', // Campo não disponível na tabela clients
+          phone: client.phone || 'Telefone não informado',
+          email: client.email || 'Email não informado',
+        },
+        invoice: {
+          number: `NF-${rental.id.slice(0, 8).toUpperCase()}`,
+          date: new Date().toISOString(),
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 dias
+          startDate: rental.startDate || new Date().toISOString(),
+          endDate: rental.endDate || new Date().toISOString(),
+          installationLocation: rental.installationLocation || 'Local não informado',
+          subtotal: rental.totalValue || 0,
+          discount: rental.discount || 0,
+          finalValue: rental.finalValue || 0,
+          observations: rental.observations || '',
+          items: rental.items.map(item => ({
+            equipmentName: item.equipmentName || 'Equipamento não informado',
+            quantity: item.quantity || 1,
+            dailyRate: item.dailyRate || 0,
+            days: item.days || 1,
+            total: item.total || 0,
+          })),
+        },
+      };
+
+      // Log para debug
+      console.log('Dados da nota fiscal:', invoiceData);
+
+      // Gerar PDF da nota fiscal
+      let blob;
+      try {
+        blob = await pdf(<InvoicePDF data={invoiceData} />).toBlob();
+      } catch (pdfError: unknown) {
+        console.error('Erro específico do PDF:', pdfError);
+        const errorMessage =
+          pdfError &&
+          typeof pdfError === 'object' &&
+          'message' in pdfError &&
+          typeof pdfError.message === 'string'
+            ? pdfError.message
+            : 'Erro desconhecido';
+        throw new Error('Erro na geração do PDF: ' + errorMessage);
+      }
+
+      // Criar URL e baixar
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `nota_fatura_${rental.clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Sucesso!',
+        description: 'Nota Fatura gerada e baixada com sucesso!',
+      });
+    } catch (error) {
+      console.error('Erro ao gerar nota fiscal:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao gerar nota fiscal. Verifique o console para mais detalhes.',
         variant: 'destructive',
       });
     }
@@ -931,15 +1040,10 @@ export default function RentalsPage() {
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        // Funcionalidade de geração de nota fiscal será implementada na próxima versão
-                        // Por enquanto, desabilitar o botão
-                      }}
-                      disabled
-                      title="Funcionalidade em desenvolvimento"
+                      onClick={() => handleGenerateInvoice(viewingRental)}
                     >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Gerar Nota Fiscal
+                      <Receipt className="h-4 w-4 mr-2" />
+                      Gerar Nota Fatura
                     </Button>
                     <Button
                       variant="outline"
@@ -974,16 +1078,15 @@ export default function RentalsPage() {
               <AlertDialogTitle className="text-foreground">
                 Confirmar Exclusão
               </AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza que deseja excluir este contrato? Esta ação não pode
-                ser desfeita.
-              </AlertDialogDescription>
+              <p className="text-base text-muted-foreground leading-relaxed">
+                Tem certeza que deseja excluir este contrato de locação? Esta ação não pode ser desfeita.
+              </p>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDelete}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-orange-600 hover:bg-orange-700 focus:ring-orange-500"
               >
                 Excluir
               </AlertDialogAction>

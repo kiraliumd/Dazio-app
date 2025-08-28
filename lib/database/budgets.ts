@@ -1,7 +1,7 @@
-import { supabase } from '../supabase';
-import { getCurrentUserCompanyId } from './client-utils';
 import { dataService } from '../services/data-service';
+import { supabase } from '../supabase';
 import type { Budget, BudgetItem } from '../utils/data-transformers';
+import { getCurrentUserCompanyId } from './client-utils';
 
 export async function getBudgets(
   limit?: number,
@@ -337,37 +337,85 @@ export async function deleteBudget(id: string) {
     throw new Error('Usuário não autenticado ou empresa não encontrada');
   }
 
-  // Remover itens primeiro (devido à foreign key)
-  const { error: itemsError } = await supabase
-    .from('budget_items')
-    .delete()
-    .eq('budget_id', id);
-
-  if (itemsError) {
-    console.error('Erro ao remover itens do orçamento:', itemsError);
-    throw itemsError;
-  }
-
-  // Remover o orçamento
-  const { error: budgetError } = await supabase
-    .from('budgets')
-    .delete()
-    .eq('id', id)
-    .eq('company_id', companyId);
-
-  if (budgetError) {
-    console.error('Erro ao remover orçamento:', budgetError);
-    throw budgetError;
-  }
-
-  // Notificar mudança para invalidar cache
   try {
-    dataService.notifyDataChange('budgets', 'delete');
-  } catch (error) {
-    console.warn('Erro ao notificar mudança de cache:', error);
-  }
+    // ✅ CORREÇÃO: Verificar se há locações relacionadas ao orçamento
+    const { data: relatedRentals, error: rentalsCheckError } = await supabase
+      .from('rentals')
+      .select('id')
+      .eq('budget_id', id)
+      .eq('company_id', companyId);
 
-  return { success: true };
+    if (rentalsCheckError) {
+      console.error('Erro ao verificar locações relacionadas:', rentalsCheckError);
+      throw rentalsCheckError;
+    }
+
+    // Se houver locações relacionadas, excluí-las primeiro
+    if (relatedRentals && relatedRentals.length > 0) {
+      console.log(`🗑️ Excluindo ${relatedRentals.length} locação(ões) relacionada(s) ao orçamento`);
+      
+      // Excluir itens das locações relacionadas
+      for (const rental of relatedRentals) {
+        const { error: rentalItemsError } = await supabase
+          .from('rental_items')
+          .delete()
+          .eq('rental_id', rental.id);
+
+        if (rentalItemsError) {
+          console.error('Erro ao remover itens da locação:', rentalItemsError);
+          throw rentalItemsError;
+        }
+      }
+
+      // Excluir as locações relacionadas
+      const { error: rentalsError } = await supabase
+        .from('rentals')
+        .delete()
+        .eq('budget_id', id)
+        .eq('company_id', companyId);
+
+      if (rentalsError) {
+        console.error('Erro ao remover locações relacionadas:', rentalsError);
+        throw rentalsError;
+      }
+    }
+
+    // Remover itens do orçamento primeiro (devido à foreign key)
+    const { error: itemsError } = await supabase
+      .from('budget_items')
+      .delete()
+      .eq('budget_id', id);
+
+    if (itemsError) {
+      console.error('Erro ao remover itens do orçamento:', itemsError);
+      throw itemsError;
+    }
+
+    // Remover o orçamento
+    const { error: budgetError } = await supabase
+      .from('budgets')
+      .delete()
+      .eq('id', id)
+      .eq('company_id', companyId);
+
+    if (budgetError) {
+      console.error('Erro ao remover orçamento:', budgetError);
+      throw budgetError;
+    }
+
+    // Notificar mudança para invalidar cache
+    try {
+      dataService.notifyDataChange('budgets', 'delete');
+      dataService.notifyDataChange('rentals', 'delete');
+    } catch (error) {
+      console.warn('Erro ao notificar mudança de cache:', error);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Erro ao excluir orçamento:', error);
+    throw error;
+  }
 }
 
 export async function generateBudgetNumber(): Promise<string> {

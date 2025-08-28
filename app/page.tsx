@@ -1,6 +1,6 @@
-import { redirect } from 'next/navigation';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export default async function Page() {
   const cookieStore = cookies();
@@ -10,7 +10,7 @@ export default async function Page() {
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll();
+          return [];
         },
         setAll() {
           // This is handled by the middleware

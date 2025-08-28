@@ -1,21 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '../../lib/auth-context';
+import { BrandLogo } from '@/components/brand-logo';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
-import { BrandLogo } from '@/components/brand-logo';
+import { AlertCircle, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useAuth } from '../../lib/auth-context';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -124,7 +124,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <BrandLogo width={120} height={48} className="mx-auto" priority />
+          <BrandLogo width={120} height={28} className="mx-auto" priority />
         </div>
 
         {/* Card de Login */}
