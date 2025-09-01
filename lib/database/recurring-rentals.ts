@@ -49,6 +49,17 @@ export async function getRecurringRentals(limit?: number) {
       const rentalsWithOccurrences = await Promise.all(
         data.map(async rental => {
           try {
+            // Calcular próxima ocorrência automaticamente se estiver nula
+            if (!rental.next_occurrence_date && rental.recurrence_status !== 'cancelled') {
+              const { data: nextOccurrence } = await supabase.rpc('update_next_occurrence_date', {
+                p_rental_id: rental.id
+              });
+              
+              if (nextOccurrence) {
+                rental.next_occurrence_date = nextOccurrence;
+              }
+            }
+
             const { data: occurrences } = await supabase
               .from('recurring_rental_occurrences')
               .select('*')
