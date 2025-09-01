@@ -1301,8 +1301,12 @@ export function BudgetFormV2({
               loadingData ||
               isApprovedBudget
             }
-            className="w-full bg-transparent"
-            variant="outline"
+            className={`w-full transition-all duration-200 ${
+              selectedEquipment && selectedEquipment !== 'no-results'
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90 border-primary shadow-sm'
+                : 'bg-transparent border-gray-300 hover:bg-gray-50'
+            }`}
+            variant={selectedEquipment && selectedEquipment !== 'no-results' ? 'default' : 'outline'}
           >
             <Plus className="h-4 w-4 mr-2" />
             Adicionar Equipamento
