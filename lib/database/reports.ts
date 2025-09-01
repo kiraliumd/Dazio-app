@@ -1,5 +1,4 @@
 import { supabase } from '../supabase';
-import { getCurrentUserCompanyId } from './client-utils';
 
 interface RentalItem {
   equipment_name: string;
@@ -55,17 +54,50 @@ export interface BudgetReport {
   status: string;
 }
 
+// Função auxiliar para obter company_id do usuário atual
+async function getCurrentUserCompanyId(): Promise<string | null> {
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('❌ getCurrentUserCompanyId: Usuário não autenticado');
+      return null;
+    }
+
+    const { data: companyProfile, error } = await supabase
+      .from('company_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
+
+    if (error) {
+      console.error('❌ getCurrentUserCompanyId: Erro ao buscar empresa:', error);
+      return null;
+    }
+
+    return companyProfile.id;
+  } catch (error) {
+    console.error('❌ getCurrentUserCompanyId: Erro inesperado:', error);
+    return null;
+  }
+}
+
 // Buscar locações para relatórios
 export async function getRentalsForReports(
   filters: ReportFilters
 ): Promise<RentalReport[]> {
   try {
+    console.log('🔍 getRentalsForReports: Iniciando busca com filtros:', filters);
+    
     const companyId = await getCurrentUserCompanyId();
 
     if (!companyId) {
       console.error('❌ getRentalsForReports: Company ID não encontrado');
       throw new Error('Usuário não autenticado ou empresa não encontrada');
     }
+
+    console.log('✅ getRentalsForReports: Company ID encontrado:', companyId);
 
     const { data, error } = await supabase
       .from('rentals')
@@ -82,9 +114,11 @@ export async function getRentalsForReports(
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Erro ao buscar locações para relatórios:', error);
+      console.error('❌ getRentalsForReports: Erro na query:', error);
       throw error;
     }
+
+    console.log('📊 getRentalsForReports: Dados retornados do banco:', data?.length || 0);
 
     // Transformar dados para o formato do relatório
     const rentals = (data || []).map((rental: RentalData) => ({
@@ -100,9 +134,10 @@ export async function getRentalsForReports(
       })),
     }));
 
+    console.log('✅ getRentalsForReports: Dados transformados:', rentals.length);
     return rentals;
   } catch (error) {
-    console.error('Erro ao buscar locações para relatórios:', error);
+    console.error('❌ getRentalsForReports: Erro geral:', error);
     return [];
   }
 }
@@ -112,12 +147,16 @@ export async function getBudgetsForReports(
   filters: ReportFilters
 ): Promise<BudgetReport[]> {
   try {
+    console.log('🔍 getBudgetsForReports: Iniciando busca com filtros:', filters);
+    
     const companyId = await getCurrentUserCompanyId();
 
     if (!companyId) {
       console.error('❌ getBudgetsForReports: Company ID não encontrado');
       throw new Error('Usuário não autenticado ou empresa não encontrada');
     }
+
+    console.log('✅ getBudgetsForReports: Company ID encontrado:', companyId);
 
     const { data, error } = await supabase
       .from('budgets')
@@ -128,9 +167,11 @@ export async function getBudgetsForReports(
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Erro ao buscar orçamentos para relatórios:', error);
+      console.error('❌ getBudgetsForReports: Erro na query:', error);
       throw error;
     }
+
+    console.log('📊 getBudgetsForReports: Dados retornados do banco:', data?.length || 0);
 
     // Transformar dados para o formato do relatório
     const budgets: BudgetReport[] = (data || []).map((budget: BudgetData) => {
@@ -144,9 +185,10 @@ export async function getBudgetsForReports(
       };
     });
 
+    console.log('✅ getBudgetsForReports: Dados transformados:', budgets.length);
     return budgets;
   } catch (error) {
-    console.error('Erro ao buscar orçamentos para relatórios:', error);
+    console.error('❌ getBudgetsForReports: Erro geral:', error);
     return [];
   }
 }
@@ -206,7 +248,7 @@ export async function getAllBudgetsForReports(): Promise<BudgetReport[]> {
     }
 
     // Transformar dados para o formato do relatório
-    const budgets = (data || []).map((budget: BudgetData) => ({
+    const budgets: BudgetReport[] = (data || []).map((budget: BudgetData) => ({
       id: budget.id,
       clientName: budget.client_name,
       createdAt: budget.created_at,

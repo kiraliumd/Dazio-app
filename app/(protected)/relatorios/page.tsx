@@ -1,35 +1,35 @@
 'use client';
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { useBudgets, useRentals } from '@/lib/hooks/use-optimized-data';
 import { Calendar, DollarSign, FileText, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppSidebar } from '../../../components/app-sidebar';
 import { MetricCard } from '../../../components/metric-card';
 import { PageHeader } from '../../../components/page-header';
 import {
-  type BudgetReport,
-  type RentalReport,
+    type BudgetReport,
+    type RentalReport,
+    getBudgetsForReports,
+    getRentalsForReports,
 } from '../../../lib/database/reports';
 
 // Estados para dados dos relatórios
-
 const periodOptions = [
   { value: '30', label: 'Últimos 30 dias' },
   { value: '7', label: 'Últimos 7 dias' },
@@ -43,6 +43,8 @@ export default function RelatoriosPage() {
   const [endDate, setEndDate] = useState('');
   const [filteredRentals, setFilteredRentals] = useState<RentalReport[]>([]);
   const [filteredBudgets, setFilteredBudgets] = useState<BudgetReport[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Calcular datas baseado no período selecionado
   const calculateDateRange = useCallback(() => {
@@ -65,7 +67,7 @@ export default function RelatoriosPage() {
     return { start, end };
   }, [selectedPeriod, startDate, endDate]);
 
-  // Calcular datas para os hooks
+  // Calcular datas para os relatórios
   const dateRange = useMemo(() => {
     const { start, end } = calculateDateRange();
     if (!start || !end) return { startDate: '', endDate: '' };
@@ -76,174 +78,136 @@ export default function RelatoriosPage() {
     };
   }, [calculateDateRange]);
 
-  // Usar hooks otimizados para dados
-  const {
-    data: rentals,
-    loading: rentalsLoading,
-    error: rentalsError,
-    refresh: refreshRentals,
-  } = useRentals(50, {
-    useCache: true,
-    ttl: 2 * 60 * 1000, // 2 minutos para relatórios
-  });
+  // Carregar dados dos relatórios
+  const loadReportData = useCallback(async () => {
+    if (!dateRange.startDate || !dateRange.endDate) return;
 
-  const {
-    data: budgets,
-    loading: budgetsLoading,
-    error: budgetsError,
-    refresh: refreshBudgets,
-  } = useBudgets(50, dateRange.startDate, dateRange.endDate, {
-    useCache: true,
-    ttl: 2 * 60 * 1000, // 2 minutos para relatórios
-  });
+    setLoading(true);
+    setError(null);
 
-  // Calcular loading geral
-  const loading = rentalsLoading || budgetsLoading;
+    try {
+      console.log('🔍 Relatórios: Carregando dados para período:', dateRange);
+      
+      // Carregar dados usando as funções específicas de relatório
+      const [rentals, budgets] = await Promise.all([
+        getRentalsForReports(dateRange),
+        getBudgetsForReports(dateRange),
+      ]);
 
-  // Tratar erros
-  useEffect(() => {
-    if (rentalsError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error(
-          'Erro ao carregar locações para relatórios:',
-          rentalsError
-        );
-      }
-    }
-    if (budgetsError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error(
-          'Erro ao carregar orçamentos para relatórios:',
-          budgetsError
-        );
-      }
-    }
-  }, [rentalsError, budgetsError]);
+      console.log('📊 Relatórios: Dados carregados:', { 
+        rentals: rentals.length, 
+        budgets: budgets.length 
+      });
 
-  // Atualizar dados filtrados quando os dados mudarem
-  useEffect(() => {
-    if (rentals && Array.isArray(rentals)) {
       setFilteredRentals(rentals);
-    }
-    if (budgets && Array.isArray(budgets)) {
       setFilteredBudgets(budgets);
+    } catch (err) {
+      console.error('❌ Relatórios: Erro ao carregar dados:', err);
+      setError('Erro ao carregar dados dos relatórios');
+    } finally {
+      setLoading(false);
     }
-  }, [rentals, budgets]);
+  }, [dateRange]);
 
-  // Carregar dados apenas uma vez na montagem
+  // Carregar dados quando o período mudar
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(
-        '📦 Relatórios: Dados sendo carregados pelos hooks otimizados'
-      );
+    if (dateRange.startDate && dateRange.endDate) {
+      loadReportData();
+    }
+  }, [loadReportData]);
+
+  // Carregar dados iniciais
+  useEffect(() => {
+    if (selectedPeriod !== 'custom') {
+      loadReportData();
     }
   }, []);
 
   // Calcular métricas
-  const totalRevenue = (() => {
-    // ✅ CORREÇÃO: Verificar se filteredRentals existe e é um array
+  const totalRevenue = useMemo(() => {
     if (!filteredRentals || !Array.isArray(filteredRentals)) {
       return 0;
     }
 
-    return filteredRentals.reduce(
-      (sum, rental) => {
-        // ✅ CORREÇÃO: Verificar se finalValue existe e é um número
-        if (typeof rental.finalValue === 'number') {
-          return sum + rental.finalValue;
-        }
-        return sum;
-      },
-      0
-    );
-  })();
-  const contractsCount = (() => {
-    // ✅ CORREÇÃO: Verificar se filteredRentals existe e é um array
+    return filteredRentals.reduce((sum, rental) => {
+      if (typeof rental.finalValue === 'number') {
+        return sum + rental.finalValue;
+      }
+      return sum;
+    }, 0);
+  }, [filteredRentals]);
+
+  const contractsCount = useMemo(() => {
     if (!filteredRentals || !Array.isArray(filteredRentals)) {
       return 0;
     }
     return filteredRentals.length;
-  })();
+  }, [filteredRentals]);
   
-  const budgetsCount = (() => {
-    // ✅ CORREÇÃO: Verificar se filteredBudgets existe e é um array
+  const budgetsCount = useMemo(() => {
     if (!filteredBudgets || !Array.isArray(filteredBudgets)) {
       return 0;
     }
     return filteredBudgets.length;
-  })();
+  }, [filteredBudgets]);
   
-  const averageTicket = contractsCount > 0 ? totalRevenue / contractsCount : 0;
+  const averageTicket = useMemo(() => {
+    return contractsCount > 0 ? totalRevenue / contractsCount : 0;
+  }, [contractsCount, totalRevenue]);
 
   // Top 3 clientes
-  const getTopClients = () => {
-    // ✅ CORREÇÃO: Verificar se filteredRentals existe e é um array
+  const topClients = useMemo(() => {
     if (!filteredRentals || !Array.isArray(filteredRentals)) {
       return [];
     }
 
-    const clientStats = filteredRentals.reduce(
-      (acc, rental) => {
-        // ✅ CORREÇÃO: Verificar se os campos necessários existem
-        if (rental.clientName && typeof rental.finalValue === 'number') {
-          if (!acc[rental.clientName]) {
-            acc[rental.clientName] = {
-              name: rental.clientName,
-              contracts: 0,
-              totalValue: 0,
-            };
-          }
-          acc[rental.clientName].contracts += 1;
-          acc[rental.clientName].totalValue += rental.finalValue;
+    const clientStats = filteredRentals.reduce((acc, rental) => {
+      if (rental.clientName && typeof rental.finalValue === 'number') {
+        if (!acc[rental.clientName]) {
+          acc[rental.clientName] = {
+            name: rental.clientName,
+            contracts: 0,
+            totalValue: 0,
+          };
         }
-        return acc;
-      },
-      {} as Record<
-        string,
-        { name: string; contracts: number; totalValue: number }
-      >
-    );
+        acc[rental.clientName].contracts += 1;
+        acc[rental.clientName].totalValue += rental.finalValue;
+      }
+      return acc;
+    }, {} as Record<string, { name: string; contracts: number; totalValue: number }>);
 
     return Object.values(clientStats)
       .sort((a, b) => b.contracts - a.contracts)
       .slice(0, 3);
-  };
+  }, [filteredRentals]);
 
   // Equipamentos mais alugados
-  const getTopEquipments = () => {
-    // ✅ CORREÇÃO: Verificar se filteredRentals existe e é um array
+  const topEquipments = useMemo(() => {
     if (!filteredRentals || !Array.isArray(filteredRentals)) {
       return [];
     }
 
-    const equipmentStats = filteredRentals.reduce(
-      (acc, rental) => {
-        // ✅ CORREÇÃO: Verificar se rental.items existe antes de usar forEach
-        if (rental.items && Array.isArray(rental.items)) {
-          rental.items.forEach(item => {
-            if (!acc[item.equipmentName]) {
-              acc[item.equipmentName] = {
-                name: item.equipmentName,
-                quantity: 0,
-                rentals: 0,
-              };
-            }
-            acc[item.equipmentName].quantity += item.quantity;
-            acc[item.equipmentName].rentals += 1;
-          });
-        }
-        return acc;
-      },
-      {} as Record<string, { name: string; quantity: number; rentals: number }>
-    );
+    const equipmentStats = filteredRentals.reduce((acc, rental) => {
+      if (rental.items && Array.isArray(rental.items)) {
+        rental.items.forEach(item => {
+          if (!acc[item.equipmentName]) {
+            acc[item.equipmentName] = {
+              name: item.equipmentName,
+              quantity: 0,
+              rentals: 0,
+            };
+          }
+          acc[item.equipmentName].quantity += item.quantity;
+          acc[item.equipmentName].rentals += 1;
+        });
+      }
+      return acc;
+    }, {} as Record<string, { name: string; quantity: number; rentals: number }>);
 
     return Object.values(equipmentStats)
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 5);
-  };
-
-  const topClients = getTopClients();
-  const topEquipments = getTopEquipments();
+  }, [filteredRentals]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -331,8 +295,30 @@ export default function RelatoriosPage() {
                   </>
                 )}
               </div>
+              
+              {/* Botão de atualizar */}
+              <div className="mt-4">
+                <button
+                  onClick={loadReportData}
+                  disabled={loading}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {loading ? 'Atualizando...' : 'Atualizar Relatórios'}
+                </button>
+              </div>
             </CardContent>
           </Card>
+
+          {/* Mensagem de erro */}
+          {error && (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="pt-6">
+                <div className="text-red-600 text-center">
+                  {error}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Métricas Principais */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -472,6 +458,28 @@ export default function RelatoriosPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Debug Info (apenas em desenvolvimento) */}
+          {process.env.NODE_ENV === 'development' && (
+            <Card className="border-gray-200 bg-gray-50">
+              <CardHeader>
+                <CardTitle className="text-sm text-gray-600">
+                  Debug Info
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xs text-gray-500 space-y-1">
+                  <div>Período: {selectedPeriod}</div>
+                  <div>Data Inicial: {dateRange.startDate}</div>
+                  <div>Data Final: {dateRange.endDate}</div>
+                  <div>Rentals: {filteredRentals.length}</div>
+                  <div>Budgets: {filteredBudgets.length}</div>
+                  <div>Receita Total: {totalRevenue}</div>
+                  <div>Loading: {loading.toString()}</div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </main>
       </SidebarInset>
     </SidebarProvider>
